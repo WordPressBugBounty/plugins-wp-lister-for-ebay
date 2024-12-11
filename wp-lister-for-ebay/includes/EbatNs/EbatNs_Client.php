@@ -105,6 +105,10 @@ class EbatNs_Client
 	protected $nextMultiIndex = 0;
 	protected $resultMethods = array();
 	protected $responseData = array();
+
+	public function getCurrentResult() {
+		return $this->_currentResult;
+	}
 	
 	public function startBatchOperation()
 	{

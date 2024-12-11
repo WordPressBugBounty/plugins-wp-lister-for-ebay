@@ -572,10 +572,11 @@ class ToolsPage extends WPL_Page {
 
 		$this->initEC();
 
-		$ebay_time    = $this->EC->getEbayTime();
+		//$ebay_time    = $this->EC->getEbayTime();
+        $ebay_time = $this->EC->getNTPTime();
 
-		if ( is_object( $ebay_time ) ) {
-            $this->showMessage( __('Error fetching the time from eBay. Please make sure you have an active eBay account in WP-Lister with a valid token', 'wp-lister-for-ebay'), true );
+		if ( $ebay_time === false ) {
+            $this->showMessage( __('Error fetching the time from an NTP Server. Please try again later', 'wp-lister-for-ebay'), true );
             return;
         }
 
@@ -1314,9 +1315,9 @@ class ToolsPage extends WPL_Page {
 
 		// try calling eBay API without parameters
 		// should return an Error 37 "Input data is invalid" and "SOAP Authentication failed"
-		$url = 'https://api.ebay.com/wsapi?callname=GeteBayOfficialTime&siteid=0';
-		$this->results->successEbay_1 = $this->checkUrl( $url, 'eBay API', 500, '<ns1:ErrorCode>37</ns1:ErrorCode>' );
-		if ( $this->results->successEbay_1 ) return true;
+		//$url = 'https://api.ebay.com/wsapi?callname=GeteBayOfficialTime&siteid=0';
+		//$this->results->successEbay_1 = $this->checkUrl( $url, 'eBay API', 500, '<ns1:ErrorCode>37</ns1:ErrorCode>' );
+		//if ( $this->results->successEbay_1 ) return true;
 
 		// alternative url #1
 		$url = 'https://api.ebay.com/wsapi';
@@ -1324,8 +1325,8 @@ class ToolsPage extends WPL_Page {
 		// if ( $this->results->successEbay_2 ) return false;
 
 		// alternative url #2
-		$url = 'https://api.ebay.com/';
-		$this->results->successEbay_3 = $this->checkUrl( $url, 'eBay API (root)', 202 );
+		//$url = 'https://api.ebay.com/';
+		//$this->results->successEbay_3 = $this->checkUrl( $url, 'eBay API (root)', 202 );
 
 		// ebay web site
 		$url = 'http://www.ebay.com/';

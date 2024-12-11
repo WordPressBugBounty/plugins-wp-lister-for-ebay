@@ -32,6 +32,8 @@ class WPLE_eBaySite extends WPL_Core {
 	var $ExcludeShippingLocationDetails;
 	var $DoesNotApplyText;
 	var $ItemConditionPolicies;
+	var $HazardousMaterialsLabels;
+	var $ProductSafetyLabels;
 
 
 	function __construct( $id = null ) {
@@ -73,6 +75,8 @@ class WPLE_eBaySite extends WPL_Core {
 			'ShippingCostPaidByOptions',
 			'ShippingLocationDetails',
 			'ExcludeShippingLocationDetails',
+			'HazardousMaterialsLabels',
+			'ProductSafetyLabels',
 			'DoesNotApplyText',
 		);
 

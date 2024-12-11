@@ -34,7 +34,12 @@ class WPL_InventoryCheck extends WPL_Model  {
         $children = $product->get_children();
         $prices = array();
         foreach ($children as $id ) {
-            array_push( $prices, get_post_meta( $id, '_regular_price', true ) );
+	        $child = wc_get_product( $id );
+
+			if ( $child ) {
+				$price    = $child->get_price();
+				$prices[] = $price;
+			}
         }
 
 	    if ( empty($prices) ) {

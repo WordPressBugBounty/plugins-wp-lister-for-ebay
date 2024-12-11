@@ -550,7 +550,7 @@ class EbayCategoriesModel extends WPL_Model {
 			$account = WPLE()->accounts[ get_option('wplister_default_account_id') ];
 			$site_id = $account->site_id;
 		}
-		if ( ! $site_id && $account_id ) {
+		if ( ! $site_id && $account_id && array_key_exists( $account_id, WPLE()->accounts ) ) {
 			$account = WPLE()->accounts[ $account_id ];
 			$site_id = $account->site_id;
 		}
@@ -579,6 +579,22 @@ class EbayCategoriesModel extends WPL_Model {
 		//return is_array($result) ? reset($result) : array();
 
 	} // getItemSpecificsForCategory()
+
+	static function mergeItemSpecifics( $specifics1, $specifics2 ) {
+		$new_specifics = $specifics1;
+
+		$names = wp_list_pluck( $specifics1, 'Name' );
+
+		foreach ( $specifics2 as $spec ) {
+			if ( in_array( $spec->Name, $names ) ) {
+				continue;
+			}
+
+			$new_specifics[] = $spec;
+		}
+
+		return $new_specifics;
+	}
 
 	
 	static function getConditionsForCategory( $category_id, $site_id = false, $account_id = false ) {

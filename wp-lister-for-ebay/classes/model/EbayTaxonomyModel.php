@@ -47,18 +47,13 @@ class EbayTaxonomyModel extends WPL_Model {
         WPLE()->logger->debug( 'cache key: '. $cache_key );
 
         $aspects = get_transient( $cache_key );
-        $aspects = false;
+//        $aspects = false;
 
         // return cached response
         if ( $aspects ) {
             WPLE()->logger->debug( 'Returning aspects from cache:' . print_r( $aspects, 1 ) );
             return $aspects;
         }
-
-        /**
-         * Uncaught TypeError: Argument 1 passed to
-         * Swagger\Client\Api\CategoryTreeApi::__construct() must be an instance of GuzzleHttp\ClientInterface or null, instance of WPLab\GuzzleHttp\Client given, called in /bitnami/wordpress/wp-content/plugins/wp-lister-ebay/classes/model/EbayTaxonomyModel.php on line 52 and defined in /bitnami/wordpress/wp-content/plugins/wp-lister-ebay/includes/ebay-rest-api/lib/Api/CategoryTreeApi.php:71
-         */
 
         try {
 

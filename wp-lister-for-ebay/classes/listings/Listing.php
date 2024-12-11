@@ -2,8 +2,6 @@
 
 namespace WPLab\Ebay\Listings;
 
-use WPLab\Ebay\Listings;
-
 class Listing {
 
 	const STATUS_PREPARED   = 'prepared';
@@ -97,7 +95,71 @@ class Listing {
 		'_ebay_bo_autoaccept_price' => 'Auto-Accept Price',
 		'_ebay_bo_minimum_price'    => 'Minimum Price',
 		'_ebay_item_specifics'      => 'Item Specifics',
-		'_ebay_autopay' => 'Auto Pay'
+		'_ebay_autopay' => 'Auto Pay',
+		'_ebay_gpsr_enabled' => 'GPSR Enabled',
+		'_ebay_gpsr_documents'  => 'GPSR Documents',
+		'_ebay_gpsr_repair_score' => 'Listing Repair Score',
+		'_ebay_gpsr_energy_efficiency_image'    => 'Energy Efficiency Label Image',
+		'_ebay_gpsr_energy_efficiency_image_url'    => 'Energy Efficiency Label Image URL',
+		'_ebay_gpsr_energy_efficiency_image_eps' => 'Energy Efficiency Label Image EPS',
+		'_ebay_gpsr_energy_efficiency_label_description' => 'Energy Efficiency Label Description',
+		'_ebay_gpsr_energy_efficiency_sheet_image' => 'Energy Efficiency Sheet Image',
+		'_ebay_gpsr_energy_efficiency_sheet_image_url' => 'Energy Efficiency Sheet Image URL',
+		'_ebay_gpsr_energy_efficiency_sheet_image_eps' => 'Energy Efficiency Sheet Image EPS',
+		'_ebay_gpsr_hazmat_component' => 'Hazmat Component',
+		'_ebay_gpsr_hazmat_pictograms' => 'Hazmat Pictograms',
+		'_ebay_gpsr_hazmat_signalword' => 'Hazmat Signal Word',
+		'_ebay_gpsr_hazmat_statements' => 'Hazmat Statements',
+		'_ebay_gpsr_manufacturer' => 'Manufacturer',
+		'_ebay_gpsr_manufacturer_street1' => 'Manufacturer Street 1',
+		'_ebay_gpsr_manufacturer_street2' => 'Manufacturer Street 2',
+		'_ebay_gpsr_manufacturer_city' => 'Manufacturer City',
+		'_ebay_gpsr_manufacturer_state' => 'Manufacturer State',
+		'_ebay_gpsr_manufacturer_postcode' => 'Manufacturer Postcode',
+		'_ebay_gpsr_manufacturer_country' => 'Manufacturer Country',
+		'_ebay_gpsr_manufacturer_company' => 'Manufacturer Company',
+		'_ebay_gpsr_manufacturer_phone' => 'Manufacturer Phone',
+		'_ebay_gpsr_manufacturer_email' => 'Manufacturer Email',
+		'_ebay_gpsr_product_safety_component' => 'Product Safety Component',
+		'_ebay_gpsr_product_safety_pictograms' => 'Product Safety Pictograms',
+		'_ebay_gpsr_product_safety_statements' => 'Product Safety Statements',
+		'_ebay_gpsr_responsible_persons' => 'Responsible Persons',
+		'_ebay_gpsr_responsible_persons_1_street1' => 'Responsible Person #1 Street 1',
+		'_ebay_gpsr_responsible_persons_1_street2' => 'Responsible Person #1 Street 2',
+		'_ebay_gpsr_responsible_persons_1_city' => 'Responsible Person #1 City',
+		'_ebay_gpsr_responsible_persons_1_state' => 'Responsible Person #1 State',
+		'_ebay_gpsr_responsible_persons_1_postcode' => 'Responsible Person #1 Postcode',
+		'_ebay_gpsr_responsible_persons_1_country' => 'Responsible Person #1 Country',
+		'_ebay_gpsr_responsible_persons_1_company' => 'Responsible Person #1 Company',
+		'_ebay_gpsr_responsible_persons_1_phone' => 'Responsible Person #1 Phone',
+		'_ebay_gpsr_responsible_persons_1_email' => 'Responsible Person #1 Email',
+		'_ebay_gpsr_responsible_persons_2_street1' => 'Responsible Person #2 Street 1',
+		'_ebay_gpsr_responsible_persons_2_street2' => 'Responsible Person #2 Street 2',
+		'_ebay_gpsr_responsible_persons_2_city' => 'Responsible Person #2 City',
+		'_ebay_gpsr_responsible_persons_2_state' => 'Responsible Person #2 State',
+		'_ebay_gpsr_responsible_persons_2_postcode' => 'Responsible Person #2 Postcode',
+		'_ebay_gpsr_responsible_persons_2_country' => 'Responsible Person #2 Country',
+		'_ebay_gpsr_responsible_persons_2_company' => 'Responsible Person #2 Company',
+		'_ebay_gpsr_responsible_persons_2_phone' => 'Responsible Person #2 Phone',
+		'_ebay_gpsr_responsible_persons_2_email' => 'Responsible Person #2 Email',
+		'_ebay_gpsr_responsible_persons_3_street1' => 'Responsible Person #3 Street 1',
+		'_ebay_gpsr_responsible_persons_3_street2' => 'Responsible Person #3 Street 2',
+		'_ebay_gpsr_responsible_persons_3_city' => 'Responsible Person #3 City',
+		'_ebay_gpsr_responsible_persons_3_state' => 'Responsible Person #3 State',
+		'_ebay_gpsr_responsible_persons_3_postcode' => 'Responsible Person #3 Postcode',
+		'_ebay_gpsr_responsible_persons_3_country' => 'Responsible Person #3 Country',
+		'_ebay_gpsr_responsible_persons_3_company' => 'Responsible Person #3 Company',
+		'_ebay_gpsr_responsible_persons_3_phone' => 'Responsible Person #3 Phone',
+		'_ebay_gpsr_responsible_persons_3_email' => 'Responsible Person #3 Email',
+		'_ebay_gpsr_responsible_persons_4_street1' => 'Responsible Person #4 Street 1',
+		'_ebay_gpsr_responsible_persons_4_street2' => 'Responsible Person #4 Street 2',
+		'_ebay_gpsr_responsible_persons_4_city' => 'Responsible Person #4 City',
+		'_ebay_gpsr_responsible_persons_4_state' => 'Responsible Person #4 State',
+		'_ebay_gpsr_responsible_persons_4_postcode' => 'Responsible Person #4 Postcode',
+		'_ebay_gpsr_responsible_persons_4_country' => 'Responsible Person #4 Country',
+		'_ebay_gpsr_responsible_persons_4_company' => 'Responsible Person #4 Company',
+		'_ebay_gpsr_responsible_persons_4_phone' => 'Responsible Person #4 Phone',
+		'_ebay_gpsr_responsible_persons_4_email' => 'Responsible Person #4 Email',
 	];
 
 	/**
@@ -366,7 +428,7 @@ class Listing {
 	}
 
 	public function getMsrpPrice() {
-		return get_post_meta( $this->listing->getProductId(), '_msrp_price', true ); // simple product
+		return get_post_meta( $this->getProductId(), '_msrp_price', true ); // simple product
 	}
 
 	/**
@@ -575,7 +637,7 @@ class Listing {
 		$mapped_categories  = $this->getMappedCategories( $product_id, $this->getAccountId() );
 		$found_category     = 0;
 
-		if ( ( intval( $mapped_categories['secondary'] ) > 0 ) && ( $mapped_categories['secondary'] != $mapped_categories['primary'] ) ) {
+		if ( apply_filters( 'wple_map_secondary_category', true, $this ) && ( intval( $mapped_categories['secondary'] ) > 0 ) && ( $mapped_categories['secondary'] != $mapped_categories['primary'] ) ) {
 			$found_category = $mapped_categories['secondary'];
 		} else {
 			// optional secondary category
@@ -628,6 +690,7 @@ class Listing {
 				// check store category
 				if ( intval( $store_category_id ) > 0 ) {
 					$found_category = $store_category_id;
+					break;
 				}
 
 			}

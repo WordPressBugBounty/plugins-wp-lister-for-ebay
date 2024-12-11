@@ -51,7 +51,9 @@ class EbayController {
         }
 
         // we want to be patient when talking to ebay
-        if( ! ini_get('safe_mode') ) @set_time_limit(600);
+        if( ! ini_get('safe_mode') && function_exists( 'set_time_limit' ) ) {
+			set_time_limit(600);
+        }
 
         ini_set( 'mysql.connect_timeout', 600 );
         ini_set( 'default_socket_timeout', 600 );
@@ -466,6 +468,76 @@ class EbayController {
         $cm = new EbayCategoriesModel();
         $cm->downloadStoreCategories( $this->session, $account_id );
     }
+
+	public function loadHazardousMaterialsLabels( $account_id ) {
+		$account = WPLE()->accounts[$account_id];
+		$marketplace = new EbayMarketplaceApi( $account_id );
+		$labels = $marketplace->getHazardousMaterialsLabels();
+
+		$data = [
+			'signal_words'  => [],
+			'statements'    => [],
+			'pictograms'    => []
+		];
+		if ( $labels ) {
+			foreach ( $labels->getSignalWords() as $signal_word ) {
+				$data['signal_words'][] = [
+					'signal_word_id'            => $signal_word->getSignalWordId(),
+					'signal_word_description'   => $signal_word->getSignalWordDescription()
+				];
+			}
+
+			foreach ( $labels->getStatements() as $statement ) {
+				$data['statements'][] = [
+					'statement_id'          => $statement->getStatementId(),
+					'statement_description' => $statement->getStatementDescription()
+				];
+			}
+
+			foreach ( $labels->getPictograms() as $pictogram ) {
+				$data['pictograms'][] = [
+					'pictogram_id'          => $pictogram->getPictogramId(),
+					'pictogram_description' => $pictogram->getPictogramDescription(),
+					'pictogram_url'         => $pictogram->getPictogramUrl()
+				];
+			}
+		}
+
+		$Site = new WPLE_eBaySite( $account->site_id );
+		$Site->HazardousMaterialsLabels = serialize( $data );
+		$Site->update();
+	}
+
+	public function loadProductSafetyLabels( $account_id ) {
+		$account = WPLE()->accounts[$account_id];
+		$marketplace = new EbayMarketplaceApi( $account_id );
+		$labels = $marketplace->getProductSafetyLabels();
+
+		$data = [
+			'statements'    => [],
+			'pictograms'    => []
+		];
+		if ( $labels ) {
+			foreach ( $labels->getStatements() as $statement ) {
+				$data['statements'][] = [
+					'statement_id'          => $statement->getStatementId(),
+					'statement_description' => $statement->getStatementDescription()
+				];
+			}
+
+			foreach ( $labels->getPictograms() as $pictogram ) {
+				$data['pictograms'][] = [
+					'pictogram_id'          => $pictogram->getPictogramId(),
+					'pictogram_description' => $pictogram->getPictogramDescription(),
+					'pictogram_url'         => $pictogram->getPictogramUrl()
+				];
+			}
+		}
+
+		$Site = new WPLE_eBaySite( $account->site_id );
+		$Site->ProductSafetyLabels = serialize( $data );
+		$Site->update();
+	}
 
     // load shipping services and insert to db
     public function loadShippingServices( $site_id ){ 
@@ -1286,18 +1358,21 @@ class EbayController {
         return ( $res );       
     }
 
-    // test connection to ebay api by single GetItem request
+    // test connection to ebay api by single GetTokenStatus request
     // (used by import plugin until version 1.3.8)
-    public function testConnection(){ 
-        $req = new GeteBayOfficialTimeRequestType();
-        $res = $this->sp->GeteBayOfficialTime($req);
-        return ( $res );
+    public function testConnection(){
+	    $this->initEC();
+	    $res = $this->EC->GetTokenStatus();
+	    $this->EC->closeEbay();
+        
+		/*$req = new GeteBayOfficialTimeRequestType();
+        $res = $this->sp->GeteBayOfficialTime($req);*/
+        return $res;
     }
      
     // get current time on ebay
     public function getEbayTime(){ 
-
-        // prepare request
+	    // prepare request
         $req = new GeteBayOfficialTimeRequestType();
         
         // send request
@@ -1316,7 +1391,43 @@ class EbayController {
         
     }
 
-    // call Shopping API to fetch matching products
+	public function getNTPTime() {
+	    // Define NTP server and port
+	    $server = 'time.google.com';
+	    $port = 123;
+
+	    // Create a 48-byte NTP packet
+	    $packet = "\010" . str_repeat("\0", 47);
+
+	    // Open a UDP connection to the NTP server
+	    $socket = @fsockopen("udp://$server", $port, $err_no, $err_str, 1);
+
+	    if ($socket) {
+	        // Send the packet to the NTP server
+	        fwrite($socket, $packet);
+
+	        // Read the response (48 bytes)
+	        $response = fread($socket, 48);
+	        fclose($socket);
+
+	        // Process the NTP response to extract the timestamp
+	        if (strlen($response) == 48) {
+	            $unpack = unpack('N12', $response);
+	            $timestamp = sprintf('%u', $unpack[9]);
+
+	            // Convert NTP timestamp to Unix epoch
+	            $ntp_time = $timestamp - 2208988800;
+	            return gmdate("Y-m-d H:i:s", $ntp_time);
+	        } else {
+				return false;
+			}
+		} else {
+			return false;
+		}
+	}
+
+
+// call Shopping API to fetch matching products
     public function callFindProducts( $query ) { 
         // $query = "test";
 
@@ -1477,6 +1588,175 @@ class EbayController {
         return 'ebay.com';
 
     } // getDomainnameBySiteId()
+
+	/**
+	 * @param $url
+	 * @param $session
+	 *
+	 * @return WP_Error
+	 */
+	public function uploadToEPS( $url, $session ) {
+		$req = new UploadSiteHostedPicturesRequestType();
+		// $req->setExternalPictureURL( $url );
+		$req->setPictureSet( 'Supersize' );
+
+		// switch EPS transfer mode - according to settings
+		$eps_xfer_mode = get_option( 'wplister_eps_xfer_mode', 'passive' );
+		if ( $eps_xfer_mode == 'active' ) {
+			$picture_data = null;
+
+			// try to load image data from filesystem first
+			$upload_dir = wp_upload_dir();
+
+			// Fix the URL
+			$ib = new ItemBuilderModel();
+			$url = $ib->normalizeUrl( $url, true );
+
+			$local_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $url );
+			if ( file_exists( $local_path ) && is_readable( $local_path ) ) {
+				$picture_data = file_get_contents( $local_path );
+				WPLE()->logger->info( "loaded ".strlen($picture_data)." bytes from local file: ".$local_path );
+			}
+
+			// if image data is empty, load from URL
+			if ( empty( $picture_data ) ) {
+				// $picture_data = file_get_contents($url);
+				$response = wp_remote_get( $url );
+
+				if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) == 200 ) {
+					$picture_data = wp_remote_retrieve_body( $response );
+					WPLE()->logger->info( "loaded ".strlen($picture_data)." bytes from URL: ".$url );
+				} elseif ( is_wp_error( $response ) ) {
+					$details  = 'wp_remote_get() failed to connect to ' . $url . '<br>';
+					$details .= 'Error:' . ' ' . $response->get_error_message() . '<br>';
+					wple_show_message( 'Connection to '.$url.' failed: '.$details, 'error' );
+					WPLE()->logger->info( 'Connection to '.$url.' failed: '.$details );
+				} else {
+					$details  = 'wp_remote_get() returned an unexpected HTTP status code: ' . wp_remote_retrieve_response_code( $response );
+					wple_show_message( 'Connection to '.$url.' failed: '.$details, 'error' );
+					WPLE()->logger->info( 'Connection to '.$url.' failed: '.$details );
+					WPLE()->logger->info( "reponse object: ".print_r($response,1) );
+				}
+
+			}
+
+			// if image data is STILL empty, show error message to the user
+			if ( empty( $picture_data ) ) {
+				WPLE()->logger->error( "Could not load image data for URL: ".$url );
+				//wple_show_message("There was a problem loading the product image from $url. Please make sure this image URL is accessible or disable the <i>Upload to EPS</i> option in your listing profile.",'error');
+				return new WP_Error( 400, "There was a problem loading the product image from $url. Please make sure this image URL is accessible or disable the <i>Upload to EPS</i> option in your listing profile.");
+			}
+
+			$req->setPictureName( basename($url) );
+			$req->setPictureData( $picture_data );
+			WPLE()->logger->info( "EPS mode: active - filesize: ".strlen($picture_data) );
+		} else {
+			$req->setExternalPictureURL( $url );
+		}
+
+
+		WPLE()->logger->info( "calling UploadSiteHostedPictures - $url " );
+		$res = $this->callUploadSiteHostedPictures($req, $session );
+		WPLE()->logger->info( "UploadSiteHostedPictures Complete" );
+		WPLE()->logger->debug( "Response: ".print_r($res,1) );
+
+		// handle response and check if successful
+		$mdl = new WPL_Model();
+		if ( $mdl->handleResponse($res) ) {
+
+			// fetch final url
+			//$eps_url = $res->SiteHostedPictureDetails->FullURL;
+
+			WPLE()->logger->info( "image was uploaded to EPS successfully. " );
+
+			return $res;
+
+		} // call successful
+
+		// let the user know which image failed to upload if there was an error
+		//wple_show_message( 'Failed to upload image: <code>'.$url.'</code>', 'error' );
+
+		return new WP_Error(500, 'Failed to upload image: <code>'. $url .'</code>');
+	}
+
+	/**
+	 * @param $request
+	 * @param $session
+	 * @param $parseMode
+	 *
+	 * @return mixed
+	 * @throws Exception
+	 */
+	private function callUploadSiteHostedPictures( $request, $session, $parseMode = EBATNS_PARSEMODE_CALL )
+	{
+		$service = new EbatNs_ServiceProxy($session, 'EbatNs_DataConverterUtf8');
+
+		// Fixes the failed UploadSiteHostedPictures calls #60433
+		$new_token = WPLE_eBayAccount::maybeMintToken( $session->wple_account_id );
+
+		if ( $new_token ) {
+			$session->setRequestToken( $new_token );
+		}
+
+		//$this->_session     = $session;
+		$userToken          = $session->getRequestToken();
+		$version            = $service->getVersion();
+		$ExternalPictureURL = $request->getExternalPictureURL();
+		$PictureName        = $request->getPictureName();
+
+		///Build the request XML request which is first part of multi-part POST
+		$xmlMessage  = '<?xml version="1.0" encoding="utf-8"?>' . "\n";
+		$xmlMessage .= '<UploadSiteHostedPicturesRequest xmlns="urn:ebay:apis:eBLBaseComponents">' . "\n";
+		$xmlMessage .= "<Version>$version</Version>\n";
+		$xmlMessage .= $ExternalPictureURL ? "<ExternalPictureURL>$ExternalPictureURL</ExternalPictureURL>\n" : '';
+		$xmlMessage .= $PictureName ? "<PictureName>$PictureName</PictureName>\n" : '';
+		$xmlMessage .= "<PictureSet>Supersize</PictureSet>\n";
+		$xmlMessage .= "<RequesterCredentials><eBayAuthToken>$userToken</eBayAuthToken></RequesterCredentials>\n";
+		$xmlMessage .= '</UploadSiteHostedPicturesRequest>';
+
+		// place all data into the HTTP header
+		// Note: this does not use the actual key set anymore, but eBay seems to accept any keys here
+		$reqHeaders[] = 'X-EBAY-API-COMPATIBILITY-LEVEL: ' . $version;
+		$reqHeaders[] = 'X-EBAY-API-DEV-NAME: '  . $session->getDevId();
+		$reqHeaders[] = 'X-EBAY-API-APP-NAME: '  . $session->getAppId();
+		$reqHeaders[] = 'X-EBAY-API-CERT-NAME: ' . 'none'; // don't send the license API key to eBay
+		$reqHeaders[] = 'X-EBAY-API-CALL-NAME: ' . 'UploadSiteHostedPictures';
+		$reqHeaders[] = 'X-EBAY-API-SITEID: ' . $session->getSiteId();
+
+		$multiPartData = null;
+		if ( empty( $ExternalPictureURL ) ) {
+			// extract picture-binary data from $request->PictureData property
+			// and store as $multiPartData which is passed to sendXmlMessage method
+			$multiPartData = $request->getPictureData();
+			$request->setPictureData(null);
+		}
+
+		// Sandbox or Production
+		if ($session->getAppMode() == 1)
+			$ep = "https://api.sandbox.ebay.com/wsapi";
+		else
+			$ep = 'https://api.ebay.com/ws/api.dll';
+
+		$ep .= '?callname=' . 'UploadSiteHostedPictures';
+		$ep .= '&version=' . $version;
+
+		// upload image using EbatNs_Client::sendMessageXmlStyle()
+		$service->setEP( $ep ); // set endpoint in EbatNs_Client
+		$responseMsg    = $service->sendMessageXmlStyle( $xmlMessage, $reqHeaders, $multiPartData );
+
+		// old version - using custom method (works)
+		// $responseMsg = $this->sendMessageXmlStyle( $xmlMessage, $reqHeaders, $multiPartData );
+		// old version - using WP HTTP API (does not work!)
+		// $responseMsg = $this->sendXmlMessageWithoutCurl( $xmlMessage, $reqHeaders, $multiPartData );
+
+		if ( $responseMsg )	{
+			$ret = $service->decodeMessage( 'UploadSiteHostedPictures', $responseMsg, $parseMode );
+		} else {
+			$ret = $service->getCurrentResult();
+		}
+
+		return $ret;
+	} // callUploadSiteHostedPictures()
 
 
 } // class EbayController

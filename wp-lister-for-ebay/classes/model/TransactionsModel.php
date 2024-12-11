@@ -469,7 +469,7 @@ class TransactionsModel extends WPL_Model {
 		// check for empty transaction id (auctions)
 		if ( intval( $transaction_id ) == 0 ) {
 			// use negative OrderLineItemID to separate from real TransactionIDs
-			$transaction_id = 0 - str_replace( '-', '', $OrderLineItemID );
+			$transaction_id = 0 - intval(str_replace( '-', '', $OrderLineItemID ));
 		}
 
 		return $transaction_id;

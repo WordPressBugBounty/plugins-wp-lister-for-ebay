@@ -130,8 +130,7 @@ class ProfilesPage extends WPL_Page {
 	}
 
 	public function displayEditPage() {
-	
-		// init model
+        // init model
 		$profilesModel = new ProfilesModel();
 
 		// get item
@@ -149,6 +148,7 @@ class ProfilesPage extends WPL_Page {
 		if ( !$site_id && isset( WPLE()->accounts[ $account_id ] ) ) {
 		    $site_id = WPLE()->accounts[ $account_id ]->site_id;
         }
+        $wpl_site = new WPLE_eBaySite( $site_id );
 	
 		// check site data - prompt to refresh if countries are missing
 		$countries = EbayShippingModel::getEbayCountries( $site_id );
@@ -202,12 +202,21 @@ class ProfilesPage extends WPL_Page {
 		if ( intval( $details['ebay_category_1_id'] ) != 0 ) {
 			$primary_category_id = $details['ebay_category_1_id'];
 		} else {
+            // 04/11/2024: Do not load the Item Specifics for the default category. Instead, always add it to the set of loaded item specifics
 			// if not use default category
-		    $primary_category_id = self::getOption('default_ebay_category_id');
+			//$primary_category_id = $account_id ? WPLE()->accounts[ $account_id ]->default_ebay_category_id : self::getOption('default_ebay_category_id');
 		}
 
 		// fetch updated item specifics for category
 		$specifics = EbayCategoriesModel::getItemSpecificsForCategory( $primary_category_id, $site_id, $account_id );
+
+        // Load the item specifics from the default eBay Category and add them to the list of Item Specifics
+        if ( $account_id ) {
+	        $default_category_id = WPLE()->accounts[ $account_id ]->default_ebay_category_id;
+            $default_specifics = EbayCategoriesModel::getItemSpecificsForCategory( $default_category_id, $site_id, $account_id );
+
+            $specifics = EbayCategoriesModel::mergeItemSpecifics( $specifics, $default_specifics );
+        }
 
 		// fetch updated available conditions array
 		// $item['conditions'] = $this->fetchItemConditions( $primary_category_id, $item['profile_id'], $item['account_id'] );
@@ -290,7 +299,7 @@ class ProfilesPage extends WPL_Page {
 			'available_attributes'      => $available_attributes,
 			'custom_attributes'      	=> $wpl_custom_attributes,
 			'calc_shipping_enabled'	 	=> in_array( self::getOption('ebay_site_id'), array(0,2,15,100) ),
-			'default_ebay_category_id'	=> self::getOption('default_ebay_category_id'),
+			'default_ebay_category_id'	=> $account_id ? WPLE()->accounts[ $account_id ]->default_ebay_category_id : self::getOption('default_ebay_category_id'),
 			'shipping_locations'        => $shipping_locations,
 			'exclude_locations'         => $exclude_locations,
 			'countries'                 => $countries,
@@ -318,7 +327,8 @@ class ProfilesPage extends WPL_Page {
 			'seller_shipping_profiles'	=> $seller_shipping_profiles,
 			'seller_payment_profiles'	=> $seller_payment_profiles,
 			'seller_return_profiles'	=> $seller_return_profiles,
-			
+			'hazardous_materials_labels'=> maybe_unserialize( $wpl_site->HazardousMaterialsLabels ),
+			'product_safety_labels'     => maybe_unserialize( $wpl_site->ProductSafetyLabels ),
 			'form_action'				=> 'admin.php?page='.self::ParentMenuId.'-profiles'
 		);
 		$this->display( 'profiles_edit_page', array_merge( $aData, $item ) );
@@ -501,6 +511,8 @@ class ProfilesPage extends WPL_Page {
 
 		WPLE()->logger->debug( 'details after switch: '. print_r( $details, 1 ) );
 
+        // record GPSR
+
 		// fix entered prices
 		$details = self::fixProfilePrices( $details );
 
@@ -515,6 +527,63 @@ class ProfilesPage extends WPL_Page {
 		return $details;
 	}
 
+    protected function processGpsrImages( $details, $account_id ) {
+	    $profile_id = $this->getValueFromPost( 'profile_id' );
+	    // init model
+	    $profilesModel = new ProfilesModel();
+
+	    // get item
+	    $profile = $profilesModel->getItem( $profile_id );
+        $prev_details = [];
+
+        if ( $profile ) {
+            $prev_details = $profile['details'];
+        }
+
+        WPLE()->initEC( $account_id );
+
+        // Energy Efficiency Label Image
+        if ( !empty( $details['gpsr_energy_efficiency_image'] ) ) {
+            if ( $prev_details['gpsr_energy_efficiency_image'] != $details['gpsr_energy_efficiency_image'] ) {
+	            $url = wp_get_attachment_url( $details['gpsr_energy_efficiency_image'] );
+                $result = WPLE()->EC->uploadToEPS( $url, WPLE()->EC->session );
+
+	            if ( is_wp_error( $result ) ) {
+		            // let the user know which image failed to upload if there was an error
+		            wple_show_message( $result->get_error_message(), 'error' );
+		            return false;
+	            }
+
+                $details['gpsr_energy_efficiency_image_eps'] = $result->SiteHostedPictureDetails->FullURL;
+            }
+        } else {
+            // clear the EPS
+	        $details['gpsr_energy_efficiency_image_eps'] = '';
+        }
+
+        // Energy Efficiency Information Sheet Image
+	    if ( !empty( $details['gpsr_energy_efficiency_sheet_image'] ) ) {
+		    if ( $prev_details['gpsr_energy_efficiency_sheet_image'] != $details['gpsr_energy_efficiency_sheet_image'] ) {
+			    $url = wp_get_attachment_url( $details['gpsr_energy_efficiency_sheet_image'] );
+			    $result = WPLE()->EC->uploadToEPS( $url, WPLE()->EC->session );
+
+			    if ( is_wp_error( $result ) ) {
+				    // let the user know which image failed to upload if there was an error
+				    wple_show_message( $result->get_error_message(), 'error' );
+				    return false;
+			    }
+
+			    $details['gpsr_energy_efficiency_sheet_image_eps'] = $result->SiteHostedPictureDetails->FullURL;
+		    }
+	    } else {
+		    // clear the EPS
+		    $details['gpsr_energy_efficiency_sheet_image_eps'] = '';
+	    }
+
+
+        return $details;
+    }
+
 	private function saveProfile() {
 		global $wpdb;	
 
@@ -527,6 +596,9 @@ class ProfilesPage extends WPL_Page {
 
 		// fix entered prices
 		$details = self::fixProfilePrices( $details );
+
+        // Upload GPSR images to EPS
+        $details = self::processGpsrImages( $details, $account_id );
 
 		// process item specifics
 		$item_specifics  = array();
@@ -757,6 +829,14 @@ class ProfilesPage extends WPL_Page {
 		// jQuery UI Autocomplete
 		wp_enqueue_script( 'jquery-ui-button' );
 		wp_enqueue_script( 'jquery-ui-autocomplete' );
+
+		// Enqueue WordPress media scripts
+		//wp_enqueue_script( 'wple' );
+		wp_enqueue_media();
+
+		// add_thickbox();
+		wp_enqueue_script( 'thickbox' );
+		wp_enqueue_style( 'thickbox' );
 
 	}
 

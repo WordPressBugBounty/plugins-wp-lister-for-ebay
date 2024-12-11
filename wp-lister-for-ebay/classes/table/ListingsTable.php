@@ -616,7 +616,7 @@ class ListingsTable extends WP_List_Table {
         // get hidden columns for current user - and adjust colspan attribute on message row
         $user = wp_get_current_user();
         $meta = get_user_meta( $user->ID );
-        $hidden_cols = isset( $meta['managetoplevel_page_wplistercolumnshidden'][0] ) ? maybe_unserialize( $meta['managetoplevel_page_wplistercolumnshidden'][0] ) : array();
+        $hidden_cols = isset( $meta['managetoplevel_page_wplistercolumnshidden'][0] ) ? (array)maybe_unserialize( $meta['managetoplevel_page_wplistercolumnshidden'][0] ) : array();
         $colspan = 13 - count( $hidden_cols );
 
         echo '<td>&nbsp;</td>';

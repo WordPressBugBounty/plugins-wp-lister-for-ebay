@@ -39,6 +39,16 @@ class WPL_AjaxHandler extends WPL_Core {
 		// product matcher
 		add_action('wp_ajax_wple_show_product_matches', 		array( &$this, 'ajax_wple_show_product_matches' ) );
 
+		add_action('wp_ajax_wple_add_responsible_person', 		array( &$this, 'ajax_wple_add_responsible_person' ) );
+		add_action('wp_ajax_wple_delete_responsible_person', 		array( &$this, 'ajax_wple_delete_responsible_person' ) );
+		add_action('wp_ajax_wple_get_responsible_persons', 		array( &$this, 'ajax_wple_get_responsible_persons' ) );
+
+		add_action('wp_ajax_wple_add_manufacturer',             array( &$this, 'ajax_wple_add_manufacturer' ) );
+		add_action('wp_ajax_wple_delete_manufacturer',          array( &$this, 'ajax_wple_delete_manufacturer' ) );
+		add_action('wp_ajax_wple_get_manufacturers',             array( &$this, 'ajax_wple_get_manufacturers' ) );
+
+		add_action('wp_ajax_wple_add_document',                 array( &$this, 'ajax_wple_add_document' ) );
+
 
         add_action( 'wp_ajax_wple_dismiss_notice',              array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'wp_ajax_wple_hide_gnutls_error',                  array( $this, 'ajax_hide_gnutls_error' ) );
@@ -522,6 +532,40 @@ class WPL_AjaxHandler extends WPL_Core {
 				
 				$this->returnJSON( $response );
 				exit();
+
+			case 'loadHazardousMaterialsLabels':
+				// call EbayController
+				$this->initEC( $account_id );
+				$result = $this->EC->loadHazardousMaterialsLabels( $account_id );
+				$this->EC->closeEbay();
+
+				// build response
+				$response = new stdClass();
+				$response->job  	= $job;
+				$response->task 	= $task;
+				$response->result 	= $result;
+				$response->errors   = array();
+				$response->success  = true;
+
+				$this->returnJSON( $response );
+				exit();
+
+			case 'loadProductSafetyLabels':
+				// call EbayController
+				$this->initEC( $account_id );
+				$result = $this->EC->loadProductSafetyLabels( $account_id );
+				$this->EC->closeEbay();
+
+				// build response
+				$response = new stdClass();
+				$response->job  	= $job;
+				$response->task 	= $task;
+				$response->result 	= $result;
+				$response->errors   = array();
+				$response->success  = true;
+
+				$this->returnJSON( $response );
+				exit();
 			
 			case 'getUserToken':
 				
@@ -890,6 +934,19 @@ class WPL_AjaxHandler extends WPL_Core {
 					$tasks[] = array( 
 						'task'        => 'loadStoreCategories', 
 						'displayName' => 'update custom store categories for '.$account->title,
+						'account_id'  => $account_id,
+					);
+
+					// download GPSR Metadata
+					$tasks[] = array(
+						'task'        => 'loadHazardousMaterialsLabels',
+						'displayName' => 'update Hazardous Materials Labels for '.$account->title,
+						'account_id'  => $account_id,
+					);
+
+					$tasks[] = array(
+						'task'        => 'loadProductSafetyLabels',
+						'displayName' => 'update Product Safety Labels for '.$account->title,
 						'account_id'  => $account_id,
 					);
 
@@ -1326,6 +1383,172 @@ class WPL_AjaxHandler extends WPL_Core {
 		exit();
 	}
 
+	public function ajax_wple_get_responsible_persons() {
+		global $wpdb;
+
+		$persons = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ebay_responsible_persons ORDER BY company ASC");
+		die(json_encode($persons));
+	}
+
+	public function ajax_wple_add_responsible_person() {
+		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson();
+		$data       = filter_input_array( INPUT_POST, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$defaults   = [
+			'company'   => '',
+			'email'     => '',
+			'phone'     => '',
+			'street1'   => '',
+			'street2'   => '',
+			'city'      => '',
+			'state'     => '',
+			'postcode'  => '',
+			'country'   => ''
+		];
+
+		$data = wp_parse_args( $data, $defaults );
+		$person
+			->setEmail( $data['email'] )
+			->setCompany( $data['company'] )
+			->setPhone( $data['phone'] )
+			->setStreet1( $data['street1'] )
+			->setStreet2( $data['street2'] )
+			->setCity( $data['city'] )
+			->setState( $data['state'] )
+			->setCountry( $data['country'] )
+			->setPostcode( $data['postcode'] );
+		$id = $person->save();
+
+		if ( $id ) {
+			$response = ['success' => true, 'id' => $id, 'data' => $data ];
+		} else {
+			$response = ['success' => false];
+		}
+
+		die(json_encode($response));
+	}
+
+	public function ajax_wple_delete_responsible_person() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
+		$id         = intval( $_POST['id'] );
+		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson( $id );
+
+		if ( $person->delete() ) {
+			$response = ['success' => true ];
+		} else {
+			$response = ['success' => false];
+		}
+
+		die(json_encode($response));
+	}
+
+	public function ajax_wple_get_manufacturers() {
+		global $wpdb;
+
+		$rows = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ebay_manufacturers ORDER BY company ASC");
+		die(json_encode($rows));
+	}
+
+	public function ajax_wple_add_manufacturer() {
+		$manufacturer = new \WPLab\Ebay\Models\EbayManufacturer();
+		$data       = filter_input_array( INPUT_POST, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$defaults   = [
+			'company'   => '',
+			'email'     => '',
+			'phone'     => '',
+			'street1'   => '',
+			'street2'   => '',
+			'city'      => '',
+			'state'     => '',
+			'postcode'  => '',
+			'country'   => ''
+		];
+
+		$data = wp_parse_args( $data, $defaults );
+		$manufacturer
+			->setEmail( $data['email'] )
+			->setCompany( $data['company'] )
+			->setPhone( $data['phone'] )
+			->setStreet1( $data['street1'] )
+			->setStreet2( $data['street2'] )
+			->setCity( $data['city'] )
+			->setState( $data['state'] )
+			->setCountry( $data['country'] )
+			->setPostcode( $data['postcode'] );
+		$id = $manufacturer->save();
+
+		if ( $id ) {
+			$response = ['success' => true, 'id' => $id, 'data' => $data ];
+		} else {
+			$response = ['success' => false];
+		}
+
+		die(json_encode($response));
+	}
+
+	public function ajax_wple_delete_manufacturer() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
+		$id         = intval( $_POST['id'] );
+		$manufacturer     = new \WPLab\Ebay\Models\EbayManufacturer( $id );
+
+		if ( $manufacturer->delete() ) {
+			$response = ['success' => true ];
+		} else {
+			$response = ['success' => false];
+		}
+
+		die(json_encode($response));
+	}
+
+	public function ajax_wple_add_document() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
+		$file = intval( $_POST['file'] );
+		$type = $_POST['type'];
+		$account_id = intval($_POST['account']);
+
+		$path = get_attached_file($file);
+
+		if ( ! $path ) {
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
+		$api = new EbayMediaApi( $account_id );
+		$resp = $api->createDocument( $type );
+
+		if ( $resp ) {
+			$document_id = $resp->getDocumentId();
+
+			// upload
+			$upload = $api->uploadDocument( $document_id, $path );
+
+			if ( $upload ) {
+				$document = new \WPLab\Ebay\Models\EbayDocument();
+				$document
+					->setDocumentId( $document_id )
+					->setDocumentType( $type )
+					->setAccountId( $account_id )
+					->setAttachmentId( $file )
+					->save();
+
+
+				$response = ['success' => true ];
+			} else {
+				$response = ['success' => false];
+			}
+		} else {
+			$response = ['success' => false];
+		}
+
+		die(json_encode($response));
+	}
 
 	// show matching products
 	public function ajax_wple_show_product_matches() {

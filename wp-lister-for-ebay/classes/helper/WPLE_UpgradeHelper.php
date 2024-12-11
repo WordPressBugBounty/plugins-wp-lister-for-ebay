@@ -1726,6 +1726,65 @@ class WPLE_UpgradeHelper {
 			$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
 		}
 
+		if ( 74 > $db_version ) {
+			$new_db_version = 74;
+
+			$sql = "CREATE TABLE `{$wpdb->prefix}ebay_manufacturers` (
+					  `id` int(6) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					  `street1` varchar(100) NOT NULL,
+					  `street2` varchar(100) NULL,
+					  `city` varchar(100) NULL,
+					  `state` varchar(50) NULL,
+					  `postcode` varchar(10) NULL,
+					  `country` varchar(2) NULL,
+					  `email` varchar(100) NULL,
+					  `phone` varchar(25) NULL,
+					  `company` varchar(150) NOT NULL,
+					  `date_added` datetime NOT NULL
+					);";
+
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			$sql = "CREATE TABLE `{$wpdb->prefix}ebay_responsible_persons` (
+					  `id` int(6) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					  `street1` varchar(100) NOT NULL,
+					  `street2` varchar(100) NULL,
+					  `city` varchar(100) NULL,
+					  `state` varchar(50) NULL,
+					  `postcode` varchar(10) NULL,
+					  `country` varchar(2) NULL,
+					  `email` varchar(100) NULL,
+					  `phone` varchar(25) NULL,
+					  `company` varchar(150) NOT NULL,
+					  `date_added` datetime NOT NULL
+					);";
+
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_sites`
+						ADD `HazardousMaterialsLabels` longtext COLLATE 'utf8mb4_unicode_ci' NULL,
+						ADD `ProductSafetyLabels` longtext COLLATE 'utf8mb4_unicode_ci' NULL;";
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			$sql = "CREATE TABLE `{$wpdb->prefix}ebay_documents` (
+					  `id` bigint(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+					  `account_id` bigint(11) NOT NULL,
+					  `attachment_id` bigint(11) NOT NULL,
+					  `document_id` varchar(25) NOT NULL,
+					  `document_type` varchar(50) NOT NULL,
+					  `date_added` datetime NOT NULL
+					);";
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_documents`
+					ADD INDEX `account_id` (`account_id`),
+					ADD INDEX `attachment_id` (`attachment_id`);";
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			update_option('wplister_db_version', $new_db_version);
+			$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
+		}
+
 		// show update message
 		if ( $msg && ! $hide_message ) wple_show_message($msg,'info');
 

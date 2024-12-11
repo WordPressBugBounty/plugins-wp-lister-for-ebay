@@ -103,6 +103,41 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.7.0 - 2024-12-11 =
+* New: Support for the General Product Safety Regulation (GPSR)
+* Fix: Undefined profile attributes messing up the default properties
+* Fix: Check if the set_time_limit() function is available before using it
+* Fix: `Unsupported operand types` in TransactionsModel::getRealTransactionID()
+* Fix: Item Specifics for the default category not getting loaded in the Edit Profile page
+* Fix: Prevent sending listings to the wrong account by initializing a new eBay session with the correct eBay account before calling ReviseInventoryStatus
+* Fix: Improved the searching using the REST API using the `search` parameter
+* Fix: Variable GTINs not getting accessed correctly
+* Fix: Item Specifics getting loaded first from the profile instead of the mapped category
+* Fix: Error generated in commented code in the Edit Product page
+* Fix: Error `Call to a member function getId() on Int` in wc-emails.php
+* Fix: MinMax price in the Inventory Check tool does not take into account the sale price
+* Dev: New filter `wple_product_send_stock_notifications`
+* Dev: New filter `wple_wc_shipping_line_item`
+* Dev: New filter `wple_map_secondary_category`
+* Dev: Removed the deprecated GeteBayOfficialTime calls
+* Dev: Updated the eBay REST API and added support for the Marketplace, Document, and Video APIs
+
+= 3.6.7.1 - 2024-10-03 =
+* Hotfix: `Call to a member function get_id()` breaking order imports
+
+= 3.6.7 - 2024-10-02 =
+* Fix: Persistent errors getting displayed
+
+= 3.6.6 - 2024-09-26 =
+* Fix: Grid Editor not displaying the listings
+* Fix: Errors returned during the BuildItem process not getting displayed
+* Fix: DB error when trying to update a log using an empty $data array
+* Fix: Error in the \WPLab\Ebay\Listings\Listing::getMsrpPrice() method
+* Fix: Fatal error when retrieving the number of hidden columns
+* Fix: Secondary store category not getting published
+* Fix: Warning `Deprecated: Automatic conversion of false to array is deprecated`
+* Tweak: Skip setting the ReturnPolicy if a Returns Business Policy is being used
+
 = 3.6.5 - 2024-08-28 =
 * Fix: Fatal error when trying to access get_meta() on an invalid product
 * Fix: Warnings in the Add Profile page

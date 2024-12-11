@@ -153,6 +153,8 @@ class ItemBuilderModel extends WPL_Model {
 		// add item specifics (attributes) - after variations
 		$this->buildItemSpecifics();
 
+		$this->buildGpsr();
+
 		// add part compatibility list
 		$this->buildCompatibilityList();
 
@@ -960,27 +962,29 @@ class ItemBuilderModel extends WPL_Model {
 			$this->item->setAutoPay( 0 );
         }
 
-		// ReturnPolicy
-		$this->item->ReturnPolicy = new ReturnPolicyType();
-		if ( $this->profile_details['returns_accepted'] == 1 ) {
-			$this->item->ReturnPolicy->ReturnsAcceptedOption = 'ReturnsAccepted';
-			$this->item->ReturnPolicy->ReturnsWithinOption   = $this->profile_details['returns_within'];
-			$this->item->ReturnPolicy->Description           = stripslashes( $this->profile_details['returns_description'] );
+		// ReturnPolicy - only set this if there is no Return Profile ID selected
+		if ( empty( $this->profile_details['seller_return_profile_id'] ) ) {
+			$this->item->ReturnPolicy = new ReturnPolicyType();
+			if ( $this->profile_details['returns_accepted'] == 1 ) {
+				$this->item->ReturnPolicy->ReturnsAcceptedOption = 'ReturnsAccepted';
+				$this->item->ReturnPolicy->ReturnsWithinOption   = $this->profile_details['returns_within'];
+				$this->item->ReturnPolicy->Description           = stripslashes( $this->profile_details['returns_description'] );
 
-			if ( ( isset($this->profile_details['RestockingFee']) ) && ( $this->profile_details['RestockingFee'] != '' ) ) {
-				$this->item->ReturnPolicy->RestockingFeeValueOption = $this->profile_details['RestockingFee'];
+				if ( ( isset( $this->profile_details['RestockingFee'] ) ) && ( $this->profile_details['RestockingFee'] != '' ) ) {
+					$this->item->ReturnPolicy->RestockingFeeValueOption = $this->profile_details['RestockingFee'];
+				}
+
+				if ( ( isset( $this->profile_details['ShippingCostPaidBy'] ) ) && ( $this->profile_details['ShippingCostPaidBy'] != '' ) ) {
+					$this->item->ReturnPolicy->ShippingCostPaidByOption = $this->profile_details['ShippingCostPaidBy'];
+				}
+
+				if ( ( isset( $this->profile_details['RefundOption'] ) ) && ( $this->profile_details['RefundOption'] != '' ) ) {
+					$this->item->ReturnPolicy->RefundOption = $this->profile_details['RefundOption'];
+				}
+
+			} else {
+				$this->item->ReturnPolicy->ReturnsAcceptedOption = 'ReturnsNotAccepted';
 			}
-
-			if ( ( isset($this->profile_details['ShippingCostPaidBy']) ) && ( $this->profile_details['ShippingCostPaidBy'] != '' ) ) {
-				$this->item->ReturnPolicy->ShippingCostPaidByOption = $this->profile_details['ShippingCostPaidBy'];
-			}
-
-			if ( ( isset($this->profile_details['RefundOption']) ) && ( $this->profile_details['RefundOption'] != '' ) ) {
-				$this->item->ReturnPolicy->RefundOption = $this->profile_details['RefundOption'];
-			}
-
-		} else {
-			$this->item->ReturnPolicy->ReturnsAcceptedOption = 'ReturnsNotAccepted';
 		}
 	} /* end of buildPayment() */
 
@@ -1646,6 +1650,390 @@ class ItemBuilderModel extends WPL_Model {
 
 	} /* end of buildItemSpecifics() */
 
+	private function isGpsrEnabled() {
+		$product_enabled = $this->listing->getProductProperty('_ebay_gpsr_enabled');
+
+		if ( $product_enabled == 0 ) {
+			return false;
+		} elseif ( $product_enabled == 1 ) {
+			return true;
+		} else {
+			// an empty string for "-- use profile setting --"
+			return (bool)$this->profile_details['gpsr_enabled'];
+		}
+	}
+
+	/**
+	 * @return EnergyEfficiencyType
+	 */
+	private function getEnergyEfficiencyProperties() {
+		// Energy Efficiency Label
+		$ee = new EnergyEfficiencyType();
+
+		$product_image_id       = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image' );
+		$product_image_url      = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image_url' );
+		$product_image_url_eps  = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image_eps' );
+
+		if ( ! $product_image_url_eps ) {
+			// if there's no EPS URL, upload this to EPS if an ID or URL is provided
+			if ( $product_image_id ) {
+				// Upload to EPS
+				$product_image_url = wp_get_attachment_url( $product_image_id );
+			}
+
+			if ( $product_image_url ) {
+				$result = WPLE()->EC->uploadToEPS( $product_image_url, $this->session );
+
+				if ( is_wp_error( $result ) ) {
+					// let the user know which image failed to upload if there was an error
+					wple_show_message( $result->get_error_message(), 'error' );
+				} else {
+					// assign URL to $product_image_url_eps
+					$product_image_url_eps = $result->SiteHostedPictureDetails->FullURL;
+					update_post_meta( $this->product_id, '_ebay_gpsr_energy_efficiency_image_eps', $product_image_url_eps );
+				}
+			}
+		}
+
+
+		if ( $product_image_url_eps ) {
+			$ee->setImageURL( $product_image_url_eps );
+		} else {
+			// No image set for the product. Use the profile value
+			$profile_image_id       = $this->profile_details['gpsr_energy_efficiency_image'];
+			$profile_image_url_eps  = $this->profile_details['gpsr_energy_efficiency_image_eps'];
+
+			if ( $profile_image_id && $profile_image_url_eps ) {
+				$ee->setImageURL( $profile_image_url_eps );
+			}
+		}
+
+		$product_sheet_image_id     = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_sheet_image' );
+		$product_sheet_image_url    = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_sheet_image_url' );
+		$product_sheet_image_eps    = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_sheet_image_eps' );
+
+		if ( empty( $product_sheet_image_eps ) ) {
+			// If there's an ID but no EPS URL, we need to upload to EPS to get one
+			if ( $product_sheet_image_id  ) {
+				$product_sheet_image_url = wp_get_attachment_url( $product_sheet_image_id );
+			}
+
+			if ( $product_sheet_image_url ) {
+				$result = WPLE()->EC->uploadToEPS( $product_sheet_image_url, $this->session );
+
+				if ( is_wp_error( $result ) ) {
+					// let the user know which image failed to upload if there was an error
+					wple_show_message( $result->get_error_message(), 'error' );
+				} else {
+					// assign URL to $product_image_url_eps
+					$product_sheet_image_eps = $result->SiteHostedPictureDetails->FullURL;
+					update_post_meta( $this->product_id, '_ebay_gpsr_energy_efficiency_sheet_image_eps', $product_sheet_image_eps );
+				}
+			}
+		}
+
+		if ( $product_sheet_image_eps ) {
+			$ee->setProductInformationsheet( $product_sheet_image_eps );
+		} else {
+			// No image set for the product. Use the profile value
+			$profile_sheet_image_id       = $this->profile_details['gpsr_energy_efficiency_sheet_image'];
+			$profile_sheet_image_url_eps  = $this->profile_details['gpsr_energy_efficiency_sheet_image_eps'];
+
+			if ( $profile_sheet_image_id && $profile_sheet_image_url_eps ) {
+				$ee->setProductInformationsheet( $profile_sheet_image_url_eps );
+			}
+		}
+
+		$product_label_description  = $this->listing->getProductProperty('_ebay_gpsr_energy_efficiency_label_description');
+
+		if ( empty( $product_label_description ) ) {
+			$product_label_description = $this->profile_details['gpsr_energy_efficiency_label_description'] ?? '';
+		}
+
+		$ee->setImageDescription($product_label_description );
+
+		return $ee;
+	}
+
+	/**
+	 * @return HazmatType|bool
+	 */
+	private function getHazmatProperties() {
+		$hazmat = new HazmatType();
+
+		$component = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_component' );
+
+		if ( empty( $component ) ) {
+			$component = $this->profile_details['gpsr_hazmat_component'] ?? '';
+		}
+
+		$pictograms_type = new PictogramsType();
+		$pictograms = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_pictograms' );
+
+		if ( empty( $pictograms ) ) {
+			$pictograms = $this->profile_details['gpsr_hazmat_pictograms'] ?? '';
+		}
+
+		foreach ( $pictograms as $pictogram ) {
+			$pictograms_type->addPictogram( $pictogram );
+		}
+
+		$signalword = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_signalword' );
+
+		if ( empty( $signalword ) ) {
+			$signalword = $this->profile_details['gpsr_hazmat_signalword'] ?? '';
+		}
+
+		$statements_type = new StatementsType();
+		$statements = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_statements' );
+
+		if ( empty( $statements ) ) {
+			$statements = $this->profile_details['gpsr_hazmat_statements'] ?? '';
+		}
+
+		foreach ( $statements as $statement ) {
+			$statements_type->addStatement( $statement );
+		}
+
+		if ( $component || $pictograms || $statements ) {
+			$hazmat->setComponent( $component );
+			$hazmat->setPictograms( $pictograms_type );
+			$hazmat->setSignalWord( $signalword );
+			$hazmat->setStatements( $statements_type );
+
+			return $hazmat;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @return ManufacturerType
+	 */
+	private function getManufacturer() {
+		$manufacturer = new ManufacturerType();
+
+		$street1 = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_street1' );
+		$street2 = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_street2' );
+		$city    = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_city' );
+		$state   = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_state' );
+		$country = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_country' );
+		$postcode= $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_postcode' );
+		$company = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_company' );
+		$phone   = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_phone' );
+		$email   = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer_email' );
+
+		if ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) ) {
+			$manufacturer
+				->setStreet1( $street1 )
+				->setStreet2( $street2 )
+				->setCityName( $city )
+				->setStateOrProvince( $state )
+				->setCountry( $country )
+				->setPostalCode( $postcode )
+				->setCompanyName( $company )
+				->setPhone( $phone )
+				->setEmail( $email );
+
+			return $manufacturer;
+		} else {
+			$product_manufacturer = $this->listing->getProductProperty( '_ebay_gpsr_manufacturer' );
+
+			if ( empty( $product_manufacturer ) ) {
+				$product_manufacturer = $this->profile_details['gpsr_manufacturer'] ?? '';
+			}
+
+			if ( $product_manufacturer ) {
+				$obj = new \WPLab\Ebay\Models\EbayManufacturer( $product_manufacturer );
+
+				$manufacturer
+					->setStreet1( $obj->getStreet1() )
+					->setStreet2( $obj->getStreet2() )
+					->setCityName( $obj->getCity() )
+					->setStateOrProvince( $obj->getState() )
+					->setPostalCode( $obj->getPostcode() )
+					->setCountry( $obj->getCountry() )
+					->setCompanyName( $obj->getCompany() )
+					->setPhone( $obj->getPhone() )
+					->setEmail( $obj->getEmail() );
+
+				return $manufacturer;
+			}
+		}
+	}
+
+	/**
+	 * @return ProductSafetyType|bool
+	 */
+	private function getProductSafetyProperties() {
+		$safety = new ProductSafetyType();
+
+		$component = $this->listing->getProductProperty( '_ebay_gpsr_product_safety_component' );
+
+		if ( empty( $component ) ) {
+			$component = $this->profile_details['gpsr_product_safety_component'] ?? '';
+		}
+
+		$pictograms_type = new PictogramsType();
+		$pictograms = $this->listing->getProductProperty( '_ebay_gpsr_product_safety_pictograms' );
+
+		if ( empty( $pictograms ) ) {
+			$pictograms = $this->profile_details['gpsr_product_safety_pictograms'] ?? '';
+		}
+
+		foreach ( $pictograms as $pictogram ) {
+			$pictograms_type->addPictogram( $pictogram );
+		}
+
+		$statements_type = new StatementsType();
+		$statements = $this->listing->getProductProperty( '_ebay_gpsr_product_safety_statements' );
+
+		if ( empty( $statements ) ) {
+			$statements = $this->profile_details['gpsr_product_safety_statements'] ?? '';
+		}
+
+		foreach ( $statements as $statement ) {
+			$statements_type->addStatement( $statement );
+		}
+
+		if ( $component || $pictograms || $statements ) {
+			$safety->setComponent( $component );
+			$safety->setPictograms( $pictograms_type );
+			$safety->setStatements( $statements_type );
+
+			return $safety;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @return ResponsiblePersonsType
+	 */
+	private function getResponsiblePersons() {
+		$persons_type = new ResponsiblePersonsType();
+
+		$i = 1;
+		$street1 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street1' );
+		$street2 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street2' );
+		$city    = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_city' );
+		$state   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_state' );
+		$country = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_country' );
+		$postcode= $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_postcode' );
+		$company = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_company' );
+		$phone   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_phone' );
+		$email   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_email' );
+
+		if ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) ) {
+
+			do {
+				$person_type = new ResponsiblePersonType();
+				$person_type->setStreet1( $street1 );
+				$person_type->setStreet2( $street2 );
+				$person_type->setCityName( $city );
+				$person_type->setStateOrProvince( $state );
+				$person_type->setPostalCode( $postcode );
+				$person_type->setCountry( $country );
+				$person_type->setCompanyName( $company );
+				$person_type->setPhone( $phone );
+				$person_type->setEmail( $email );
+
+				$types = new ResponsiblePersonCodeType();
+				$types->addType('EUResponsiblePerson');
+				$person_type->setType( $types );
+
+				$persons_type->addResponsiblePerson( $person_type );
+
+				$i++;
+				$street1 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street1' );
+				$street2 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street2' );
+				$city    = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_city' );
+				$state   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_state' );
+				$country = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_country' );
+				$postcode= $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_postcode' );
+				$company = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_company' );
+				$phone   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_phone' );
+				$email   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_email' );
+
+			} while ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) );
+		} else {
+			$persons = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons' );
+
+			if ( empty( $persons ) ) {
+				$persons = $this->profile_details['gpsr_responsible_persons'] ?? '';
+			}
+
+			if ( $persons ) {
+				foreach ( $persons as $person_id ) {
+					$obj = new \WPLab\Ebay\Models\EbayResponsiblePerson( $person_id );
+
+					$person_type = new ResponsiblePersonType();
+					$person_type->setStreet1( $obj->getStreet1() );
+					$person_type->setStreet2( $obj->getStreet2() );
+					$person_type->setCityName( $obj->getCity() );
+					$person_type->setStateOrProvince( $obj->getState() );
+					$person_type->setPostalCode( $obj->getPostcode() );
+					$person_type->setCountry( $obj->getCountry() );
+					$person_type->setCompanyName( $obj->getCompany() );
+					$person_type->setPhone( $obj->getPhone() );
+					$person_type->setEmail( $obj->getEmail() );
+					//$person_type->addType( 'EUResponsiblePerson' );
+
+					$types = new ResponsiblePersonCodeType();
+					$types->addType('EUResponsiblePerson');
+					$person_type->setType( $types );
+
+					$persons_type->addResponsiblePerson( $person_type );
+				}
+			}
+		}
+
+		return $persons_type;
+	}
+
+
+	public function buildGpsr() {
+		if ( !$this->isGpsrEnabled() ) {
+			return;
+		}
+
+		WPLE()->initEC( $this->account_id );
+
+		$regulatory = new RegulatoryType();
+
+		$energy_efficiency  = $this->getEnergyEfficiencyProperties();
+		$hazmat             = $this->getHazmatProperties();
+		$manufacturer       = $this->getManufacturer();
+		$product_safety     = $this->getProductSafetyProperties();
+		$persons            = $this->getResponsiblePersons();
+		$repair_score       = $this->getRepairScore();
+
+		$regulatory->setRepairScore( floatval( $repair_score ) );
+		$regulatory->setEnergyEfficiencyLabel( $energy_efficiency );
+		$regulatory->setManufacturer( $manufacturer );
+		$regulatory->setResponsiblePersons( $persons );
+
+		if ( $hazmat ) {
+			$regulatory->setHazmat( $hazmat );
+		}
+
+		if ( $product_safety ) {
+			$regulatory->setProductSafety( $product_safety );
+		}
+
+		$this->item->setRegulatory( $regulatory );
+	}
+
+	private function getRepairScore() {
+		$score  = $this->listing->getProductProperty('_ebay_gpsr_repair_score');
+
+		if ( empty( $score ) ) {
+			$score = $this->profile_details['gpsr_repair_score'] ?? '';
+		}
+
+		return $score;
+	}
+
     private function processSizeMapReplacements( $attr_name, $attr_value, $profile_details ) {
         if ( empty( $profile_details['sizemap_field'] ) ) {
             return $attr_value;
@@ -1925,7 +2313,7 @@ class ItemBuilderModel extends WPL_Model {
             if ( $var['sku'] && ( @$this->profile_details['use_sku_as_upc'] == '1' ) ) {
                 $VariationProductListingDetails->setUPC( $var['sku'] );
                 $has_details = true;
-            } elseif ( $product_upc = $this->listing->getProductProperty('_ebay_upc' ) ) {
+            } elseif ( $product_upc = get_post_meta( $post_id, '_ebay_upc', true ) ) {
                 $VariationProductListingDetails->setUPC( $product_upc );
                 $has_details = true;
             } elseif ( $autofill_missing_gtin == 'upc' || $autofill_missing_gtin == 'both' ) {
@@ -1937,7 +2325,7 @@ class ItemBuilderModel extends WPL_Model {
             if ( $var['sku'] && ( @$this->profile_details['use_sku_as_ean'] == '1' ) ) {
                 $VariationProductListingDetails->setEAN( $var['sku'] );
                 $has_details = true;
-            } elseif ( $product_ean = $this->listing->getProductProperty( '_ebay_ean' ) ) {
+            } elseif ( $product_ean = get_post_meta( $post_id, '_ebay_ean', true ) ) {
                 $VariationProductListingDetails->setEAN( $product_ean );
                 $has_details = true;
             } elseif ( $autofill_missing_gtin == 'ean' || $autofill_missing_gtin == 'both' ) {
@@ -1946,7 +2334,7 @@ class ItemBuilderModel extends WPL_Model {
             }
 
             // set ISBN
-            if ( $product_isbn = $this->listing->getProductProperty( '_ebay_isbn' ) ) {
+            if ( $product_isbn = get_post_meta( $post_id, '_ebay_isbn', true ) ) {
                 $VariationProductListingDetails->setISBN( $product_isbn );
                 $has_details = true;
             } elseif ( $autofill_missing_gtin == 'isbn') {
@@ -3303,7 +3691,7 @@ class ItemBuilderModel extends WPL_Model {
 	// Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
 	function stripInvalidXml( $value ) {
 	    $ret = "";
-	    $current;
+//	    $current;
 	    if (empty($value))
 	        return $ret;
 

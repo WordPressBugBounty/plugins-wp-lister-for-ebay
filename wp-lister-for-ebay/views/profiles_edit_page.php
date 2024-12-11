@@ -15,20 +15,14 @@
     	width: 100%; 
     }
 
-    .wple_select {
-        width: 65%;
-    }
-    .select2-container {
-        margin-bottom: 8px;
-    }
-    .select2-container--default .select2-results__option--highlighted[aria-selected], .select2-container--default .select2-results__option--highlighted[data-selected] {
-        color: #000;
-    }
-
 </style>
 
 <?php
 	$item_details = $wpl_item['details'];
+
+    if ( !isset( $item_details['gpsr_enabled'] ) ) {
+        $item_details['gpsr_enabled'] = 0;
+    }
 ?>
 
 <div class="wrap wplister-page">
@@ -537,8 +531,12 @@
 						</div>
 					</div>
 
-
-
+                    <div class="postbox" id="GPSRBox">
+                        <h3 class="hndle"><span><?php echo __( 'General Product Safety Regulation', 'wp-lister-for-ebay' ); ?></span></h3>
+                        <div class="inside">
+                            <?php include WPLE_PLUGIN_PATH .'/views/profile/gpsr.php'; ?>
+                        </div>
+                    </div>
 
 					<div class="submit" style="padding-top: 0; float: right; display:none;">
 						<input type="submit" value="<?php echo __( 'Save profile', 'wp-lister-for-ebay' ); ?>" name="submit" class="button-primary">
@@ -555,386 +553,52 @@
 
 	</form>
 
+    <div id="documents_modal">
+        <div id="documents_modal_container">
+            <?php
+            include WPLE_PLUGIN_PATH.'/views/profile/documents_modal.php';
+            ?>
+        </div>
+    </div>
+    <div id="responsible_persons_modal">
+        <div id="responsible_persons_modal_container">
+			<?php
+			include WPLE_PLUGIN_PATH.'/views/profile/responsible_persons_modal.php';
+			?>
+        </div>
+    </div>
 
-	<?php if ( get_option('wplister_log_level') > 6 ): ?>
-	<pre><?php print_r($wpl_item); ?></pre>
-	<?php endif; ?>
+    <div id="manufacturers_modal">
+        <div id="manufacturers_modal_container">
+			<?php
+			include WPLE_PLUGIN_PATH.'/views/profile/manufacturers_modal.php';
+			?>
+        </div>
+    </div>
+
+    <script src="<?php echo WPLE_PLUGIN_URL; ?>js/classes/GPSR.js"></script>
 
     <input type="hidden" id="disable_popups" value="<?php echo esc_attr(get_option( 'wplister_disable_profile_popup_errors', 0 )); ?>" />
 
 	<script type="text/javascript">
-		jQuery( document ).ready(
-			function () {
-                var disable_errors = jQuery("#disable_popups").val() == 1;
-                const condition_descriptions = <?php echo json_encode( $wpl_conditions_and_descriptions); ?>;
-                const condition_descriptors = <?php echo json_encode( $wpl_condition_descriptor_fields ); ?>;
-                const conditions = <?php echo json_encode( $wpl_available_conditions); ?>;
-
-                console.log( condition_descriptors );
-
-				// enable chosen.js
-				jQuery("select.wple_chosen_select").chosen();
-				jQuery("select.wple_select").selectWoo({
-				    placeholder: "Select or enter a custom value",
-				    text: "Select or enter a custom value",
-				    tags: true
-				});
-
-                /*jQuery("#wpl-text-condition_id").on( "change", function() {
-                    const condition_id = jQuery(this).val();
-                    const cond_desc_select = jQuery("#wpl-text-condition_description");
-
-                    cond_desc_select.find("option").remove();
-                    console.log( condition_descriptions );
-                    console.log( condition_descriptions[ condition_id ] );
-                    for (let i in condition_descriptions[ condition_id ] ) {
-                        console.log( i );
-                        //let option = '<option value="'+ i +'">'+ condition_descriptions[condition_id][i] +'</option>';
-                        //console.log(option);
-                    }
-                });*/
-
-				// hide fixed price field for fixed price listings
-				// (fixed price listings only use StartPrice)
-				jQuery('#wpl-text-auction_type').change(function() {
-  					if ( jQuery('#wpl-text-auction_type').val() == 'Chinese' ) {
-  						jQuery('#wpl-text-fixed_price_container').show();
-  					} else {
-  						jQuery('#wpl-text-fixed_price_container').hide();
-  					}
-  					if ( jQuery('#wpl-text-auction_type').val() == 'ClassifiedAd' ) {
-  						// jQuery('#wpl-option-PayPerLeadEnabled_container').show();
-  					} else {
-  						// jQuery('#wpl-option-PayPerLeadEnabled_container').hide();
-  					}
-				});
-				jQuery('#wpl-text-auction_type').change();
-
-				// hide condition description field for "new" conditions (Condition IDs 1000-1499)
-				jQuery('#wpl-text-condition_id').change(function() {
-				    const condition_id = jQuery('#wpl-text-condition_id').val();
-
-				    jQuery('#wpl-ungraded_condition_description_container').hide();
-				    jQuery('#wpl-graded_condition_description_container').hide();
-
-  					if ( condition_id == 4000 ) {
-  						jQuery('#wpl-ungraded_condition_description_container').show();
-  					} else if ( condition_id == 2750 ) {
-  						jQuery('#wpl-graded_condition_description_container').show();
-  					}
-
-				});
-				jQuery('#wpl-text-condition_id').change();
-
-				// set Return Policy details visibility
-				jQuery('#wpl-text-returns_accepted').change(function() {
-  					if ( jQuery('#wpl-text-returns_accepted').val() == 1 ) {
-  						jQuery('#returns_details_container').slideDown(200);
-  					} else {
-  						jQuery('#returns_details_container').slideUp(200);
-  					}
-				});
-				jQuery('#wpl-text-returns_accepted').change();
-
-
-				// set Tax Mode options visibility
-				jQuery('#wpl-text-tax_mode').change(function() {
-  					if ( jQuery('#wpl-text-tax_mode').val() == 'fix' ) {
-  						jQuery('#tax_mode_fixed_options_container').show();
-  					} else {
-  						jQuery('#tax_mode_fixed_options_container').hide();
-  					}
-				});
-				jQuery('#wpl-text-tax_mode').change();
-
-				// set Subtitle options visibility
-				jQuery('#wpl-text-subtitle_enabled').change(function() {
-  					if ( jQuery('#wpl-text-subtitle_enabled').val() == 1 ) {
-  						jQuery('#subtitle_options_container').show();
-  					} else {
-  						jQuery('#subtitle_options_container').hide();
-  					}
-				});
-				jQuery('#wpl-text-subtitle_enabled').change();
-
-				// set Best Offer options visibility
-				jQuery('#wpl-text-bestoffer_enabled').change(function() {
-  					if ( jQuery('#wpl-text-bestoffer_enabled').val() == 1 ) {
-  						jQuery('#best_offer_options_container').slideDown(200);
-  					} else {
-  						jQuery('#best_offer_options_container').slideUp(200);
-  					}
-				});
-				jQuery('#wpl-text-bestoffer_enabled').change();
-
-				// set Schedule Time details visibility
-				jQuery('#wpl-text-schedule_time').change(function() {
-  					if ( jQuery('#wpl-text-schedule_time').val() != '' ) {
-  						jQuery('#schedule_time_details_container').show();
-  					} else {
-  						jQuery('#schedule_time_details_container').hide();
-  					}
-				});
-				jQuery('#wpl-text-schedule_time').change();
-
-				// set Auto Relist options visibility
-				jQuery('#wpl-text-autorelist_enabled').change(function() {
-  					if ( jQuery('#wpl-text-autorelist_enabled').val() == 1 ) {
-  						jQuery('#autorelist_options_container').slideDown(200);
-  					} else {
-  						jQuery('#autorelist_options_container').slideUp(200);
-  					}
-				});
-				jQuery('#wpl-text-autorelist_enabled').change();
-
-				// update ended items automatically when deactivating autorelist option - after calling .change()
-				jQuery('#wpl-text-autorelist_enabled').change(function() {
-  					if ( jQuery('#wpl-text-autorelist_enabled').val() == 0 ) {
-  						jQuery('#wpl_e2e_apply_changes_to_all_ended').prop('checked','checked');
-  					}
-				});
-
-				// set Selling Manager Pro options visibility
-				jQuery('#wpl-text-sellingmanager_enabled').change(function() {
-  					if ( jQuery('#wpl-text-sellingmanager_enabled').val() == 1 ) {
-  						jQuery('#sm_auto_relist_options_container').slideDown(200);
-  					} else {
-  						jQuery('#sm_auto_relist_options_container').slideUp(200);
-  					}
-				});
-				jQuery('#wpl-text-sellingmanager_enabled').change();
-
-				// set custom quantity options visibility
-				jQuery('#wpl-custom_quantity_enabled').change(function() {
-  					if ( jQuery('#wpl-custom_quantity_enabled').val() != '' ) {
-  						jQuery('#wpl-custom_quantity_container').show();
-  					} else {
-  						jQuery('#wpl-custom_quantity_container').hide();
-  					}
-				});
-				jQuery('#wpl-custom_quantity_enabled').change();
-
-
-			    // 
-			    // Validation
-			    // 
-				// check required values on submit
-				jQuery('.wplister-page form').on('submit', function() {
-					
-					// duration is required
-					if ( jQuery('#wpl-text-listing_duration')[0].value == '' && !disable_errors ) {
-						alert('Please select a listing duration.'); return false;
-					}
-
-					// dispatch time is required
-					if ( jQuery('#wpl-text-dispatch_time')[0].value == '' && !disable_errors ) {
-						alert('Please enter a handling time.'); return false;
-					}
-
-					// location required
-					if ( jQuery('#wpl-text-location')[0].value == '' && !disable_errors ) {
-						alert('Please enter a location.'); return false;
-					}
-
-					// country required
-					if ( jQuery('#wpl-text-country')[0].value == '' && !disable_errors ) {
-						alert('Please select a country.'); return false;
-					}
-
-
-					// validate shipping options
-					var shipping_type = jQuery('.select_shipping_type')[0] ? jQuery('.select_shipping_type')[0].value : 'disabled';
-					var seller_profile = jQuery('#wpl-text-seller_shipping_profile_id')[0] ? jQuery('#wpl-text-seller_shipping_profile_id')[0].value : false;
-
-					if ( ! seller_profile ) {
-
-						// check domestic shipping options
-						if ( shipping_type == 'flat' || shipping_type == 'FreightFlat' || shipping_type == 'FlatDomesticCalculatedInternational' ) {
-
-							// local flat shipping option required
-							if ( jQuery('#loc_shipping_options_table_flat .select_service_name')[0].value == ''  && !disable_errors) {
-								alert('Please select at least one domestic shipping service for eBay.'); return false;
-							}
-	
-							// local flat shipping price required
-							if ( jQuery('#loc_shipping_options_table_flat input.price_input')[0].value == ''  && !disable_errors ) {
-								alert('Please enter a shipping fee for eBay.'); return false;
-							}
-
-							// max 5 shipping service options
-							if ( jQuery('#loc_shipping_options_table_flat .select_service_name').length > 5  && !disable_errors ) {
-								alert('You have selected more than 5 local shipping services, which is not allowed by eBay.'); return false;
-							}
-
-						} else if ( shipping_type == 'calc' || shipping_type == 'CalculatedDomesticFlatInternational' ) {
-
-							// local calc shipping option required
-							if ( jQuery('#loc_shipping_options_table_calc .select_service_name')[0].value == ''  && !disable_errors ) {
-								alert('Please select at least one domestic shipping service for eBay.'); return false;
-							}						
-
-							// max 5 shipping service options
-							if ( jQuery('#loc_shipping_options_table_calc .select_service_name').length > 5  && !disable_errors ) {
-								alert('You have selected more than 5 local shipping services, which is not allowed by eBay.'); return false;
-							}
-
-						}
-
-						// max 5 international shipping service options
-						if ( shipping_type == 'flat' || shipping_type == 'FreightFlat' || shipping_type == 'CalculatedDomesticFlatInternational' ) {
-							if ( jQuery('#int_shipping_options_table_flat .select_service_name').length > 5  && !disable_errors ) {
-								alert('You have selected more than 5 international shipping services, which is not allowed by eBay.'); return false;
-							}
-						} else if ( shipping_type == 'calc' || shipping_type == 'FlatDomesticCalculatedInternational' ) {
-							if ( jQuery('#int_shipping_options_table_calc .select_service_name').length > 5  && !disable_errors ) {
-								alert('You have selected more than 5 international shipping services, which is not allowed by eBay.'); return false;
-							}
-						}
-
-					}
-
-
-					// // payment method required
-					// // disabled in 2.9 as all sellers are being migrated to ebay managed payments
-					// var seller_payment_profile = jQuery('#wpl-text-seller_payment_profile_id')[0] ? jQuery('#wpl-text-seller_payment_profile_id')[0].value : false;
-					// if ( ( ! seller_payment_profile ) && ( jQuery('#payment_options_table select')[0].value == '' && !disable_errors ) ) {
-					// 	alert('Please select at least one payment method.'); return false;
-					// }
-
-					// country required
-					// if ( jQuery('#wpl-text-country')[0].value == '' ) {
-					// 	alert('Please select a country.'); return false;
-					// }
-
-
-					// template is required
-					var template_options = jQuery("input[name='wpl_e2e_template']");
-					if( template_options.filter(':checked').length == 0 && !disable_errors){
-						alert('Please select a listing template.'); return false;
-					}
-
-					return true;
-				})
-
-
-			}
-		);
-
-
-
-
-
-
-		// load item conditions on primary category change
-
-		<?php
-			// get item conditions as json
-			$conditions = !empty( $wpl_item['category_conditions'] ) ? unserialize( @$wpl_item['category_conditions'] ) : [];
-		?>
-		var CategoryConditionsData = <?php echo json_encode( $conditions ) ?>;
-
-		var wpl_site_id    = '<?php echo $wpl_site_id ?>';
-		var wpl_account_id = '<?php echo $wpl_account_id ?>';
-
-		// handle new primary category
-		// update item conditions
-		function updateItemConditions() {
-			var primary_category_id = jQuery('#ebay_category_id_1')[0].value;
-
-			// jQuery('#EbayItemSpecificsBox .inside').slideUp(500);
-			// jQuery('#EbayItemSpecificsBox .loadingMsg').slideDown(500);
-
-	        // fetch category conditions
-	        var params = {
-	            action: 'wple_getCategoryConditions',
-	            id: primary_category_id,
-	            site_id: wpl_site_id,
-	            account_id: wpl_account_id,
-	            _wpnonce: '<?php echo wp_create_nonce( 'wple_getCategoryConditions' ) ?>'
-	        };
-	        var jqxhr = jQuery.getJSON(
-	            ajaxurl,
-                params,
-                function( response ) {
-
-                    // append to log
-                    // console.log( 'response: ', response );
-                    CategoryConditionsData = response;
-
-                    buildItemConditions();
-                    // jQuery('#EbayItemConditionsBox .inside').slideDown(500);
-                    // jQuery('#EbayItemConditionsBox .loadingMsg').slideUp(500);
-
-                }
-            )
-	        .fail( function(e,xhr,error) {
-	            console.log( "error", xhr, error ); 
-	            console.log( e.responseText ); 
-	        });			
-		}
-
-		// built item conditions table
-		function buildItemConditions() {
-
-			var primary_category_id = jQuery('#ebay_category_id_1')[0].value;
-			// var conditions = CategoryConditionsData[ primary_category_id ];
-			var conditions = CategoryConditionsData;
-
-			// console.log('buildItemConditions()');
-			// console.log('primary_category_id',primary_category_id);
-			// console.log('conditions step 1',conditions);
-
-			// // possibly use default category
-			// if ( ( ! conditions ) && ( default_ebay_category_id ) ) {
-			// 	conditions = CategoryConditionsData[ default_ebay_category_id ];
-			// }
-			// // console.log('conditions step 2',conditions);
-
-			// console.log('conditions: ',conditions);
-			// console.log('CategoryConditionsData: ',CategoryConditionsData);
-			// console.log('default_ebay_category_id: ',default_ebay_category_id);
-			// console.log('primary_category_id: ',primary_category_id);
-
-			if ( ( ! conditions ) || ( conditions == 'none' ) ) {
-				jQuery('#wpl-text-condition_id').children().remove();
-	            jQuery('#wpl-text-condition_id').append( jQuery('<option/>').val( 'none' ).html( 'none' ) );
-				return;
-			}
-			// console.log('conditions step 3',conditions);
-
-
-			// save current selection
-			var selected_condition_id = jQuery('#wpl-text-condition_id')[0].value;		
-			// console.log('selected_condition_id',selected_condition_id);
-
-			// clear options
-			jQuery('#wpl-text-condition_id').children().remove();
-
-			// add options
-			for (var condition_id in conditions ) {
-				// console.log('condition_id ',condition_id);
-				// console.log('condition_name ',conditions[condition_id]);
-				condition_name = conditions[condition_id];
-	            jQuery('#wpl-text-condition_id').append( jQuery('<option/>').val( condition_id ).html( condition_name ) );
-
-			}
-
-			// restore current selection
-			jQuery("#wpl-text-condition_id option[value='"+selected_condition_id+"']").prop('selected',true);
-
-
-		}
-
-		// init item conditions when page is loaded
-		jQuery( document ).ready( function () {
-			// buildItemConditions();
-		});	
-
-	
+        const condition_descriptions = <?php echo json_encode( $wpl_conditions_and_descriptions); ?>;
+        const condition_descriptors = <?php echo json_encode( $wpl_condition_descriptor_fields ); ?>;
+        const conditions = <?php echo json_encode( $wpl_available_conditions); ?>;
+
+        <?php
+        // get item conditions as json
+        $conditions = !empty( $wpl_item['category_conditions'] ) ? unserialize( @$wpl_item['category_conditions'] ) : [];
+        ?>
+        const CategoryConditionsData = <?php echo json_encode( $conditions ) ?>;
+        const wpl_CategoryConditionsNonce = '<?php echo wp_create_nonce( 'wple_getCategoryConditions' ) ?>';
+        const wpl_EditProfileNonce = '<?php echo wp_create_nonce( 'wple_edit_profile' ); ?>';
+
+        //let wpl_site_id    = '<?php echo $wpl_site_id ?>';
+        //let wpl_account_id = '<?php echo $wpl_account_id ?>';
 	</script>
+    <script src="<?php echo WPLE_PLUGIN_URL; ?>js/classes/ProfileEditor.js"></script>
 
+	<?php if ( get_option('wplister_log_level') > 6 ): ?>
+        <pre><?php print_r($wpl_item); ?></pre>
+	<?php endif; ?>
 </div>
-
-
-
-	

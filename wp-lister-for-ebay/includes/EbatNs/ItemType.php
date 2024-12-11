@@ -804,6 +804,9 @@ class ItemType extends EbatNs_ComplexType
 	 * @var ConditionDescriptorType[]
 	 */
 	protected $ConditionDescriptors;
+
+	protected $Regulatory;
+
 	// ***** END EBATNS PATCH *****
 
 
@@ -1690,7 +1693,15 @@ class ItemType extends EbatNs_ComplexType
 					'array' => false,
 					'cardinality' => '0..1'
 				),
-				// ***** END EBATNS PATCH *****
+				'Regulatory' =>
+				array(
+					'required' => false,
+					'type' => 'RegulatoryType',
+					'nsURI' => 'http://www.w3.org/2001/XMLSchema',
+					'array' => false,
+					'cardinality' => '0..1'
+				),
+ 				// ***** END EBATNS PATCH *****
 				'TaxCategory' =>
 				array(
 					'required' => false,
@@ -4484,6 +4495,24 @@ class ItemType extends EbatNs_ComplexType
 	function addConditionDescriptor($value)
 	{
 		$this->ConditionDescriptors[] = $value;
+	}
+
+	/**
+	 * @return RegulatoryType
+	 * @param integer $index
+	 **/
+	function getRegulatory()
+	{
+		return $this->Regulatory;
+	}
+
+	/**
+	 * @return void
+	 * @param RegulatoryType $value
+	 **/
+	function setRegulatory($value)
+	{
+		$this->Regulatory = $value;
 	}
 	// ***** END EBATNS PATCH *****
 

@@ -81,7 +81,7 @@ class ProfilesTable extends WP_List_Table {
                 if ( 'GTC' == $item['listing_duration'] ) return '<span style="color:silver">'.$item['listing_duration'].'</span>';
                 return str_replace('Days_','',$item[$column_name]) .' '. __( 'days', 'wp-lister-for-ebay' );
             case 'price':
-                return $item['details']->start_price;
+                return $item['details']->start_price ?? '';
             case 'category':
                 return $item['details']->ebay_category_1_name;
             default:

@@ -224,6 +224,7 @@ WPLGE.GridController = (function () {
     var gridOptions = {
       defaultColDef: {
         resizable: true,
+        enableCellChangeFlash: true
       },
       columnDefs: columnDefs,
       rowSelection: 'multiple',
@@ -231,7 +232,7 @@ WPLGE.GridController = (function () {
       // singleClickEdit: true,              // enable single click edit
       undoRedoCellEditing: true,          // enable undo/redo
       undoRedoCellEditingLimit: 20,       // default is 10
-      enableCellChangeFlash: true,        // make undo/redo actions become visible
+      //enableCellChangeFlash: true,        // make undo/redo actions become visible
       //rowHeight: 42,                    // default is 25 for balham, but 42 for alpine
       suppressColumnMoveAnimation: true,  // don't animate hiding and showing columns
       suppressColumnMoveAnimation: true,  // don't animate hiding and showing columns
@@ -245,7 +246,7 @@ WPLGE.GridController = (function () {
     };
 
     // https://www.ag-grid.com/javascript-grid-accessing-data/
-    gridOptions.getRowNodeId = function(data) {
+    gridOptions.getRowId = function(data) {
         return data.id;
     };
 
@@ -618,7 +619,8 @@ WPLGE.VueBar = new Vue({
             // update data store
             WPLGE.listings = data.items;
 
-            WPLGE.api.setRowData(data.items);
+            //WPLGE.api.setRowData(data.items);
+            WPLGE.api.setGridOption('rowData', data.items);
             WPLGE.VueBar.message = data.items.length.toString() + ' listings loaded'; // TODO
 
             // clear filters

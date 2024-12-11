@@ -894,6 +894,7 @@ class ListingsModel extends WPL_Model {
 
 			} else {
 				// default - simple product
+				$this->initServiceProxy($session);
 
 				// regard custom eBay price for locked items as well
                 if ( get_option( 'wplister_enable_custom_product_prices', 1 ) ) {

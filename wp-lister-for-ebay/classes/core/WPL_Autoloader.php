@@ -28,6 +28,8 @@ class WPL_Autoloader {
 		'WPLE_UpgradeHelper'   		=> '/classes/helper/WPLE_UpgradeHelper.php',
 		'WPLE_ListingQueryHelper'   => '/classes/helper/WPLE_ListingQueryHelper.php',
 		'WPLE_ValidationHelper'     => '/classes/helper/WPLE_ValidationHelper.php',
+		'EbayMarketplaceApi'        => '/classes/helper/EbayMarketplaceApi.php',
+		'EbayMediaApi'              => '/classes/helper/EbayMediaApi.php',
 
 		// integration
 		'ProductWrapper'   			=> '/classes/integration/ProductWrapper_woo.php',
@@ -38,8 +40,14 @@ class WPL_Autoloader {
 		'WPLE_eBaySite'         	=> '/classes/model/eBaySite.php',
 		'WPLE_eBayAccount'      	=> '/classes/model/eBayAccount.php',
 
+		'WPLab\Ebay\Models\EbayDocument'            => '/classes/model/EbayDocument.php',
+		'WPLab\Ebay\Models\EbayAddress'             => '/classes/model/EbayAddress.php',
+		'WPLab\Ebay\Models\EbayManufacturer'        => '/classes/model/EbayManufacturer.php',
+		'WPLab\Ebay\Models\EbayResponsiblePerson'   => '/classes/model/EbayResponsiblePerson.php',
+
 		'WPLab\Ebay\Listings\Listing'   => '/classes/listings/Listing.php',
 		'WPLab\Ebay\Listings\Profile'   => '/classes/listings/Profile.php',
+
 
 	);
 

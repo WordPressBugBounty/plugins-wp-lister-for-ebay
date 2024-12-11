@@ -161,7 +161,7 @@
 						// $specifics contains all available item specifics for the selected category
 						if ( ! isset( $specifics ) || empty( $specifics ) ) {
 							// $specifics = isset($wpl_item['category_specifics']) ? maybe_unserialize( $wpl_item['category_specifics'] ) : false;
-							$specifics = isset($wpl_specifics) ? maybe_unserialize( $wpl_specifics ) : false;
+							$specifics = isset($wpl_specifics) ? maybe_unserialize( $wpl_specifics ) : [];
 						}
 
 						// $item_specifics contains values set for this particular product / profile
@@ -180,11 +180,11 @@
 						var CustomAttributes         = <?php echo json_encode( $wpl_custom_attributes ) ?>;
 						var CurrentItemSpecifics     = <?php echo json_encode( $item_specifics ) ?>;
 						var enhanced_ui              = <?php echo ( $enhanced_ui == 0 ) ? 'false' : 'true'; ?>;
-						var default_ebay_category_id = <?php echo @$wpl_default_ebay_category_id ? $wpl_default_ebay_category_id : 0 ?>;
+						var default_ebay_category_id = <?php echo $primary_ebay_category ?? 0 ?>;
 						var is_profile_page          = <?php echo ( isset($_GET['profile']) || ( isset($_GET['action']) && $_GET['action'] == 'add_new_profile' ) ) ? 1 : 0; ?>;
 
-						var wpl_site_id    = '<?php echo $wpl_site_id ?>';
-						var wpl_account_id = '<?php echo $wpl_account_id ?>';
+						//var wpl_site_id    = '<?php echo $wpl_site_id ?>';
+						//var wpl_account_id = '<?php echo $wpl_account_id ?>';
 
 						var placeholders_from_profile = <?php echo json_encode( $profile['details']['item_specifics'] ); ?>;
 
@@ -235,9 +235,9 @@
 							var specs               = CategorySpecificsData;
 
 							// // possibly use default category
-							// if ( ( ! specs ) && ( default_ebay_category_id ) ) {
-							// 	specs = CategorySpecificsData[ default_ebay_category_id ];
-							// }
+                            if ( ( ! specs ) && ( default_ebay_category_id ) ) {
+                                specs = CategorySpecificsData[ default_ebay_category_id ];
+                            }
 
 							// console.log('specs: ',specs);
 							// console.log('CategorySpecificsData: ',CategorySpecificsData);

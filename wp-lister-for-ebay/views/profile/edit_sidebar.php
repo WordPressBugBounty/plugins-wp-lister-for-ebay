@@ -261,7 +261,7 @@
                                     <?php wplister_tooltip(__('Set how the fixed quantity is applied.<br><br><b>All</b> - Apply to all listings<br><br><b>In Stock</b> - Only apply to products marked as In Stock<br><br><b>Unmanaged Stock</b> - Only apply to products with Managed Stock disabled', 'wp-lister-for-ebay')) ?>
                                 </label>
                                 <select id="wpl-restrict_fixed_quantity" name="wpl_e2e_restrict_fixed_quantity" class="select">
-                                    <option value=""  <?php if ( isset($item_details['restrict_fixed_quantity']) && $item_details['restrict_fixed_quantity'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'All', 'wp-lister-for-ebay' ); ?></option>
+                                    <option value=""  <?php if ( !isset($item_details['restrict_fixed_quantity']) || $item_details['restrict_fixed_quantity'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'All', 'wp-lister-for-ebay' ); ?></option>
                                     <option value="1" <?php if ( isset($item_details['restrict_fixed_quantity']) && $item_details['restrict_fixed_quantity'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'In Stock', 'wp-lister-for-ebay' ); ?></option>
                                     <option value="2" <?php if ( isset($item_details['restrict_fixed_quantity']) && $item_details['restrict_fixed_quantity'] == '2' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Unmanaged Stock', 'wp-lister-for-ebay' ); ?></option>
                                 </select>
@@ -282,7 +282,7 @@
 		                                <?php wplister_tooltip(__('If you set a maxmimum quantity, WP-Lister Pro can automatically replenish the stock level on eBay when a unit is sold.', 'wp-lister-for-ebay')) ?>
                                     </label>
                                     <select id="wpl-auto_replenish" name="wpl_e2e_auto_replenish" class="select">
-                                        <option value=""  <?php if ( isset($item_details['auto_replenish']) && $item_details['auto_replenish'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                        <option value=""  <?php if ( !isset($item_details['auto_replenish']) || $item_details['auto_replenish'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                                         <option value="1" <?php if ( isset($item_details['auto_replenish']) && $item_details['auto_replenish'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
                                     </select>
                                     <br class="clear" />
@@ -374,7 +374,7 @@
 							</label>
 							<select id="wpl-text-bold_title" name="wpl_e2e_bold_title" title="Use additional product description as subtitle" class=" required-entry select">
 								<option value="1" <?php if ( isset($item_details['bold_title']) && $item_details['bold_title'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php echo __('extra fees', 'wp-lister-for-ebay' ); ?>)</option>
-								<option value="0" <?php if ( isset($item_details['bold_title']) && $item_details['bold_title'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset($item_details['bold_title']) || $item_details['bold_title'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -384,7 +384,7 @@
 							</label>
 							<select id="wpl-text-subtitle_enabled" name="wpl_e2e_subtitle_enabled" title="Use additional product description as subtitle" class=" required-entry select">
 								<option value="1" <?php if ( isset($item_details['subtitle_enabled']) && $item_details['subtitle_enabled'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php echo __('extra fees', 'wp-lister-for-ebay' ); ?>)</option>
-								<option value="0" <?php if ( isset($item_details['subtitle_enabled']) && $item_details['subtitle_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset($item_details['subtitle_enabled']) || $item_details['subtitle_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -417,7 +417,7 @@
                                 <?php wplister_tooltip(__('By default WP-Lister will attempt to list variable products as variations on eBay. However, if eBay does not allow variations in your product category you can either <b>split</b> them and list as single listings, or <b>flatten</b>them into just one single listing.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-variations_mode" name="wpl_e2e_variations_mode" title="Variation Mode" class=" required-entry select">
-								<option value="default" <?php if ( isset( $item_details['variations_mode'] ) && $item_details['variations_mode'] == 'default' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'list as variations', 'wp-lister-for-ebay' ); ?></option>
+								<option value="default" <?php if ( !isset( $item_details['variations_mode'] ) || $item_details['variations_mode'] == 'default' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'list as variations', 'wp-lister-for-ebay' ); ?></option>
 								<option value="flat"    <?php if ( isset( $item_details['variations_mode'] ) && $item_details['variations_mode'] == 'flat' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'flatten variations', 'wp-lister-for-ebay' ); ?></option>
                                 <?php wple_render_pro_select_option( 'split', __( 'split variations', 'wp-lister-for-ebay' ), selected($item_details['variations_mode'] ?? '', 'split', false) ); ?>
 							</select>
@@ -429,7 +429,7 @@
 							</label>
 							<select id="wpl-text-with_variation_images" name="wpl_e2e_with_variation_images" class=" required-entry select">
 								<option value="1" <?php if ( isset( $item_details['with_variation_images'] ) && $item_details['with_variation_images'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset( $item_details['with_variation_images'] ) && $item_details['with_variation_images'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['with_variation_images'] ) || $item_details['with_variation_images'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -469,7 +469,7 @@
 							</label>
 							<select id="wpl-text-add_variations_table" name="wpl_e2e_add_variations_table" title="Add variations list as HTML table to item description" class=" required-entry select">
 								<option value="1" <?php if ( isset($item_details['add_variations_table']) && $item_details['add_variations_table'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset($item_details['add_variations_table']) && $item_details['add_variations_table'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset($item_details['add_variations_table']) || $item_details['add_variations_table'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -478,7 +478,7 @@
                                 <?php wplister_tooltip( __('Enable to map matching variation attributes to the profile\'s item specifics fields. Disable if you are getting Variation Specifics Mismatch errors when revising your listings.', 'wp-lister-for-ebay')); ?>
                             </label>
                             <select id="wpl-text-enable-attribute-mapping" name="wpl_e2e_enable_attribute_mapping" class="required-entry select">
-                                <option value="1" <?php selected( isset($item_details['enable_attribute_mapping']) && $item_details['enable_attribute_mapping'], 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
+                                <option value="1" <?php selected( !isset($item_details['enable_attribute_mapping']) || $item_details['enable_attribute_mapping'], 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
                                 <option value="0" <?php selected( isset($item_details['enable_attribute_mapping']) && $item_details['enable_attribute_mapping'], 0 ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
                             </select>
 						</div>
@@ -545,7 +545,7 @@
 							</label>
 							<select id="wpl-text-with_gallery_image" name="wpl_e2e_with_gallery_image" title="Gallery image" class=" required-entry select">
 								<option value="1" <?php if ( isset($item_details['with_gallery_image']) && $item_details['with_gallery_image'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset($item_details['with_gallery_image']) && $item_details['with_gallery_image'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset($item_details['with_gallery_image']) || $item_details['with_gallery_image'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -554,7 +554,7 @@
                                 <?php wplister_tooltip(__('Specifies the Gallery enhancement type for the listing. If you use Plus, you also get the features of Gallery and if you use Featured, you get all the features of Gallery and Plus.<br><br>This option might increase your listing fees depending on the eBay site and your subscription plan.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-gallery_type" name="wpl_e2e_gallery_type" title="Gallery image" class=" required-entry select">
-								<option value="Gallery"  <?php if ( isset($item_details['gallery_type']) && $item_details['gallery_type'] == 'Gallery'  ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Gallery Standard', 'wp-lister-for-ebay' ); ?></option>
+								<option value="Gallery"  <?php if ( !isset($item_details['gallery_type']) || $item_details['gallery_type'] == 'Gallery'  ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Gallery Standard', 'wp-lister-for-ebay' ); ?></option>
 								<option value="Plus"     <?php if ( isset($item_details['gallery_type']) && $item_details['gallery_type'] == 'Plus'     ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Gallery Plus', 'wp-lister-for-ebay' ); ?>     (<?php echo __('extra fees', 'wp-lister-for-ebay' ); ?>)</option>
 								<option value="Featured" <?php if ( isset($item_details['gallery_type']) && $item_details['gallery_type'] == 'Featured' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Gallery Featured', 'wp-lister-for-ebay' ); ?> (<?php echo __('considerable extra fees', 'wp-lister-for-ebay' ); ?>)</option>
 							</select>
@@ -568,7 +568,7 @@
 		                            <?php wplister_tooltip(__('Select whether WP-Lister should upload your product images to eBay, in order to use all eBay Gallery features like additional images and zoom.<br>Note: Uploading images to eBay Picture Service (EPS) will slow down the listing process.', 'wp-lister-for-ebay')) ?>
                                 </label>
                                 <select id="wpl-text-with_additional_images" name="wpl_e2e_with_additional_images" title="Additional images" class=" required-entry select">
-                                    <option value="0" <?php if ( isset($item_details['with_additional_images']) && $item_details['with_additional_images'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                    <option value="0" <?php if ( !isset($item_details['with_additional_images']) || $item_details['with_additional_images'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                                     <option value="1" <?php if ( isset($item_details['with_additional_images']) && $item_details['with_additional_images'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Upload all images', 'wp-lister-for-ebay' ); ?></option>
                                     <option value="2" <?php if ( isset($item_details['with_additional_images']) && $item_details['with_additional_images'] == '2' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Upload first 24 images', 'wp-lister-for-ebay' ); ?></option>
                                     <option value="3" <?php if ( isset($item_details['with_additional_images']) && $item_details['with_additional_images'] == '3' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Upload only main image', 'wp-lister-for-ebay' ); ?></option>
@@ -594,7 +594,7 @@
                                 </label>
                                 <select id="wpl-text-bestoffer_enabled" name="wpl_e2e_bestoffer_enabled" class=" required-entry select">
                                     <option value="1" <?php if ( isset($item_details['bestoffer_enabled']) && $item_details['bestoffer_enabled'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                    <option value="0" <?php if ( isset($item_details['bestoffer_enabled']) && $item_details['bestoffer_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                    <option value="0" <?php if ( !isset($item_details['bestoffer_enabled']) || $item_details['bestoffer_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                                 </select>
                                 <br class="clear" />
                             </div>
@@ -630,7 +630,7 @@
 		                            <?php wplister_tooltip(__('Allows you to specify the date and time that the listing becomes active on eBay.<br>To schedule the listing start time, specify a time in the future <b>in GMT format</b>.', 'wp-lister-for-ebay')) ?>
                                 </label>
                                 <select id="wpl-text-schedule_time" name="wpl_e2e_schedule_time" title="Schedule listing" class=" required-entry select">
-                                    <option value="" <?php if ( isset( $item_details['schedule_time'] ) && $item_details['schedule_time'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
+                                    <option value="" <?php if ( !isset( $item_details['schedule_time'] ) || $item_details['schedule_time'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
                                     <option value="00:00" <?php if ( isset( $item_details['schedule_time'] ) && $item_details['schedule_time'] == '00:00' ): ?>selected="selected"<?php endif; ?>>00:00 GMT</option>
                                     <option value="01:00" <?php if ( isset( $item_details['schedule_time'] ) && $item_details['schedule_time'] == '01:00' ): ?>selected="selected"<?php endif; ?>>01:00 GMT</option>
                                     <option value="02:00" <?php if ( isset( $item_details['schedule_time'] ) && $item_details['schedule_time'] == '02:00' ): ?>selected="selected"<?php endif; ?>>02:00 GMT</option>
@@ -722,7 +722,7 @@
                                 </label>
                                 <select id="wpl-text-autorelist_enabled" name="wpl_e2e_autorelist_enabled" class=" required-entry select">
                                     <option value="1" <?php if ( isset( $item_details['autorelist_enabled'] ) && $item_details['autorelist_enabled'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                    <option value="0" <?php if ( isset( $item_details['autorelist_enabled'] ) && $item_details['autorelist_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                    <option value="0" <?php if ( !isset( $item_details['autorelist_enabled'] ) || $item_details['autorelist_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                                 </select>
                                 <br class="clear" />
                             </div>
@@ -734,7 +734,7 @@
                                 <?php wplister_tooltip(__('Select if you want your item relisted immediately, <i>after</i> a specific time or <i>at</i> a specific time of day.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-autorelist_condition" name="wpl_e2e_autorelist_condition" class=" required-entry select">
-								<option value="" <?php if ( isset( $item_details['autorelist_condition'] ) && $item_details['autorelist_condition'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
+								<option value="" <?php if ( !isset( $item_details['autorelist_condition'] ) || $item_details['autorelist_condition'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistImmediately" <?php if ( isset( $item_details['autorelist_condition'] ) && $item_details['autorelist_condition'] == 'RelistImmediately' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist immediately', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistAfterHours"  <?php if ( isset( $item_details['autorelist_condition'] ) && $item_details['autorelist_condition'] == 'RelistAfterHours' ):  ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist after X hours', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistAtTimeOfDay" <?php if ( isset( $item_details['autorelist_condition'] ) && $item_details['autorelist_condition'] == 'RelistAtTimeOfDay' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist at specific time of day', 'wp-lister-for-ebay' ); ?></option>
@@ -774,7 +774,7 @@
                                 </label>
                                 <select id="wpl-text-sellingmanager_enabled" name="wpl_e2e_sellingmanager_enabled" class=" required-entry select">
                                     <option value="1" <?php if ( isset( $item_details['sellingmanager_enabled'] ) && $item_details['sellingmanager_enabled'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                    <option value="0" <?php if ( isset( $item_details['sellingmanager_enabled'] ) && $item_details['sellingmanager_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                    <option value="0" <?php if ( !isset( $item_details['sellingmanager_enabled'] ) || $item_details['sellingmanager_enabled'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                                 </select>
                                 <br class="clear" />
                             </div>
@@ -786,7 +786,7 @@
                                 <?php wplister_tooltip(__('Select if and when eBay should stop relisting the item.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-AutomatedRelistingRule_Type" name="wpl_e2e_AutomatedRelistingRule_Type" class=" required-entry select">
-								<option value=""                            <?php if ( isset( $item_details['AutomatedRelistingRule_Type'] ) && $item_details['AutomatedRelistingRule_Type'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
+								<option value=""                            <?php if ( !isset( $item_details['AutomatedRelistingRule_Type'] ) || $item_details['AutomatedRelistingRule_Type'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistContinuously"          <?php if ( isset( $item_details['AutomatedRelistingRule_Type'] ) && $item_details['AutomatedRelistingRule_Type'] == 'RelistContinuously' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist continuously', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistContinuouslyUntilSold" <?php if ( isset( $item_details['AutomatedRelistingRule_Type'] ) && $item_details['AutomatedRelistingRule_Type'] == 'RelistContinuouslyUntilSold' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist continuously until sold', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistOnceIfNotSold"         <?php if ( isset( $item_details['AutomatedRelistingRule_Type'] ) && $item_details['AutomatedRelistingRule_Type'] == 'RelistOnceIfNotSold' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist once if not sold', 'wp-lister-for-ebay' ); ?></option>
@@ -798,7 +798,7 @@
                                 <?php wplister_tooltip(__('Select if you want your item relisted immediately, <i>after</i> a specific time or <i>at</i> a specific time of day.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-AutomatedRelistingRule_RelistCondition" name="wpl_e2e_AutomatedRelistingRule_RelistCondition" class=" required-entry select">
-								<option value=""                            <?php if ( isset( $item_details['AutomatedRelistingRule_RelistCondition'] ) && $item_details['AutomatedRelistingRule_RelistCondition'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
+								<option value=""                            <?php if ( !isset( $item_details['AutomatedRelistingRule_RelistCondition'] ) || $item_details['AutomatedRelistingRule_RelistCondition'] == '' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistImmediately"           <?php if ( isset( $item_details['AutomatedRelistingRule_RelistCondition'] ) && $item_details['AutomatedRelistingRule_RelistCondition'] == 'RelistImmediately' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist immediately', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistAfterDaysHours"        <?php if ( isset( $item_details['AutomatedRelistingRule_RelistCondition'] ) && $item_details['AutomatedRelistingRule_RelistCondition'] == 'RelistAfterDaysHours' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist after days / hours', 'wp-lister-for-ebay' ); ?></option>
 								<option value="RelistAtSpecificTimeOfDay"   <?php if ( isset( $item_details['AutomatedRelistingRule_RelistCondition'] ) && $item_details['AutomatedRelistingRule_RelistCondition'] == 'RelistAtSpecificTimeOfDay' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Relist at specific time of day', 'wp-lister-for-ebay' ); ?></option>
@@ -869,7 +869,7 @@
 							</label>
 							<select id="wpl-text-global_shipping" name="wpl_e2e_global_shipping" class=" required-entry select">
 								<option value="1" <?php if ( isset( $item_details['global_shipping'] ) && $item_details['global_shipping'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset( $item_details['global_shipping'] ) && $item_details['global_shipping'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['global_shipping'] ) || $item_details['global_shipping'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -882,7 +882,7 @@
 							</label>
 							<select id="wpl-text-store_pickup" name="wpl_e2e_store_pickup" class=" required-entry select">
 								<option value="1" <?php if ( isset( $item_details['store_pickup'] ) && $item_details['store_pickup'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset( $item_details['store_pickup'] ) && $item_details['store_pickup'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['store_pickup'] ) || $item_details['store_pickup'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -894,7 +894,7 @@
 							</label>
 							<select id="wpl-text-private_listing" name="wpl_e2e_private_listing" class=" required-entry select">
 								<option value="1" <?php if ( isset( $item_details['private_listing'] ) && $item_details['private_listing'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?> (disabled!)</option>
-								<option value="0" <?php if ( isset( $item_details['private_listing'] ) && $item_details['private_listing'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['private_listing'] ) || $item_details['private_listing'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -905,7 +905,7 @@
 							</label>
 							<select id="wpl-text-use_sku_as_upc" name="wpl_e2e_use_sku_as_upc" class=" required-entry select">
 								<option value="1" <?php if ( isset( $item_details['use_sku_as_upc'] ) && $item_details['use_sku_as_upc'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset( $item_details['use_sku_as_upc'] ) && $item_details['use_sku_as_upc'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['use_sku_as_upc'] ) || $item_details['use_sku_as_upc'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -915,7 +915,7 @@
                             </label>
                             <select id="wpl-text-use_sku_as_ean" name="wpl_e2e_use_sku_as_ean" class=" required-entry select">
                                 <option value="1" <?php if ( isset( $item_details['use_sku_as_ean'] ) && $item_details['use_sku_as_ean'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                <option value="0" <?php if ( isset( $item_details['use_sku_as_ean'] ) && $item_details['use_sku_as_ean'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php if ( !isset( $item_details['use_sku_as_ean'] ) || $item_details['use_sku_as_ean'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                             </select>
                             <br class="clear" />
 
@@ -925,7 +925,7 @@
                             </label>
                             <select id="wpl-text-use_sku_as_mpn" name="wpl_e2e_use_sku_as_mpn" class=" required-entry select">
                                 <option value="1" <?php if ( isset( $item_details['use_sku_as_mpn'] ) && $item_details['use_sku_as_mpn'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                <option value="0" <?php if ( isset( $item_details['use_sku_as_mpn'] ) && $item_details['use_sku_as_mpn'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php if ( !isset( $item_details['use_sku_as_mpn'] ) || $item_details['use_sku_as_mpn'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
                             </select>
                             <br class="clear" />
 
@@ -937,7 +937,7 @@
 							</label>
 							<select id="wpl-text-include_prefilled_info" name="wpl_e2e_include_prefilled_info" class=" required-entry select">
 								<option value="1" <?php if ( isset( $item_details['include_prefilled_info'] ) && $item_details['include_prefilled_info'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-								<option value="0" <?php if ( isset( $item_details['include_prefilled_info'] ) && $item_details['include_prefilled_info'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['include_prefilled_info'] ) || $item_details['include_prefilled_info'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
 
@@ -947,7 +947,7 @@
                             </label>
                             <select id="wpl-text-secondary_category" name="wpl_e2e_secondary_category" class="required-entry select">
                                 <option value="1" <?php selected( isset( $item_details['secondary_category'] ) && $item_details['secondary_category'], 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                <option value="0" <?php selected( isset( $item_details['secondary_category'] ) && $item_details['secondary_category'], 0 ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php selected( !isset( $item_details['secondary_category'] ) || $item_details['secondary_category'] == 0, true ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
                             </select>
 
 							<label for="wpl-text-strikethrough_pricing" class="text_label">
@@ -955,7 +955,7 @@
                                 <?php wplister_tooltip(__('<b>Strikethrough Price (STP)</b><br>Enable this if you want products on sale have their regular price be displayed on eBay as the original retail price / strikethrough price.<br><br>Alternatively, you can use an existing MSRP from WooCommerce as STP, if you have the WooCommerce MSRP extension installed.<br><br>Note: Strikethrough Pricing is available on selected eBay sites only. These sites include eBay US, UK, Germany, Canada, Australia, France, Italy and Spain and possibly more sites in the future.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-strikethrough_pricing" name="wpl_e2e_strikethrough_pricing" class=" required-entry select">
-								<option value="0" <?php if ( isset( $item_details['strikethrough_pricing'] ) && $item_details['strikethrough_pricing'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['strikethrough_pricing'] ) || $item_details['strikethrough_pricing'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 								<option value="1" <?php if ( isset( $item_details['strikethrough_pricing'] ) && $item_details['strikethrough_pricing'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
 								<?php if ( class_exists( 'woocommerce_msrp_admin' ) || class_exists( 'WPLA_MSRP_Addon' ) ) : ?>
 								<option value="2" <?php if ( isset( $item_details['strikethrough_pricing'] ) && $item_details['strikethrough_pricing'] == '2' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'MSRP', 'wp-lister-for-ebay' ); ?></option>
@@ -978,9 +978,9 @@
                                 <?php wplister_tooltip(__('<b>DuringCheckout</b><br/>The discounted price must be shown on the eBay checkout flow page.<br/><br/><b>None</b><br/>The discount price is not shown via either PreCheckout nor DuringCheckout.<br/><br/><b>PreCheckout</b><br/>The buyer must click a link (or a button) to navigate to a separate page (or window) that displays the discount price. eBay displays the discounted item price in a pop-up window.', 'wp-lister-for-ebay')) ?>
                             </label>
                             <select id="wpl-text-map_exposure" name="wpl_e2e_map_exposure" class=" required-entry select">
-                                <option value="DuringCheckout" <?php selected( $item_details['map_exposure'] ?? '', 'DuringCheckout' ); ?>><?php echo __( 'DuringCheckout', 'wp-lister-for-ebay' ); ?></option>
-                                <option value="None" <?php selected( $item_details['map_exposure'] ?? '', 'None' ); ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
-                                <option value="PreCheckout" <?php selected( $item_details['map_exposure'] ?? '', 'PreCheckout' ); ?>><?php echo __( 'PreCheckout', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="DuringCheckout" <?php selected( $item_details['map_exposure'] ?? 'None', 'DuringCheckout' ); ?>><?php echo __( 'DuringCheckout', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="None" <?php selected( $item_details['map_exposure'] ?? 'None', 'None' ); ?>><?php echo __( 'None', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="PreCheckout" <?php selected( $item_details['map_exposure'] ?? 'None', 'PreCheckout' ); ?>><?php echo __( 'PreCheckout', 'wp-lister-for-ebay' ); ?></option>
                             </select>
                             <br class="clear" />
 
@@ -989,7 +989,7 @@
                                 <?php wplister_tooltip(__('<b>Restrict to Business (B2B)</b><br>Enable this option if you want to offer the item exclusively to business users.<br><br>Applicable only to business sellers residing in Germany, Austria, or Switzerland who are listing in a B2B VAT-enabled category on the eBay DE, AT or CH sites.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-b2b_only" name="wpl_e2e_b2b_only" class=" required-entry select">
-								<option value="0" <?php if ( isset( $item_details['b2b_only'] ) && $item_details['b2b_only'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['b2b_only'] ) || $item_details['b2b_only'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 								<option value="1" <?php if ( isset( $item_details['b2b_only'] ) && $item_details['b2b_only'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />
@@ -999,7 +999,7 @@
                                 <?php wplister_tooltip(__('This enables your products to be offered via the eBay Plus program.<br><br>eBay Plus is a premium account option for buyers, which provides benefits such as fast free domestic shipping and free returns on selected items. Top-Rated eBay sellers must opt in to eBay Plus to be able to offer the program on qualifying listings. Sellers must commit to next-day delivery of those items.<br><br><b>Note:</b> Currently, eBay Plus is available only to buyers in Germany (DE), but this program is scheduled to come to the Austria and Australia marketplaces in the near future.', 'wp-lister-for-ebay')) ?>
 							</label>
 							<select id="wpl-text-ebayplus_enabled" name="wpl_e2e_ebayplus_enabled" class=" required-entry select">
-								<option value="0" <?php if ( isset( $item_details['ebayplus_enabled'] ) && $item_details['ebayplus_enabled'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+								<option value="0" <?php if ( !isset( $item_details['ebayplus_enabled'] ) || $item_details['ebayplus_enabled'] == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
 								<option value="1" <?php if ( isset( $item_details['ebayplus_enabled'] ) && $item_details['ebayplus_enabled'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
 							</select>
 							<br class="clear" />

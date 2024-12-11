@@ -728,7 +728,7 @@ class WPLE_ListingQueryHelper {
 			WHERE ID = %s
 		", $post_id ) );
 
-		return $excerpt;
+		return $excerpt ?? '';
 	}
 
 

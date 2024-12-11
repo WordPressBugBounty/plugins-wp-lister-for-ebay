@@ -12,6 +12,66 @@ function WPLE() {
     return WPL_WPLister::get_instance();
 }
 
+/**
+ * @return \WPLab\Ebay\Models\EbayManufacturer[]
+ */
+function wple_get_manufacturers() {
+	global $wpdb;
+
+	$manufacturers = [];
+	$rows = $wpdb->get_results("SELECT id FROM {$wpdb->prefix}ebay_manufacturers ORDER BY company ASC");
+
+	if ( $rows ) {
+		foreach ( $rows as $row ) {
+			$manufacturers[] = new \WPLab\Ebay\Models\EbayManufacturer( $row->id );
+		}
+	}
+
+	return $manufacturers;
+}
+
+/**
+ * @return \WPLab\Ebay\Models\EbayResponsiblePerson[]
+ */
+function wple_get_responsible_persons() {
+    global $wpdb;
+
+    $persons = [];
+    $rows = $wpdb->get_results("SELECT id FROM {$wpdb->prefix}ebay_responsible_persons ORDER BY company ASC");
+
+    if ( $rows ) {
+        foreach ( $rows as $row ) {
+	        $persons[] = new \WPLab\Ebay\Models\EbayResponsiblePerson( $row->id );
+        }
+    }
+
+    return $persons;
+}
+
+/**
+ * @return \WPLab\Ebay\Models\EbayDocument[]
+ */
+function wple_get_documents( $account = null ) {
+	global $wpdb;
+
+    $where = "WHERE 1=1";
+
+    if ( $account ) {
+        $where .= " AND account_id = '". intval( $account ) ."' ";
+    }
+
+	$docs = [];
+	$rows = $wpdb->get_results("SELECT id FROM {$wpdb->prefix}ebay_documents $where ORDER BY date_added DESC");
+
+	if ( $rows ) {
+		foreach ( $rows as $row ) {
+			$docs[] = new \WPLab\Ebay\Models\EbayDocument( $row->id );
+		}
+	}
+
+	return $docs;
+}
+
 function wple_get_license_email() {
 	$api_email = get_option( 'wple_last_active_license_email', false );
 

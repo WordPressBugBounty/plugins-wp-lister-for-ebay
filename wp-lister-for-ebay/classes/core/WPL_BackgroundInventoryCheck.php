@@ -192,6 +192,12 @@ class WPL_BackgroundInventoryCheck extends WPL_InventoryCheck {
         }
     }
 
+	/**
+	 * @param $type
+	 * @param ItemType $item
+	 *
+	 * @return void
+	 */
     public function checkListingQuantity( $type, $item ) {
         $listing = WPLE_ListingQueryHelper::findItemByEbayID( $item->ItemID, false );
 
@@ -214,10 +220,11 @@ class WPL_BackgroundInventoryCheck extends WPL_InventoryCheck {
             'variations'    => $listing->variations,
             'quantity'      => $item->Quantity,
             'quantity_sold' => $item->SellingStatus->QuantitySold,
+			'price'         => $item->getStartPrice(),
             'status'        => $listing->status,
         );
 
-        if ( ! $this->checkSync( $data, false ) ) {
+        if ( ! $this->checkSync( $data, apply_filters('wple_background_inventory_compare_prices',false) ) ) {
             $this->addToReport( $data );
         }
     }
