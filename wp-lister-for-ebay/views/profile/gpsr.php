@@ -91,7 +91,7 @@
 
 <div id="gpsr_container">
 
-    <label for="wpl-text-gpsr-documents" class="text_label">
+    <!--<label for="wpl-text-gpsr-documents" class="text_label">
         <?php echo __( 'Documents', 'wp-lister-for-ebay' ); ?>
         <?php wplister_tooltip(__('Regulatory documents associated with the listing.', 'wp-lister-for-ebay') ); ?>
     </label>
@@ -106,7 +106,7 @@
         <?php endforeach; ?>
     </select>
     <a href="#" class="button" id="show_documents_modal"><?php _e( 'Manage', 'wp-lister-for-ebay' ); ?></a>
-    <br class="clear" />
+    <br class="clear" />-->
 
     <label for="wpl-text-gpsr-repair-score" class="text_label">
         <?php echo __( 'Repair Score', 'wp-lister-for-ebay' ); ?>

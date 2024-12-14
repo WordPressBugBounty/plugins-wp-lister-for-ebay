@@ -1653,14 +1653,16 @@ class ItemBuilderModel extends WPL_Model {
 	private function isGpsrEnabled() {
 		$product_enabled = $this->listing->getProductProperty('_ebay_gpsr_enabled');
 
-		if ( $product_enabled == 0 ) {
-			return false;
-		} elseif ( $product_enabled == 1 ) {
-			return true;
-		} else {
+
+		if ( $product_enabled === '' ) {
 			// an empty string for "-- use profile setting --"
 			return (bool)$this->profile_details['gpsr_enabled'];
+		} elseif ( $product_enabled == 1 ) {
+			return true;
 		}
+
+		return false;
+
 	}
 
 	/**

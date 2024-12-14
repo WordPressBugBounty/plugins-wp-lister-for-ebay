@@ -581,6 +581,8 @@
     <input type="hidden" id="disable_popups" value="<?php echo esc_attr(get_option( 'wplister_disable_profile_popup_errors', 0 )); ?>" />
 
 	<script type="text/javascript">
+        const gpsr_custom_manufacturer = false;
+        const gpsr_custom_responsible_persons = false;
         const condition_descriptions = <?php echo json_encode( $wpl_conditions_and_descriptions); ?>;
         const condition_descriptors = <?php echo json_encode( $wpl_condition_descriptor_fields ); ?>;
         const conditions = <?php echo json_encode( $wpl_available_conditions); ?>;

@@ -1560,7 +1560,9 @@ class WpLister_Product_MetaBox {
             if ( $value !== "" ) {
 
                 if (in_array( $key, ['gpsr_hazmat_pictograms','gpsr_hazmat_statements','gpsr_product_safety_pictograms','gpsr_product_safety_statements'])) {
-                    $value = explode(',', $value);
+                    if ( !is_array( $value ) ) {
+	                    $value = explode(',', $value);
+                    }
                 }
 
                 $item_details[ $key ] = $value;

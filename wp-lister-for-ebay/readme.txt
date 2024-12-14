@@ -2,7 +2,7 @@
 Contributors: wp-lab
 Tags: ebay, woocommerce, products, export
 Requires at least: 4.2
-Tested up to: 6.6
+Tested up to: 6.7.1
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -102,6 +102,17 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+
+= 3.7.1.1 - 2024-12-14 =
+* Fix: Fatal error in the class EbayAddress
+* Fix: ItemBuilderModel::isGpsrEnabled() not returning the expected result
+
+= 3.7.1 - 2024-12-13 =
+* Fix: Javascript error in the Edit Profile page preventing the Responsible Persons field from rendering
+* Fix: Error in the Edit Product screen (explode(): Argument #2 ($string) must be of type string, array given)
+* Fix: CSS issues with the GPSR table
+* Fix: Character encoding issue in the Manufacturer and Responsible Persons data
+* Fix: Display issue in the jQuery Chosen fields
 
 = 3.7.0 - 2024-12-11 =
 * New: Support for the General Product Safety Regulation (GPSR)

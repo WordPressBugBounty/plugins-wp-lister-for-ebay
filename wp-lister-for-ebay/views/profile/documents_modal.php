@@ -17,7 +17,7 @@
         float: right;
     }
 
-    table {
+    table#documents_table {
         border: 1px solid #ccc;
         border-collapse: collapse;
         margin: 0;
@@ -26,42 +26,42 @@
         table-layout: fixed;
     }
 
-    table caption {
+    table#documents_table caption {
         font-size: 1.5em;
         margin: .5em 0 .75em;
     }
 
-    table tr {
+    table#documents_table tr {
         background-color: #f8f8f8;
         border: 1px solid #ddd;
         padding: .35em;
     }
 
-    table th,
-    table td {
+    table#documents_table th,
+    table#documents_table td {
         padding: .625em;
         text-align: center;
     }
 
-    table th {
+    table#documents_table th {
         font-size: .85em;
         letter-spacing: .1em;
         text-transform: uppercase;
     }
 
-    table th.checkbox-col {
+    table#documents_table th.checkbox-col {
         width: 50px;
     }
 
-    table th.id-col {
+    table#documents_table th.id-col {
         width: 100px;
     }
 
-    table th.date-col {
+    table#documents_table th.date-col {
         width: 200px;
     }
 
-    table th.actions-col {
+    table#documents_table th.actions-col {
         width: 100px;
     }
 
@@ -70,11 +70,11 @@
             border: 0;
         }
 
-        table caption {
+        table#documents_table caption {
             font-size: 1.3em;
         }
 
-        table thead {
+        table#documents_table thead {
             border: none;
             clip: rect(0 0 0 0);
             height: 1px;
@@ -85,20 +85,20 @@
             width: 1px;
         }
 
-        table tr {
+        table#documents_table tr {
             border-bottom: 3px solid #ddd;
             display: block;
             margin-bottom: .625em;
         }
 
-        table td {
+        table#documents_table td {
             border-bottom: 1px solid #ddd;
             display: block;
             font-size: .8em;
             text-align: right;
         }
 
-        table td::before {
+        table#documents_table td::before {
             /*
 			* aria-label has no advantage, it won't be read inside a table
 			content: attr(aria-label);
@@ -109,13 +109,13 @@
             text-transform: uppercase;
         }
 
-        table td:last-child {
+        table#documents_table td:last-child {
             border-bottom: 0;
         }
     }
 
     /* general styling */
-    body {
+    body table#documents_table {
         font-family: "Open Sans", sans-serif;
         line-height: 1.25;
     }
@@ -242,13 +242,6 @@
 	        endforeach;
         endif;
         ?>
-        <tr>
-            <td>1</td>
-            <td>mikecd-test-timesheet.pdf</td>
-            <td>type</td>
-            <td>November 06, 2025 15:33</td>
-            <td><a href="#">View</a> | <a href="#">Delete</a></td>
-        </tr>
         </tbody>
     </table>
 

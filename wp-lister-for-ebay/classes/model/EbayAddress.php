@@ -2,15 +2,15 @@
 namespace WPLab\Ebay\Models;
 class EbayAddress {
 
-	protected string $company;
-	protected string $street1;
-	protected string $street2;
-	protected string $city;
-	protected string $state;
-	protected string $postcode;
-	protected string $country;
-	protected string $phone;
-	protected string $email;
+	protected string $company = '';
+	protected string $street1 = '';
+	protected string $street2 = '';
+	protected string $city = '';
+	protected string $state = '';
+	protected string $postcode = '';
+	protected string $country = '';
+	protected string $phone = '';
+	protected string $email = '';
 
 	public function __construct( $id = null ) {
 

@@ -118,11 +118,13 @@ jQuery( document ).ready(function () {
         const tbURL = "#TB_inline?height="+tbHeight+"&width=750&inlineId=manufacturers_modal";
         //const tbUrl = ajaxurl + sep + "action=wple_show_responsible_persons_modal&width=800&height=400";
         tb_show( "Manage Manufacturers", tbURL );
-    });
+    }); 
 
     jQuery('#wpl-text-gpsr_enabled').on('change', function() {
         if (jQuery(this).val() == 1 ) {
             jQuery('#gpsr_container').show();
+            jQuery("select.wple_chosen_select:visible").chosen('destroy');
+            jQuery("select.wple_chosen_select:visible").chosen();
         } else {
             jQuery('#gpsr_container').hide();
         }

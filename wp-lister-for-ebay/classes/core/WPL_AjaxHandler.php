@@ -1392,20 +1392,18 @@ class WPL_AjaxHandler extends WPL_Core {
 
 	public function ajax_wple_add_responsible_person() {
 		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson();
-		$data       = filter_input_array( INPUT_POST, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		$defaults   = [
-			'company'   => '',
-			'email'     => '',
-			'phone'     => '',
-			'street1'   => '',
-			'street2'   => '',
-			'city'      => '',
-			'state'     => '',
-			'postcode'  => '',
-			'country'   => ''
+		$data   = [
+			'company'   => sanitize_text_field( $_POST['company'] ?? '' ),
+			'email'     => sanitize_email( $_POST['email'] ?? '' ),
+			'phone'     => sanitize_text_field( $_POST['phone'] ?? '' ),
+			'street1'   => sanitize_text_field( $_POST['street1'] ?? '' ),
+			'street2'   => sanitize_text_field( $_POST['street2'] ?? '' ),
+			'city'      => sanitize_text_field( $_POST['city'] ?? '' ),
+			'state'     => sanitize_text_field( $_POST['state'] ?? '' ),
+			'postcode'  => sanitize_text_field( $_POST['postcode'] ?? '' ),
+			'country'   => sanitize_text_field( $_POST['country'] ?? '' )
 		];
 
-		$data = wp_parse_args( $data, $defaults );
 		$person
 			->setEmail( $data['email'] )
 			->setCompany( $data['company'] )
@@ -1453,20 +1451,18 @@ class WPL_AjaxHandler extends WPL_Core {
 
 	public function ajax_wple_add_manufacturer() {
 		$manufacturer = new \WPLab\Ebay\Models\EbayManufacturer();
-		$data       = filter_input_array( INPUT_POST, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
-		$defaults   = [
-			'company'   => '',
-			'email'     => '',
-			'phone'     => '',
-			'street1'   => '',
-			'street2'   => '',
-			'city'      => '',
-			'state'     => '',
-			'postcode'  => '',
-			'country'   => ''
-		];
 
-		$data = wp_parse_args( $data, $defaults );
+		$data   = [
+			'company'   => sanitize_text_field( $_POST['company'] ?? '' ),
+			'email'     => sanitize_email( $_POST['email'] ?? '' ),
+			'phone'     => sanitize_text_field( $_POST['phone'] ?? '' ),
+			'street1'   => sanitize_text_field( $_POST['street1'] ?? '' ),
+			'street2'   => sanitize_text_field( $_POST['street2'] ?? '' ),
+			'city'      => sanitize_text_field( $_POST['city'] ?? '' ),
+			'state'     => sanitize_text_field( $_POST['state'] ?? '' ),
+			'postcode'  => sanitize_text_field( $_POST['postcode'] ?? '' ),
+			'country'   => sanitize_text_field( $_POST['country'] ?? '' )
+		];
 		$manufacturer
 			->setEmail( $data['email'] )
 			->setCompany( $data['company'] )
