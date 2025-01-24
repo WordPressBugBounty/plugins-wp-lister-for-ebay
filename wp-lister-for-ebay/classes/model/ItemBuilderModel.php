@@ -1650,21 +1650,6 @@ class ItemBuilderModel extends WPL_Model {
 
 	} /* end of buildItemSpecifics() */
 
-	private function isGpsrEnabled() {
-		$product_enabled = $this->listing->getProductProperty('_ebay_gpsr_enabled');
-
-
-		if ( $product_enabled === '' ) {
-			// an empty string for "-- use profile setting --"
-			return (bool)$this->profile_details['gpsr_enabled'];
-		} elseif ( $product_enabled == 1 ) {
-			return true;
-		}
-
-		return false;
-
-	}
-
 	/**
 	 * @return EnergyEfficiencyType
 	 */
@@ -1672,9 +1657,12 @@ class ItemBuilderModel extends WPL_Model {
 		// Energy Efficiency Label
 		$ee = new EnergyEfficiencyType();
 
-		$product_image_id       = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image' );
+		$product_image_id       = $this->listing->getGpsrEnergyEfficiencyImageId();
+		$product_image_url_eps  = $this->listing->getGpsrEnergyEfficiencyImageEps();
+
+		//$product_image_id       = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image' );
 		$product_image_url      = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image_url' );
-		$product_image_url_eps  = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image_eps' );
+		//$product_image_url_eps  = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_image_eps' );
 
 		if ( ! $product_image_url_eps ) {
 			// if there's no EPS URL, upload this to EPS if an ID or URL is provided
@@ -1697,22 +1685,13 @@ class ItemBuilderModel extends WPL_Model {
 			}
 		}
 
-
 		if ( $product_image_url_eps ) {
 			$ee->setImageURL( $product_image_url_eps );
-		} else {
-			// No image set for the product. Use the profile value
-			$profile_image_id       = $this->profile_details['gpsr_energy_efficiency_image'];
-			$profile_image_url_eps  = $this->profile_details['gpsr_energy_efficiency_image_eps'];
-
-			if ( $profile_image_id && $profile_image_url_eps ) {
-				$ee->setImageURL( $profile_image_url_eps );
-			}
 		}
 
-		$product_sheet_image_id     = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_sheet_image' );
+		$product_sheet_image_id     = $this->listing->getGpsrEnergyEfficiencySheetImageId();
 		$product_sheet_image_url    = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_sheet_image_url' );
-		$product_sheet_image_eps    = $this->listing->getProductProperty( '_ebay_gpsr_energy_efficiency_sheet_image_eps' );
+		$product_sheet_image_eps    = $this->listing->getGpsrEnergyEfficiencySheetImageEps();
 
 		if ( empty( $product_sheet_image_eps ) ) {
 			// If there's an ID but no EPS URL, we need to upload to EPS to get one
@@ -1736,23 +1715,13 @@ class ItemBuilderModel extends WPL_Model {
 
 		if ( $product_sheet_image_eps ) {
 			$ee->setProductInformationsheet( $product_sheet_image_eps );
-		} else {
-			// No image set for the product. Use the profile value
-			$profile_sheet_image_id       = $this->profile_details['gpsr_energy_efficiency_sheet_image'];
-			$profile_sheet_image_url_eps  = $this->profile_details['gpsr_energy_efficiency_sheet_image_eps'];
-
-			if ( $profile_sheet_image_id && $profile_sheet_image_url_eps ) {
-				$ee->setProductInformationsheet( $profile_sheet_image_url_eps );
-			}
 		}
 
-		$product_label_description  = $this->listing->getProductProperty('_ebay_gpsr_energy_efficiency_label_description');
+		$product_label_description  = $this->listing->getGpsrEnergyEfficiencyLabelDescription();
 
-		if ( empty( $product_label_description ) ) {
-			$product_label_description = $this->profile_details['gpsr_energy_efficiency_label_description'] ?? '';
+		if ( $product_label_description ) {
+			$ee->setImageDescription( $product_label_description );
 		}
-
-		$ee->setImageDescription($product_label_description );
 
 		return $ee;
 	}
@@ -1763,34 +1732,16 @@ class ItemBuilderModel extends WPL_Model {
 	private function getHazmatProperties() {
 		$hazmat = new HazmatType();
 
-		$component = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_component' );
-
-		if ( empty( $component ) ) {
-			$component = $this->profile_details['gpsr_hazmat_component'] ?? '';
-		}
+		$component  = $this->listing->getGpsrHazmatComponent();
+		$pictograms = $this->listing->getGpsrHazmatPictograms();
+		$signalword = $this->listing->getGpsrHazmatSignalWord();
+		$statements = $this->listing->getGpsrHazmatStatements();
 
 		$pictograms_type = new PictogramsType();
-		$pictograms = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_pictograms' );
-
-		if ( empty( $pictograms ) ) {
-			$pictograms = $this->profile_details['gpsr_hazmat_pictograms'] ?? '';
-		}
+		$statements_type = new StatementsType();
 
 		foreach ( $pictograms as $pictogram ) {
 			$pictograms_type->addPictogram( $pictogram );
-		}
-
-		$signalword = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_signalword' );
-
-		if ( empty( $signalword ) ) {
-			$signalword = $this->profile_details['gpsr_hazmat_signalword'] ?? '';
-		}
-
-		$statements_type = new StatementsType();
-		$statements = $this->listing->getProductProperty( '_ebay_gpsr_hazmat_statements' );
-
-		if ( empty( $statements ) ) {
-			$statements = $this->profile_details['gpsr_hazmat_statements'] ?? '';
 		}
 
 		foreach ( $statements as $statement ) {
@@ -1799,9 +1750,17 @@ class ItemBuilderModel extends WPL_Model {
 
 		if ( $component || $pictograms || $statements ) {
 			$hazmat->setComponent( $component );
-			$hazmat->setPictograms( $pictograms_type );
+
+			if ( !empty($pictograms) ) {
+				$hazmat->setPictograms( $pictograms_type );
+			}
+
 			$hazmat->setSignalWord( $signalword );
-			$hazmat->setStatements( $statements_type );
+
+			if ( !empty($statements) ) {
+				$hazmat->setStatements( $statements_type );
+			}
+
 
 			return $hazmat;
 		}
@@ -1870,28 +1829,15 @@ class ItemBuilderModel extends WPL_Model {
 	private function getProductSafetyProperties() {
 		$safety = new ProductSafetyType();
 
-		$component = $this->listing->getProductProperty( '_ebay_gpsr_product_safety_component' );
-
-		if ( empty( $component ) ) {
-			$component = $this->profile_details['gpsr_product_safety_component'] ?? '';
-		}
+		$component  = $this->listing->getGpsrProductSafetyComponent();
+		$pictograms = $this->listing->getGpsrProductSafetyPictograms();
+		$statements = $this->listing->getGpsrProductSafetyStatements();
 
 		$pictograms_type = new PictogramsType();
-		$pictograms = $this->listing->getProductProperty( '_ebay_gpsr_product_safety_pictograms' );
-
-		if ( empty( $pictograms ) ) {
-			$pictograms = $this->profile_details['gpsr_product_safety_pictograms'] ?? '';
-		}
+		$statements_type = new StatementsType();
 
 		foreach ( $pictograms as $pictogram ) {
 			$pictograms_type->addPictogram( $pictogram );
-		}
-
-		$statements_type = new StatementsType();
-		$statements = $this->listing->getProductProperty( '_ebay_gpsr_product_safety_statements' );
-
-		if ( empty( $statements ) ) {
-			$statements = $this->profile_details['gpsr_product_safety_statements'] ?? '';
 		}
 
 		foreach ( $statements as $statement ) {
@@ -1909,93 +1855,8 @@ class ItemBuilderModel extends WPL_Model {
 		return false;
 	}
 
-	/**
-	 * @return ResponsiblePersonsType
-	 */
-	private function getResponsiblePersons() {
-		$persons_type = new ResponsiblePersonsType();
-
-		$i = 1;
-		$street1 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street1' );
-		$street2 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street2' );
-		$city    = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_city' );
-		$state   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_state' );
-		$country = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_country' );
-		$postcode= $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_postcode' );
-		$company = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_company' );
-		$phone   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_phone' );
-		$email   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_email' );
-
-		if ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) ) {
-
-			do {
-				$person_type = new ResponsiblePersonType();
-				$person_type->setStreet1( $street1 );
-				$person_type->setStreet2( $street2 );
-				$person_type->setCityName( $city );
-				$person_type->setStateOrProvince( $state );
-				$person_type->setPostalCode( $postcode );
-				$person_type->setCountry( $country );
-				$person_type->setCompanyName( $company );
-				$person_type->setPhone( $phone );
-				$person_type->setEmail( $email );
-
-				$types = new ResponsiblePersonCodeType();
-				$types->addType('EUResponsiblePerson');
-				$person_type->setType( $types );
-
-				$persons_type->addResponsiblePerson( $person_type );
-
-				$i++;
-				$street1 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street1' );
-				$street2 = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street2' );
-				$city    = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_city' );
-				$state   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_state' );
-				$country = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_country' );
-				$postcode= $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_postcode' );
-				$company = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_company' );
-				$phone   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_phone' );
-				$email   = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_email' );
-
-			} while ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) );
-		} else {
-			$persons = $this->listing->getProductProperty( '_ebay_gpsr_responsible_persons' );
-
-			if ( empty( $persons ) ) {
-				$persons = $this->profile_details['gpsr_responsible_persons'] ?? '';
-			}
-
-			if ( $persons ) {
-				foreach ( $persons as $person_id ) {
-					$obj = new \WPLab\Ebay\Models\EbayResponsiblePerson( $person_id );
-
-					$person_type = new ResponsiblePersonType();
-					$person_type->setStreet1( $obj->getStreet1() );
-					$person_type->setStreet2( $obj->getStreet2() );
-					$person_type->setCityName( $obj->getCity() );
-					$person_type->setStateOrProvince( $obj->getState() );
-					$person_type->setPostalCode( $obj->getPostcode() );
-					$person_type->setCountry( $obj->getCountry() );
-					$person_type->setCompanyName( $obj->getCompany() );
-					$person_type->setPhone( $obj->getPhone() );
-					$person_type->setEmail( $obj->getEmail() );
-					//$person_type->addType( 'EUResponsiblePerson' );
-
-					$types = new ResponsiblePersonCodeType();
-					$types->addType('EUResponsiblePerson');
-					$person_type->setType( $types );
-
-					$persons_type->addResponsiblePerson( $person_type );
-				}
-			}
-		}
-
-		return $persons_type;
-	}
-
-
 	public function buildGpsr() {
-		if ( !$this->isGpsrEnabled() ) {
+		if ( !$this->listing->isGpsrEnabled() ) {
 			return;
 		}
 
@@ -2005,15 +1866,18 @@ class ItemBuilderModel extends WPL_Model {
 
 		$energy_efficiency  = $this->getEnergyEfficiencyProperties();
 		$hazmat             = $this->getHazmatProperties();
-		$manufacturer       = $this->getManufacturer();
+		$manufacturer       = $this->listing->getGpsrManufacturer();
 		$product_safety     = $this->getProductSafetyProperties();
-		$persons            = $this->getResponsiblePersons();
-		$repair_score       = $this->getRepairScore();
+		$persons            = $this->listing->getGpsrResponsiblePersons();
+		$repair_score       = $this->listing->getGpsrRepairScore();
 
 		$regulatory->setRepairScore( floatval( $repair_score ) );
 		$regulatory->setEnergyEfficiencyLabel( $energy_efficiency );
-		$regulatory->setManufacturer( $manufacturer );
 		$regulatory->setResponsiblePersons( $persons );
+
+		if ( $manufacturer ) {
+			$regulatory->setManufacturer( $manufacturer );
+		}
 
 		if ( $hazmat ) {
 			$regulatory->setHazmat( $hazmat );
@@ -2024,16 +1888,6 @@ class ItemBuilderModel extends WPL_Model {
 		}
 
 		$this->item->setRegulatory( $regulatory );
-	}
-
-	private function getRepairScore() {
-		$score  = $this->listing->getProductProperty('_ebay_gpsr_repair_score');
-
-		if ( empty( $score ) ) {
-			$score = $this->profile_details['gpsr_repair_score'] ?? '';
-		}
-
-		return $score;
 	}
 
     private function processSizeMapReplacements( $attr_name, $attr_value, $profile_details ) {
@@ -2181,7 +2035,7 @@ class ItemBuilderModel extends WPL_Model {
             $newvar = new VariationType();
 
             // handle price
-            $newvar->setStartPrice( ListingsModel::applyProfilePrice( $var['price'], $this->profile_details['start_price'] ) );
+	        $start_price = ListingsModel::applyProfilePrice( $var['price'], $this->profile_details['start_price'] );
 
             // handle StartPrice on product level
             if ( get_option( 'wplister_enable_custom_product_prices', 1 ) ) {
@@ -2190,19 +2044,20 @@ class ItemBuilderModel extends WPL_Model {
 
                 // handle StartPrice on variation level
                 if ( $var_start_price = get_post_meta( $var['post_id'], '_ebay_start_price', true ) ) {
-                    $product_start_price = self::dbSafeFloatval( $var_start_price );
+                    $product_start_price = self::dbSafeFloatval( wc_format_decimal( $var_start_price ) );
                 }
 
                 if ( $product_start_price ) {
                     if ( 0 == get_option( 'wplister_apply_profile_to_ebay_price', 0 ) ) {
                         // default behavior - always use the _ebay_start_price if present
-                        $newvar->setStartPrice( $product_start_price );
+                        $start_price = wc_format_decimal( $product_start_price );
                     } else {
                         // Apply the profile pricing rule on the _ebay_start_price
-                        $newvar->setStartPrice( ListingsModel::applyProfilePrice( $product_start_price, $this->profile_details['start_price'] ) );
+                        $start_price = ListingsModel::applyProfilePrice( wc_format_decimal( $product_start_price ), $this->profile_details['start_price'] );
                     }
                 }
 
+				$newvar->setStartPrice( $start_price );
             }
 
             // handle variation quantity - if no quantity set in profile

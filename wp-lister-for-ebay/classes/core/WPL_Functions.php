@@ -599,10 +599,13 @@ function wple_json_validate($json, $depth = 512, $flags = 0) {
     if ( function_exists( 'json_validate' ) ) {
         return json_validate( $json, $depth, $flags );
     }
-	// Decode the JSON string
-	json_decode($json, false, $depth, $flags);
 
-	// Check for errors during decoding
-	$error = json_last_error();
-	return $error === JSON_ERROR_NONE;
+    // Decode the JSON string
+	$decoded = json_decode($json);
+	return $decoded && $json != $decoded;
+}
+
+function wple_is_json($str) {
+	$json = json_decode($str);
+	return $json && $str != $json;
 }

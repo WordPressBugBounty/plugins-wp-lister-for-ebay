@@ -240,6 +240,13 @@
                             <p><?php echo __( 'This tool will rename all template function names across all templates that are non-unique to prevent fatal errors when the templates are being loaded by WP-Lister.', 'wp-lister-for-ebay' ); ?></p>
                         </form>
 
+                        <form method="post" action="<?php echo $wpl_form_action; ?>">
+							<?php wp_nonce_field( 'e2e_tools_page' ); ?>
+                            <input type="hidden" name="action" value="wple_fix_delayed_listing_update_loop" />
+                            <input type="submit" value="<?php echo __( 'Fix Applying Profile Loop', 'wp-lister-for-ebay' ); ?>" name="submit" class="button button-primary">
+                            <p><?php echo __( 'Use this tool if your Listings page keeps on displaying the Applying Profile window over and over.', 'wp-lister-for-ebay' ); ?></p>
+                        </form>
+
 					</div>
 				</div> <!-- postbox -->
 

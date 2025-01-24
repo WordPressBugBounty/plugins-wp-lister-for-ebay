@@ -1785,6 +1785,27 @@ class WPLE_UpgradeHelper {
 			$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
 		}
 
+		if ( 75 > $db_version ) {
+			$new_db_version = 75;
+
+			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_manufacturers`
+					CHANGE `state` `state` varchar(100) NOT NULL AFTER `city`,
+					CHANGE `postcode` `postcode` varchar(100) NOT NULL AFTER `state`,
+					CHANGE `country` `country` varchar(100)  NOT NULL AFTER `postcode`,
+					CHANGE `phone` `phone` varchar(100) NOT NULL AFTER `email`;";
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_responsible_persons`
+					CHANGE `state` `state` varchar(100) NOT NULL AFTER `city`,
+					CHANGE `postcode` `postcode` varchar(100) NOT NULL AFTER `state`,
+					CHANGE `country` `country` varchar(100) NOT NULL AFTER `postcode`,
+					CHANGE `phone` `phone` varchar(100) NOT NULL AFTER `email`;";
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			update_option('wplister_db_version', $new_db_version);
+			$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
+		}
+
 		// show update message
 		if ( $msg && ! $hide_message ) wple_show_message($msg,'info');
 

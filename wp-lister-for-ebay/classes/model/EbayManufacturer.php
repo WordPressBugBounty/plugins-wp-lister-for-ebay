@@ -32,7 +32,7 @@ class EbayManufacturer extends EbayAddress {
 
 	/**
 	 * Creates a new Manufacturer record. Returns the new ID created or false on error
-	 * @return int|bool
+	 * @return int|\WP_Error
 	 */
 	public function save() {
 		global $wpdb;
@@ -42,6 +42,10 @@ class EbayManufacturer extends EbayAddress {
 		if ( !empty( $data['id'] ) ) {
 			// update existing
 			return $this->update();
+		}
+
+		if ( $this->exists() ) {
+			return new \WP_Error( 'duplicate_data', __('Error: A manufacturer with the same Company and Email already exists.', 'wp-lister-for-ebay') );
 		}
 
 		$data['date_added'] = current_time('mysql');
@@ -54,12 +58,12 @@ class EbayManufacturer extends EbayAddress {
 		// something went wrong
 		WPLE()->logger->error( 'Error saving manufacturer. '. $wpdb->last_error );
 		WPLE()->logger->debug( print_r( $data, 1 ) );
-		return false;
+		return new \WP_Error( 'manufacturer_error', __('Error saving this manufacturer. Please try again or contact support.', 'wp-lister-for-ebay') );
 	}
 
 	/**
 	 * Updates an existing Manufacturer
-	 * @return bool
+	 * @return bool|\WP_Error
 	 */
 	public function update() {
 		global $wpdb;
@@ -76,7 +80,7 @@ class EbayManufacturer extends EbayAddress {
 		// something went wrong
 		WPLE()->logger->error( 'Error updating manufacturer #'. $this->getId(). ': '. $wpdb->last_error );
 		WPLE()->logger->debug( print_r( $data, 1 ) );
-		return false;
+		return new \WP_Error( 'manufacturer_error', __('Error saving this manufacturer. Please try again or contact support.', 'wp-lister-for-ebay') );
 	}
 
 	/**
@@ -87,6 +91,21 @@ class EbayManufacturer extends EbayAddress {
 		global $wpdb;
 
 		return $wpdb->delete( $wpdb->prefix .'ebay_manufacturers',  ['id' => $this->getId()] );
+	}
+
+	public function exists() {
+		global $wpdb;
+
+		$count = $wpdb->get_var($wpdb->prepare(
+		"SELECT COUNT(*)
+			FROM `{$wpdb->prefix}ebay_manufacturers`
+			WHERE company = %s
+			AND email = %s",
+			$this->getCompany(),
+			$this->getEmail()
+		));
+
+		return $count > 0;
 	}
 
 	protected function toArray() {

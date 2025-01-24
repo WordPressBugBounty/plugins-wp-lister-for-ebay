@@ -103,6 +103,41 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.7.3 - 2025-01-23 =
+* New: Added support for pulling Manufacturer and Responsible Persons data from product attributes
+* New: Added a tool that fixes the endless loop when running the delayed profile update routine
+* Fix: Item Specifics not loading in the Edit Product screen
+* Fix: Grid Listings loading issue due to AG-Grid version incompatibility
+* Fix: Format decimals correctly using wc_format_decimal()
+* Fix: Ignore Older Orders Date not getting pulled correctly
+* Dev: Switched the dropdowns from Chosen to SelectWoo
+
+= 3.7.2.2 - 2025-01-08 =
+* Fix: eBay profiles and store categories are not getting downloaded into WP-Lister
+
+= 3.7.2.1 - 2025-01-08 =
+* Fix: Incomplete HazMat properties getting sent to eBay
+* Fix: Warning caused by as_next_scheduled_action() getting called too early
+* Fix: Undefined array key gpsr_enabled
+* Dev: Rolled back composer packages to retain compatibility with PHP 7.4
+
+= 3.7.2 - 2025-01-06 =
+* New: Added the shortcodes [ebay_gpsr_manufacturer] and [ebay_gpsr_responsible_persons]
+* Fix: The Inventory Check tool now compares against sale prices if enabled
+* Fix: Item Specifics for the default eBay category not getting rendered
+* Fix: Prices for variations not getting stored in the variations cache
+* Fix: Javascript error `Invalid assignment to const CategoryConditionsData`
+* Fix: Warning `Undefined property stdClass::$errors`
+* Fix: Warning `Cannot access offset of type string on string`
+* Fix: Item conditions dropdown not fetching values for the default eBay category
+* Fix: Various code warnings
+* Fix: Save WC_Order after changing the `stock_reduced` property
+* Fix: Check for duplicate Manufacturers and Responsible Persons before saving
+* Fix: Product-level Manufacturer and Responsible Persons not clearing after removing and saving
+* Tweak: Made the View on eBay link in the Edit Order page open in a new tab
+* Dev: Updated GuzzleHttp/Guzzle
+* Dev: New methods to help in pulling GPSR data from the DB
+
 = 3.7.1.1 - 2024-12-14 =
 * Fix: Fatal error in the class EbayAddress
 * Fix: ItemBuilderModel::isGpsrEnabled() not returning the expected result

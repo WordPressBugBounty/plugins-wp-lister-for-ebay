@@ -220,7 +220,7 @@ class EbayController {
                 update_option('wplister_setup_next_step', '2');                
 
                 // remember when WP-Lister was connected to an eBay account for the first time
-                update_option( 'ignore_orders_before_ts', time() );
+                update_option( 'wplister_ignore_orders_before_ts', time() );
             }
 
             // // obsolete - already called in fetchTokenForAccount()
@@ -1219,50 +1219,47 @@ class EbayController {
         $result->seller_payment_profiles  = array();
         $result->seller_return_profiles   = array();
 
-        $result->SellerProfileOptedIn     = $res->SellerProfilePreferences->SellerProfileOptedIn;
+        $result->SellerProfileOptedIn     = $res->SellerProfilePreferences->SellerProfileOptedIn ?? false;
         $result->OutOfStockControl        = $res->OutOfStockControlPreference;
 
         // $profiles = $res->getSellerProfilePreferences()->getSupportedSellerProfiles()->getSupportedSellerProfile(); // can trigger Fatal Error: Call to a member function getSupportedSellerProfiles() on a non-object
         // echo "<pre>";print_r($profiles);echo"</pre>";#die();
 
         // if ( $result->SellerProfileOptedIn ) {
-        if ( is_countable( $res->SellerProfilePreferences->SupportedSellerProfiles->SupportedSellerProfile ) && sizeof( $res->SellerProfilePreferences->SupportedSellerProfiles->SupportedSellerProfile ) > 0 ) {
-            
-            foreach ( $res->SellerProfilePreferences->SupportedSellerProfiles->SupportedSellerProfile as $profile ) {
-            
-                $seller_profile = new stdClass();
-                $seller_profile->ProfileID    = $profile->ProfileID;
-                $seller_profile->ProfileName  = $profile->ProfileName;
-                $seller_profile->ProfileType  = $profile->ProfileType;
-                $seller_profile->ShortSummary = $profile->ShortSummary;
-                
-                switch ( $profile->ProfileType ) {
-                    case 'SHIPPING':
-                        $result->seller_shipping_profiles[] = $seller_profile;
-                        break;
-                    
-                    case 'PAYMENT':
-                        $result->seller_payment_profiles[] = $seller_profile;
-                        break;
-                    
-                    case 'RETURN_POLICY':
-                        $result->seller_return_profiles[] = $seller_profile;
-                        break;
-                }
+	    if ( is_array($res->SellerProfilePreferences->SupportedSellerProfiles->SupportedSellerProfile) ) {
+		    foreach ( $res->SellerProfilePreferences->SupportedSellerProfiles->SupportedSellerProfile as $profile ) {
+			    $seller_profile = new stdClass();
+			    $seller_profile->ProfileID    = $profile->ProfileID;
+			    $seller_profile->ProfileName  = $profile->ProfileName;
+			    $seller_profile->ProfileType  = $profile->ProfileType;
+			    $seller_profile->ShortSummary = $profile->ShortSummary;
 
-            }
-            if ( $return_result ) return $result;
+			    switch ( $profile->ProfileType ) {
+				    case 'SHIPPING':
+					    $result->seller_shipping_profiles[] = $seller_profile;
+					    break;
 
-            update_option('wplister_ebay_seller_shipping_profiles', $result->seller_shipping_profiles, false);
-            update_option('wplister_ebay_seller_payment_profiles', $result->seller_payment_profiles, false);
-            update_option('wplister_ebay_seller_return_profiles', $result->seller_return_profiles, false);
+				    case 'PAYMENT':
+					    $result->seller_payment_profiles[] = $seller_profile;
+					    break;
 
-        } else {
-            if ( $return_result ) return $result;
-            delete_option( 'wplister_ebay_seller_shipping_profiles' );
-            delete_option( 'wplister_ebay_seller_payment_profiles' );
-            delete_option( 'wplister_ebay_seller_return_profiles' );
-        }
+				    case 'RETURN_POLICY':
+					    $result->seller_return_profiles[] = $seller_profile;
+					    break;
+			    }
+		    }
+
+		    if ( $return_result ) return $result;
+
+		    update_option('wplister_ebay_seller_shipping_profiles', $result->seller_shipping_profiles, false);
+		    update_option('wplister_ebay_seller_payment_profiles', $result->seller_payment_profiles, false);
+		    update_option('wplister_ebay_seller_return_profiles', $result->seller_return_profiles, false);
+	    } else {
+		    if ( $return_result ) return $result;
+		    delete_option( 'wplister_ebay_seller_shipping_profiles' );
+		    delete_option( 'wplister_ebay_seller_payment_profiles' );
+		    delete_option( 'wplister_ebay_seller_return_profiles' );
+	    }
 
         if ( $return_result ) return $result;
         update_option('wplister_ebay_seller_profiles_enabled', $result->SellerProfileOptedIn ? 'yes' : 'no' );
@@ -1748,6 +1745,17 @@ class EbayController {
 		// $responseMsg = $this->sendMessageXmlStyle( $xmlMessage, $reqHeaders, $multiPartData );
 		// old version - using WP HTTP API (does not work!)
 		// $responseMsg = $this->sendXmlMessageWithoutCurl( $xmlMessage, $reqHeaders, $multiPartData );
+
+		if ( get_option('wplister_log_to_db') == '1' ) {
+			$dblogger = new WPL_EbatNs_Logger();
+			$dblogger->updateLog( array(
+				'callname'    => 'UploadSiteHostedPictures',
+				'request_url' => $ep,
+				'request'     => $xmlMessage,
+				'response'    => print_r($responseMsg,1),
+				'success'     => strpos( $responseMsg, 'ErrorCode' ) ? 'Failure' : 'Success'
+			));
+		}
 
 		if ( $responseMsg )	{
 			$ret = $service->decodeMessage( 'UploadSiteHostedPictures', $responseMsg, $parseMode );

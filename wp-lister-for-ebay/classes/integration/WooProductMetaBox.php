@@ -64,6 +64,11 @@ class WpLister_Product_MetaBox {
             wp_enqueue_style( 'tagify' );
             wp_enqueue_script( 'tagify' );
 
+		    if ( !wp_script_is( 'wple_gpsr', 'registered' ) ) {
+			    wp_register_script( 'wple_gpsr', WPLE_PLUGIN_URL .'js/classes/GPSR.js' );
+		    }
+		    wp_enqueue_script( 'wple_gpsr' );
+
         }
     }
 
@@ -914,7 +919,10 @@ class WpLister_Product_MetaBox {
 		$ebay_category_1_id   = get_post_meta( $post->ID, '_ebay_category_1_id', true );
 		$ebay_category_1_name = $ebay_category_1_id ? EbayCategoriesModel::getFullEbayCategoryName( $ebay_category_1_id, $wpl_site_id ) : $default_text;
 
-		// secondary ebay category
+		// Store the eBay Category that will be used for pulling the Item Specifics
+        $item_specs_category_id = $ebay_category_1_id;
+
+			// secondary ebay category
 		$ebay_category_2_id   = get_post_meta( $post->ID, '_ebay_category_2_id', true );
 		$ebay_category_2_name = $ebay_category_2_id ? EbayCategoriesModel::getFullEbayCategoryName( $ebay_category_2_id, $wpl_site_id ) : $default_text;
 
@@ -935,6 +943,7 @@ class WpLister_Product_MetaBox {
 
 		    // New products/non-listings should already show the default mapped category
             if ( $primary_category_id ) {
+                $item_specs_category_id = $primary_category_id;
                 $ebay_category_1_name = EbayCategoriesModel::getFullEbayCategoryName( $primary_category_id, $wpl_site_id);
                 $ebay_category_1_name = '<span style="color:silver">Default category: ' . $ebay_category_1_name . ' </span>';
             }
@@ -945,10 +954,12 @@ class WpLister_Product_MetaBox {
 				if ( $mapped_categories['primary'] ) {
 					$ebay_category_1_name = EbayCategoriesModel::getFullEbayCategoryName( $mapped_categories['primary'], $wpl_site_id);
 					$ebay_category_1_name = '<span style="color:silver">Mapped category: ' . $ebay_category_1_name . ' </span>';
+                    $item_specs_category_id = $mapped_categories['primary'];
 				} else {
-					if ($profile['details']['store_category_1_id']) {
+					if ($profile['details']['ebay_category_1_id']) {
 						$ebay_category_1_name = EbayCategoriesModel::getFullEbayCategoryName( $profile['details']['ebay_category_1_id'], $wpl_site_id );
 						$ebay_category_1_name = '<span style="color:silver">Profile category: ' . $ebay_category_1_name . ' </span>';
+                        $item_specs_category_id = $profile['details']['ebay_category_1_id'];
 					}
 				}
 			}
@@ -989,6 +1000,7 @@ class WpLister_Product_MetaBox {
 		<div style="position:relative; margin: 0 5px;">
 			<label for="wpl-text-ebay_category_1_name" class="text_label"><?php echo __( 'Primary eBay category', 'wp-lister-for-ebay' ); ?></label>
 			<input type="hidden" name="wpl_ebay_category_1_id" id="ebay_category_id_1" value="<?php echo $ebay_category_1_id ?>" class="" />
+			<input type="hidden" name="wpl_ebay_item_specifics_category_id" id="ebay_item_specifics_category_id" value="<?php echo $item_specs_category_id; ?>" class="" />
 			<span  id="ebay_category_name_1" class="text_input" style="width:45%;float:left;line-height:3em;"><?php echo $ebay_category_1_name ?></span>
 			<div class="category_row_actions">
 				<input type="button" value="<?php echo __( 'select', 'wp-lister-for-ebay' ); ?>" class="button btn_select_ebay_category" onclick="">
@@ -1124,8 +1136,6 @@ class WpLister_Product_MetaBox {
 
 			jQuery( document ).ready(
 				function () {
-
-
 					// select ebay category button
 					jQuery('input.btn_select_ebay_category').click( function(event) {
 						// var cat_id = jQuery(this).parent()[0].id.split('sel_ebay_cat_id_')[1];
@@ -1229,7 +1239,7 @@ class WpLister_Product_MetaBox {
 
 				    });
 
-
+                    updateItemSpecifics();
 
 				}
 			);
@@ -1476,11 +1486,10 @@ class WpLister_Product_MetaBox {
 
 		// get data
 		$wpl_available_attributes     = ProductWrapper::getAttributeTaxonomies();
-		$wpl_default_ebay_category_id = get_post_meta( $post->ID, '_ebay_category_1_id', true );
+		$wpl_default_ebay_category_id = 0;
 
 		// $specifics contains all available item specifics for the selected category
 		// $item_specifics contains values set for this particular product / profile
-		// $specifics                 = get_post_meta( $post->ID, '_ebay_category_specifics', true );
 		$specifics                    = array();
 		$item_specifics               = get_post_meta( $post->ID, '_ebay_item_specifics', true );
 
@@ -1489,17 +1498,21 @@ class WpLister_Product_MetaBox {
 		$listing        = $this->get_current_ebay_item( $post );
 		$wpl_account_id = $listing && $listing->account_id ? $listing->account_id : get_option( 'wplister_default_account_id' );
 		$wpl_site_id    = $listing                         ? $listing->site_id    : get_option( 'wplister_ebay_site_id' );
-		// $profile_id  = $listing && $listing->profile_id ? $listing->profile_id : false;
 		$post_id        = $post->ID;
+		$profile        = $this->get_current_listing_profile( $post );
 
-        $listing_obj            = new \WPLab\Ebay\Listings\Listing( $listing->id );
-        $primary_ebay_category  = $listing_obj->getPrimaryCategory( $post_id );
-		$profile                = $this->get_current_listing_profile( $post );
+        $wpl_default_ebay_category_id   = ( $wpl_account_id && !empty( WPLE()->accounts[ $wpl_account_id ] ) ) ? WPLE()->accounts[ $wpl_account_id ]->default_ebay_category_id : get_option('wplister_default_ebay_category_id');
+
+        if ( $listing ) {
+	        $listing_obj            = new \WPLab\Ebay\Listings\Listing( $listing->id );
+	        $primary_ebay_category  = $listing_obj->getPrimaryCategory( $post_id );
+        }
 
 		// load specifics if we have a category
-		if ( $primary_ebay_category ) {
+		if ( !empty( $primary_ebay_category ) ) {
 			$specifics = EbayCategoriesModel::getItemSpecificsForCategory( $primary_ebay_category, false, $wpl_account_id );
-			// $specifics = array( $wpl_default_ebay_category_id => $specifics );
+		} elseif ( $wpl_default_ebay_category_id ) {
+			$specifics = EbayCategoriesModel::getItemSpecificsForCategory( $wpl_default_ebay_category_id, false, $wpl_account_id );
 		}
 
 
@@ -1517,7 +1530,7 @@ class WpLister_Product_MetaBox {
 		if ( $profile && isset( $profile['details']['ebay_category_1_id'] ) ) {
 			$profile_link = '<a href="admin.php?page=wplister-profiles&action=edit&profile='.$profile['profile_id'].'" target="_blank">'.$profile['profile_name'].'</a>';
 			echo '<small>These options are based on the selected profile <b>'.$profile_link.'</b> and its primary eBay category <b>'.$profile['details']['ebay_category_1_name'].'</b>.</small>';
-		} elseif ( $primary_ebay_category && isset($categories_map_ebay) ) {
+		} elseif ( !empty( $primary_ebay_category ) && isset($categories_map_ebay) ) {
 			$category_path = EbayCategoriesModel::getFullEbayCategoryName( $primary_ebay_category, $wpl_site_id );
 			echo '<small>Item specifics are based on the eBay category <b>'.$category_path.'</b> according to your category settings.</small>';
 		}
@@ -1533,6 +1546,7 @@ class WpLister_Product_MetaBox {
         $wpl_site = new WPLE_eBaySite( $wpl_site_id );
 	    $hazardous_materials_labels = maybe_unserialize( $wpl_site->HazardousMaterialsLabels );
         $product_safety_labels      = maybe_unserialize( $wpl_site->ProductSafetyLabels );
+	    $available_attributes       = ProductWrapper::getAttributeTaxonomies();
 
         $item_details = [
             'gpsr_enabled'                              => '',
@@ -1561,7 +1575,7 @@ class WpLister_Product_MetaBox {
 
                 if (in_array( $key, ['gpsr_hazmat_pictograms','gpsr_hazmat_statements','gpsr_product_safety_pictograms','gpsr_product_safety_statements'])) {
                     if ( !is_array( $value ) ) {
-	                    $value = explode(',', $value);
+	                    $value = array_map( 'trim', explode(',', $value) );
                     }
                 }
 
@@ -1627,7 +1641,7 @@ class WpLister_Product_MetaBox {
             }
             #responsible_persons_modal_container #persons_list .address a.delete,
             #manufacturers_modal_container #manufacturers_list .address a.delete {
-                float: right;
+                color: #b32d2e;
             }
             #responsible_persons_modal_container #form, #manufacturers_modal_container #form {
                 float: left;
@@ -1649,7 +1663,7 @@ class WpLister_Product_MetaBox {
 
         <p>This section is only applicable if you are shipping to EU and NI buyers.</p>
 
-        <p class="form-field wpl_ebay_buynow_price_field ">
+        <p class="form-field wpl_ebay_gpsr_enabled_field ">
             <label for="wpl-text-gpsr-enabled" class="text_label">
 			    <?php echo __( 'Enable GPSR', 'wp-lister-for-ebay' ); ?>
 			    <?php wplister_tooltip(__('Enable this to include the GPSR data in your listings.', 'wp-lister-for-ebay')) ?>
@@ -1757,7 +1771,7 @@ class WpLister_Product_MetaBox {
             <select id="wpl-text-gpsr_hazmat_pictograms" name="wpl_e2e_gpsr_hazmat_pictograms[]" class="wple_chosen_select" data-placeholder="<?php _e('Select up to 4 items', 'wp-lister-for-ebay'); ?>" multiple style="width:50%">
                 <option value=""></option>
 			    <?php
-			    foreach ( $hazardous_materials_labels['pictograms'] as $pictogram ):
+			    foreach ( (array)$hazardous_materials_labels['pictograms'] as $pictogram ):
 				    $hazmat_pictograms = $item_details['gpsr_hazmat_pictograms'] ?? [];
 				    $selected = in_array( $pictogram['pictogram_id'], (array)$hazmat_pictograms );
 				    ?>
@@ -1771,7 +1785,7 @@ class WpLister_Product_MetaBox {
             </label>
             <select id="wpl-text-gpsr_hazmat_signalword" name="wpl_e2e_gpsr_hazmat_signalword" class="wple_chosen_select" >
 			    <?php
-			    foreach ( $hazardous_materials_labels['signal_words'] as $signal_word ):
+			    foreach ( (array)$hazardous_materials_labels['signal_words'] as $signal_word ):
 				    ?>
                     <option <?php selected( $signal_word['signal_word_id'], $item_details['gpsr_hazmat_signalword'] ?? '' ); ?> value="<?php esc_attr_e( $signal_word['signal_word_id'] ); ?>"><?php esc_attr_e( $signal_word['signal_word_description'] ); ?></option>
 			    <?php endforeach; ?>
@@ -1783,7 +1797,7 @@ class WpLister_Product_MetaBox {
             </label>
             <select id="wpl-text-gpsr_hazmat-statements" name="wpl_e2e_gpsr_hazmat_statements[]" class="wple_chosen_select" data-placeholder="Select up to 8 items" multiple style="width:50%">
 			    <?php
-			    foreach ( $hazardous_materials_labels['statements'] as $statement ):
+			    foreach ( (array)$hazardous_materials_labels['statements'] as $statement ):
 				    $hazmat_statements = $item_details['gpsr_hazmat_statements'] ?? [];
 				    $selected = in_array( $statement['statement_id'], (array)$hazmat_statements );
 				    ?>
@@ -1832,16 +1846,16 @@ class WpLister_Product_MetaBox {
 			            echo '<br/>'. $product_manufacturer_phone;
 			            ?>
                     </div>
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_street1" value="<?php esc_attr_e( $product_manufacturer_street1 ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_street2" value="<?php esc_attr_e( $product_manufacturer_street2 ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_city" value="<?php esc_attr_e( $product_manufacturer_city ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_state" value="<?php esc_attr_e( $product_manufacturer_state ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_postcode" value="<?php esc_attr_e( $product_manufacturer_postcode ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_country" value="<?php esc_attr_e( $product_manufacturer_country ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_company" value="<?php esc_attr_e( $product_manufacturer_company ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_manufacturer_phone" value="<?php esc_attr_e( $product_manufacturer_phone ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_street1" value="<?php esc_attr_e( $product_manufacturer_street1 ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_street2" value="<?php esc_attr_e( $product_manufacturer_street2 ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_city" value="<?php esc_attr_e( $product_manufacturer_city ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_state" value="<?php esc_attr_e( $product_manufacturer_state ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_postcode" value="<?php esc_attr_e( $product_manufacturer_postcode ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_country" value="<?php esc_attr_e( $product_manufacturer_country ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_company" value="<?php esc_attr_e( $product_manufacturer_company ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_manufacturer_phone" value="<?php esc_attr_e( $product_manufacturer_phone ); ?>" />
                 </div>
-                <span class="description"><?php _e('To select another manufacturer, simply remove the current one by clicking on the close button above.', 'wp-lister-for-ebay'); ?></span>
+                <span class="description"><?php _e('To select another manufacturer, simply remove the current one by clicking on the Remove link.', 'wp-lister-for-ebay'); ?></span>
                 <div class="clear"></div>
             </div>
             <div class="gpsr-wpl-manufacturer">
@@ -1851,10 +1865,19 @@ class WpLister_Product_MetaBox {
 	            ?>
                 <label class="text_label"><?php _e( 'Select a Manufacturer', 'wp-lister-for-ebay'); ?></label>
                 <select id="wpl-text-gpsr_manufacturer" name="wpl_e2e_gpsr_manufacturer" class="wple_chosen_select" style="width:40%;">
-                    <option value=""></option>
-		            <?php foreach ( $manufacturers as $manufacturer ): ?>
-                        <option <?php selected( $manufacturer->getId(), $item_details['gpsr_manufacturer'] ?? '' ); ?> value="<?php esc_attr_e( $manufacturer->getId() ); ?>"><?php esc_attr_e( $manufacturer->getCompany() .' - '. $manufacturer->getCity() ); ?></option>
-		            <?php endforeach; ?>
+                    <optgroup label="Saved Manufacturers">
+                        <?php foreach ( $manufacturers as $manufacturer ): ?>
+                            <option <?php selected( $manufacturer->getId(), $item_details['gpsr_manufacturer'] ?? '' ); ?> value="<?php esc_attr_e( $manufacturer->getId() ); ?>"><?php esc_attr_e( $manufacturer->getCompany() .' - '. $manufacturer->getCity() ); ?></option>
+                        <?php endforeach; ?>
+                    </optgroup>
+                    <optgroup label="From Attributes">
+	                    <?php
+	                    foreach ( $available_attributes as $attribute ):
+		                    $select_name = '[[attribute_'. $attribute->name .']]';
+		                    ?>
+                            <option <?php selected( $select_name, $item_details['gpsr_manufacturer'] ?? '' ); ?> value="<?php echo $select_name; ?>"><?php echo __('Attribute: ', 'wp-lister-for-ebay') . $attribute->name; ?></option>
+	                    <?php endforeach; ?>
+                    </optgroup>
                 </select>
                 <a href="#" class="button" id="show_manufacturers_modal"><?php _e( 'Manage', 'wp-lister-for-ebay' ); ?></a>
 	            <?php
@@ -1870,7 +1893,7 @@ class WpLister_Product_MetaBox {
             <label class="text_label"><?php _e('Pictograms', 'wp-lister-for-ebay'); ?></label>
             <select name="wpl_e2e_gpsr_product_safety_pictograms[]" class="wple_chosen_select" data-placeholder="<?php _e('Select up to 2', 'wp-lister-for-ebay'); ?>" multiple style="width:50%">
 			    <?php
-			    foreach ( $product_safety_labels['pictograms'] as $pictogram ):
+			    foreach ( (array)$product_safety_labels['pictograms'] as $pictogram ):
 				    $safety_pictograms_array = $item_details['gpsr_product_safety_pictograms'] ?? [];
 				    $selected = in_array( $pictogram['pictogram_id'], (array)$safety_pictograms_array );
 				    ?>
@@ -1882,7 +1905,7 @@ class WpLister_Product_MetaBox {
             <select name="wpl_e2e_gpsr_product_safety_statements[]" class="wple_chosen_select" data-placeholder="<?php _e('Select up to 8', 'wp-lister-for-ebay'); ?>" multiple style="width:50%">
 			    <?php
 			    $safety_statements_array = $item_details['gpsr_product_safety_statements'] ?? [];
-			    foreach ( $product_safety_labels['statements'] as $statement ):
+			    foreach ( (array)$product_safety_labels['statements'] as $statement ):
 				    $selected = in_array( $statement['statement_id'], (array)$safety_statements_array );
 				    ?>
                     <option <?php selected($selected,true); ?> value="<?php esc_attr_e( $statement['statement_id'] ); ?>"><?php esc_attr_e( $statement['statement_description'] ); ?></option>
@@ -1934,14 +1957,14 @@ class WpLister_Product_MetaBox {
 				        echo '<br/>'. $person_phone;
 				        ?>
                     </div>
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_street1" value="<?php esc_attr_e( $person_street1 ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_street2" value="<?php esc_attr_e( $person_street1 ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_city" value="<?php esc_attr_e( $person_city ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_state" value="<?php esc_attr_e( $person_state ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_postcode" value="<?php esc_attr_e( $person_postcode ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_country" value="<?php esc_attr_e( $person_country ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_company" value="<?php esc_attr_e( $person_company ); ?>" />
-                    <input type="hidden" name="wple_e2e_gpsr_responsible_persons_1_phone" value="<?php esc_attr_e( $person_phone ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_street1" value="<?php esc_attr_e( $person_street1 ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_street2" value="<?php esc_attr_e( $person_street1 ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_city" value="<?php esc_attr_e( $person_city ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_state" value="<?php esc_attr_e( $person_state ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_postcode" value="<?php esc_attr_e( $person_postcode ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_country" value="<?php esc_attr_e( $person_country ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_company" value="<?php esc_attr_e( $person_company ); ?>" />
+                    <input type="hidden" name="wpl_e2e_gpsr_responsible_persons_1_phone" value="<?php esc_attr_e( $person_phone ); ?>" />
                     <?php
 
                         $i++;
@@ -1959,7 +1982,7 @@ class WpLister_Product_MetaBox {
                     endwhile;
                     ?>
                 </div>
-                <span class="description"><?php _e('To select another person, simply remove the current one by clicking on the close button above.', 'wp-lister-for-ebay'); ?></span>
+                <span class="description"><?php _e('To select another person, simply remove the current one by clicking on the Remove link.', 'wp-lister-for-ebay'); ?></span>
                 <div class="clear"></div>
             </div>
             <div class="gpsr-wpl-responsible-persons">
@@ -1967,14 +1990,25 @@ class WpLister_Product_MetaBox {
 		            <?php _e( 'Set Responsible Persons', 'wp-lister-for-ebay'); ?>
                 </label>
                 <select id="wpl-text-gpsr_responsible_persons" name="wpl_e2e_gpsr_responsible_persons[]" class="wple_chosen_select" data-placeholder="Select up to 5 persons" multiple style="width:50%">
-		            <?php
-		            $persons = wple_get_responsible_persons();
-		            foreach ( $persons as $person ):
-			            $responsible_persons_array = $item_details['gpsr_responsible_persons'] ?? [];
-			            $selected = in_array( $person->getId(), (array)$responsible_persons_array );
-			            ?>
-                        <option <?php selected( $selected, true ); ?> value="<?php esc_attr_e( $person->getId() ); ?>"><?php esc_attr_e( $person->getCompany() .' - '. $person->getCity() ); ?></option>
-		            <?php endforeach; ?>
+                    <optgroup label="Saved Responsible Persons">
+	                    <?php
+	                    $persons = wple_get_responsible_persons();
+	                    $responsible_persons_array = $item_details['gpsr_responsible_persons'] ?? [];
+
+	                    foreach ( $persons as $person ):
+		                    $selected = in_array( $person->getId(), (array)$responsible_persons_array );
+		                    ?>
+                            <option <?php selected( $selected, true ); ?> value="<?php esc_attr_e( $person->getId() ); ?>"><?php esc_attr_e( $person->getCompany() .' - '. $person->getCity() ); ?></option>
+	                    <?php endforeach; ?>
+                    </optgroup>
+                    <optgroup label="From Attributes">
+	                    <?php
+	                    foreach ( $available_attributes as $attribute ):
+		                    $select_name = '[[attribute_'. $attribute->name .']]';
+		                    ?>
+                            <option <?php selected( true, in_array( $select_name, $responsible_persons_array ) ); ?> value="<?php echo $select_name; ?>"><?php echo __('Attribute: ', 'wp-lister-for-ebay') . $attribute->name; ?></option>
+	                    <?php endforeach; ?>
+                    </optgroup>
                 </select>
                 <a href="#" class="button" id="show_persons_modal"><?php _e( 'Manage', 'wp-lister-for-ebay' ); ?></a>
             </div>
@@ -2004,7 +2038,7 @@ class WpLister_Product_MetaBox {
 			    ?>
             </div>
         </div>
-        <script src="<?php echo WPLE_PLUGIN_URL; ?>js/classes/GPSR.js"></script>
+
         <?php
     }
 
@@ -2039,19 +2073,20 @@ class WpLister_Product_MetaBox {
 	function meta_box_shipping( $post ) {
 
 		// enqueue chosen.js from WooCommerce (removed in WC2.6)
-		if ( version_compare( WC_VERSION, '2.6.0', '>=' ) ) {
+		/*if ( version_compare( WC_VERSION, '2.6.0', '>=' ) ) {
 			wp_register_style( 'chosen_css', WPLE_PLUGIN_URL.'js/chosen/chosen.css' );
 			wp_enqueue_style( 'chosen_css' );
 			wp_register_script( 'chosen', WPLE_PLUGIN_URL.'js/chosen/chosen.jquery.min.js', array( 'jquery' ) );
 		}
-	   	wp_enqueue_script( 'chosen' );
+	   	wp_enqueue_script( 'chosen' );*/
 
         ?>
 		<script type="text/javascript">
 			jQuery( document ).ready( function () {
 
 				// enable chosen.js
-				jQuery("select.wple_chosen_select").chosen();
+				//jQuery("select.wple_chosen_select").chosen();
+				jQuery("select.wple_chosen_select").selectWoo();
 
 			});
 		</script>

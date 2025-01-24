@@ -1430,7 +1430,8 @@
                 }
             }).change();
 
-            jQuery("select.wple_chosen_select").chosen();
+            // jQuery("select.wple_chosen_select").chosen();
+            jQuery("select.wple_chosen_select").selectWoo();
         });
     </script>
 

@@ -89,7 +89,7 @@ class ListingsTable extends WP_List_Table {
             case 'quantity_sold':
                 return $item[$column_name];
             case 'fees':
-                return $this->number_format( $item[$column_name], 2 );
+                return wc_format_decimal( $item[$column_name], 2 );
             case 'date_published':
             	// use date format from wp
                 //return mysql2date( get_option('date_format'), $item[$column_name] );
@@ -1447,7 +1447,9 @@ class ListingsTable extends WP_List_Table {
 
     // small helper to make sure $price is not a string
     function number_format( $price, $decimals = 2 ) {
-        return number_format_i18n( floatval($price), $decimals );
+        if ( empty( $price ) ) return $price;
+        
+        return number_format_i18n( wc_format_decimal($price), $decimals );
     }
 
 

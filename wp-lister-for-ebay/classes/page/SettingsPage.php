@@ -542,20 +542,21 @@ class SettingsPage extends WPL_Page {
         self::updateOption( 'inventory_check_frequency', $frequency );
         self::updateOption( 'inventory_check_notification_email', $email );
 
-        if ( $enabled ) {
+	    ###
+	    # This doesn't work probably because it is being called too early in the stack. This has been moved to
+	    # WPL_CronActions::set_inventory_check_cron_schedule() instead which is getting triggered by admin_init
+	    ###
+        /*if ( $enabled ) {
             // Turn it on
-            if ( ! as_next_scheduled_action( 'wple_bg_inventory_check' ) ) {
+            //if ( ! as_next_scheduled_action( 'wple_bg_inventory_check' ) ) {
 //                as_schedule_recurring_action( time(), $frequency * 3600, 'wple_bg_inventory_check' );
-            }
+            //}
         } else {
-            ###
-            # This doesn't work probably because it is being called too early in the stack. This has been moved to
-            # WPLA_CronActions::maybe_unschedule_inventory_check() instead which is getting triggered by admin_init
-            ###
+
             // Disabled - remove the scheduled task
             //as_unschedule_all_actions( 'wpla_update_reports', array('inventory_sync' => 1) );
             //as_unschedule_all_actions( 'wpla_bg_inventory_check' );
-        }
+        }*/
     }
 
 

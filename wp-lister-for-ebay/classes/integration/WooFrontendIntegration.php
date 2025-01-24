@@ -17,8 +17,155 @@ class WPL_WooFrontendIntegration {
             add_action( 'woocommerce_product_additional_information', array( $this, 'display_condition_data'), 20, 1 );
         }
 
+        add_action( 'init', array($this, 'register_shortcodes') );
+
 	}
 
+    public function register_shortcodes() {
+        add_shortcode( 'ebay_gpsr_manufacturer', array( $this, 'sc_gpsr_manufacturer') );
+        add_shortcode( 'ebay_gpsr_responsible_persons', array( $this, 'sc_gpsr_responsible_persons') );
+    }
+
+    public function sc_gpsr_manufacturer( $args = [] ) {
+        global $post;
+
+	    $defaults = [
+		    'show_header'   => true,
+		    'header'        => __('Manufacturer', 'wp-lister-for-ebay'),
+	    ];
+	    $args = wp_parse_args( $args, $defaults );
+
+	    if ( function_exists( 'is_product' ) && is_product() ) {
+            $product = wc_get_product( $post->ID );
+
+            if ( $product ) {
+                $listings = WPLE_ListingQueryHelper::getWhere( 'post_id', $post->ID );
+
+                if ( empty($listings) ) {
+	                return '';
+                }
+                $current = current( $listings );
+
+	            $listing = new \WPLab\Ebay\Listings\Listing( $current->id );
+                $manufacturer = $listing->getGpsrManufacturer();
+
+                if ( $manufacturer ) {
+                    add_filter( 'woocommerce_formatted_address_replacements', 'WPL_WooFrontendIntegration::formattedAddressReplacements', 10, 2 );
+                    add_filter( 'woocommerce_localisation_address_formats', 'WPL_WooFrontendIntegration::localizationAddressFormats' );
+
+	                $html = '<div class="wpl_gpsr_manufacturer">';
+
+	                if ( $args['show_header'] ) {
+		                $html .= '<h3>'. $args['header'] .'</h3>';
+	                }
+
+                    $address = WC()->countries->get_formatted_address([
+	                    'company'    => $manufacturer->getCompanyName(),
+	                    'address_1'  => $manufacturer->getStreet1(),
+	                    'address_2'  => $manufacturer->getStreet2(),
+	                    'city'       => $manufacturer->getCityName(),
+	                    'state'      => $manufacturer->getStateOrProvince(),
+	                    'postcode'   => $manufacturer->getPostalCode(),
+	                    'country'    => $manufacturer->getCountry(),
+                        'phone'      => $manufacturer->getPhone(),
+                        'email'      => $manufacturer->getEmail()
+                    ]);
+
+	                remove_filter( 'woocommerce_formatted_address_replacements', 'WPL_WooFrontendIntegration::formattedAddressReplacements' );
+	                remove_filter( 'woocommerce_localisation_address_formats', 'WPL_WooFrontendIntegration::localizationAddressFormats' );
+
+	                $html .= '<div class="manufacturer-address">'. $address .'</div>';
+                    $html .= '</div>';
+
+                    return $html;
+                }
+            }
+	    }
+    }
+
+	public function sc_gpsr_responsible_persons( $args = [] ) {
+		global $post;
+
+        $defaults = [
+            'show_header'   => true,
+            'header'        => __('Responsible Persons', 'wp-lister-for-ebay'),
+        ];
+        $args = wp_parse_args( $args, $defaults );
+
+		if ( function_exists( 'is_product' ) && is_product() ) {
+			$product = wc_get_product( $post->ID );
+
+			if ( $product ) {
+				$listings = WPLE_ListingQueryHelper::getWhere( 'post_id', $post->ID );
+
+				if ( empty($listings) ) {
+					return '';
+				}
+				$current = current( $listings );
+
+				$listing = new \WPLab\Ebay\Listings\Listing( $current->id );
+				$persons = $listing->getGpsrResponsiblePersons();
+
+				if ( $persons ) {
+					add_filter( 'woocommerce_formatted_address_replacements', 'WPL_WooFrontendIntegration::formattedAddressReplacements', 10, 2 );
+					add_filter( 'woocommerce_localisation_address_formats', 'WPL_WooFrontendIntegration::localizationAddressFormats' );
+
+                    $html = '<div class="wpl_gpsr_responsible_persons">';
+
+                    if ( $args['show_header'] ) {
+                        $html .= '<h3>'. $args['header'] .'</h3>';
+                    }
+
+                    $i = 1;
+                    foreach ( $persons->getResponsiblePerson() as $person ) {
+
+	                    $address = WC()->countries->get_formatted_address([
+		                    'company'    => $person->getCompanyName(),
+		                    'address_1'  => $person->getStreet1(),
+		                    'address_2'  => $person->getStreet2(),
+		                    'city'       => $person->getCityName(),
+		                    'state'      => $person->getStateOrProvince(),
+		                    'postcode'   => $person->getPostalCode(),
+		                    'country'    => $person->getCountry(),
+		                    'phone'      => $person->getPhone(),
+		                    'email'      => $person->getEmail()
+	                    ]);
+
+                        $html .= '<div class="responsible-person-address responsible-person-'.$i .'">'. $address .'</div>';
+                        $i++;
+                    }
+
+                    $html .= '</div>';
+
+					remove_filter( 'woocommerce_formatted_address_replacements',    'WPL_WooFrontendIntegration::formattedAddressReplacements' );
+					remove_filter( 'woocommerce_localisation_address_formats',      'WPL_WooFrontendIntegration::localizationAddressFormats' );
+
+					return $html;
+				}
+			}
+		}
+	}
+
+    // Add Email and Phone fields to the WC Formatted Address string
+    public static function localizationAddressFormats( $formats ) {
+        foreach( $formats as $key => $format ) {
+            $formats[ $key ] .= "\n{email}\n{phone}";
+        }
+
+        return $formats;
+    }
+
+	/**
+	 * @param $replacements
+	 * @param $args
+	 *
+	 * @return mixed
+	 */
+    public static function formattedAddressReplacements( $replacements, $args ) {
+        $replacements['{phone}'] = $args['phone'] ?? '';
+        $replacements['{email}'] = $args['email'] ?? '';
+        return $replacements;
+    }
 
 	// show current ebay status - WooCommerce 2.0 only
 	function handle_add_to_cart_link( $html, $product, $link = false ) {

@@ -17,7 +17,7 @@
             <h4><?php echo $row->getCompany(); ?></h4>
             <p><?php echo $row->getStreet1() .' '. $row->getStreet2() .', '. $row->getCity() .' '. $row->getState() .', '. $row->getCountry(); ?></p>
             <p><?php echo $row->getPhone() .' / '. $row->getEmail(); ?></p>
-            <p><a class="delete button delete-manufacturer" data-id="<?php echo $row->getId(); ?>" href="#">Delete</a></p>
+            <p><a class="delete delete-manufacturer" data-id="<?php echo $row->getId(); ?>" href="#">Delete</a></p>
         </div>
         <div class="clear"></div>
     <?php

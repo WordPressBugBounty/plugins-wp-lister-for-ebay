@@ -2,7 +2,8 @@ jQuery( document ).ready(function () {
     let disable_errors = jQuery("#disable_popups").val() == 1;
 
     // enable chosen.js
-    jQuery("select.wple_chosen_select").chosen();
+    //jQuery("select.wple_chosen_select").chosen();
+    jQuery("select.wple_chosen_select").selectWoo();
     jQuery("select.wple_select").selectWoo({
         placeholder: "Select or enter a custom value",
         text: "Select or enter a custom value",

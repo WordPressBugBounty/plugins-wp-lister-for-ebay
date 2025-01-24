@@ -206,7 +206,6 @@
 		                            <?php wplister_tooltip(__('Do you want WP-Lister to reduce the stock quantity in WooCommerce when an item is sold on eBay - and vice versa?', 'wp-lister-for-ebay')) ?>
                                 </label>
                                 <select id="wpl-option-handle_stock" name="wpl_e2e_option_handle_stock" class=" required-entry select" <?php if ( ! $wpl_license_activated ) : ?>disabled<?php endif; ?>>
-                                    <option value="" selected>Available only in WP-Lister PRO</option>
                                     <option value="1" <?php if ( $wpl_option_handle_stock == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php _e('recommended', 'wp-lister-for-ebay' ) ?>)</option>
                                     <option value="0" <?php if ( $wpl_option_handle_stock != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
                                 </select>

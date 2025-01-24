@@ -62,9 +62,7 @@
     }
     #responsible_persons_modal_container #persons_list .address a.delete,
     #manufacturers_modal_container #manufacturers_list .address a.delete {
-        float: right;
-        display: block;
-        margin-top: -28px !important;
+        color: #b32d2e;
     }
     #responsible_persons_modal_container #form, #manufacturers_modal_container #form {
         float: left;
@@ -225,10 +223,20 @@
     ?>
     <label class="text_label"><?php _e( 'Select a Manufacturer', 'wp-lister-for-ebay'); ?></label>
     <select id="wpl-text-gpsr_manufacturer" name="wpl_e2e_gpsr_manufacturer" class="wple_chosen_select" style="width:40%;">
-        <option value=""></option>
-        <?php foreach ( $manufacturers as $manufacturer ): ?>
-            <option <?php selected( $manufacturer->getId(), $item_details['gpsr_manufacturer'] ?? '' ); ?> value="<?php esc_attr_e( $manufacturer->getId() ); ?>"><?php esc_attr_e( $manufacturer->getCompany() .' - '. $manufacturer->getCity() ); ?></option>
-        <?php endforeach; ?>
+        <optgroup label="Saved Manufacturers">
+            <option value=""></option>
+	        <?php foreach ( $manufacturers as $manufacturer ): ?>
+                <option <?php selected( $manufacturer->getId(), $item_details['gpsr_manufacturer'] ?? '' ); ?> value="<?php esc_attr_e( $manufacturer->getId() ); ?>"><?php esc_attr_e( $manufacturer->getCompany() .' - '. $manufacturer->getCity() ); ?></option>
+	        <?php endforeach; ?>
+        </optgroup>
+        <optgroup label="From Attributes">
+            <?php
+            foreach ( $wpl_available_attributes as $attribute ):
+                $select_name = '[[attribute_'. $attribute->name .']]';
+            ?>
+            <option <?php selected( $select_name, $item_details['gpsr_manufacturer'] ?? '' ); ?> value="<?php echo $select_name; ?>"><?php echo __('Attribute: ', 'wp-lister-for-ebay') . $attribute->name; ?></option>
+            <?php endforeach; ?>
+        </optgroup>
     </select>
     <a href="#" class="button" id="show_manufacturers_modal"><?php _e( 'Manage', 'wp-lister-for-ebay' ); ?></a>
 
@@ -265,14 +273,24 @@
         <?php _e( 'Set Responsible Persons', 'wp-lister-for-ebay'); ?>
     </label>
     <select id="wpl-text-gpsr_responsible_persons" name="wpl_e2e_gpsr_responsible_persons[]" class="wple_chosen_select" data-placeholder="Select up to 5 persons" multiple style="width:50%">
-        <?php
-        $persons = wple_get_responsible_persons();
-        foreach ( $persons as $person ):
-            $responsible_persons_array = $item_details['gpsr_responsible_persons'] ?? [];
-            $selected = in_array( $person->getId(), (array)$responsible_persons_array );
-            ?>
-            <option <?php selected( $selected, true ); ?> value="<?php esc_attr_e( $person->getId() ); ?>"><?php esc_attr_e( $person->getCompany() .' - '. $person->getCity() ); ?></option>
-        <?php endforeach; ?>
+        <optgroup label="Saved Responsible Persons">
+            <?php
+            $persons = wple_get_responsible_persons();
+            foreach ( $persons as $person ):
+                $responsible_persons_array = $item_details['gpsr_responsible_persons'] ?? [];
+                $selected = in_array( $person->getId(), (array)$responsible_persons_array );
+                ?>
+                <option <?php selected( $selected, true ); ?> value="<?php esc_attr_e( $person->getId() ); ?>"><?php esc_attr_e( $person->getCompany() .' - '. $person->getCity() ); ?></option>
+            <?php endforeach; ?>
+        </optgroup>
+        <optgroup label="From Attributes">
+		    <?php
+		    foreach ( $wpl_available_attributes as $attribute ):
+			    $select_name = '[[attribute_'. $attribute->name .']]';
+			    ?>
+                <option <?php selected( true, in_array( $select_name, (array)$item_details['gpsr_responsible_persons'] ) ); ?> value="<?php echo $select_name; ?>"><?php echo __('Attribute: ', 'wp-lister-for-ebay') . $attribute->name; ?></option>
+		    <?php endforeach; ?>
+        </optgroup>
     </select>
     <a href="#" class="button" id="show_persons_modal"><?php _e( 'Manage', 'wp-lister-for-ebay' ); ?></a>
 

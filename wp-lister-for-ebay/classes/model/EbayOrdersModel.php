@@ -1161,7 +1161,7 @@ class EbayOrdersModel extends WPL_Model {
 		global $wpdb;
 
 		// regard ignore_orders_before_ts timestamp if set
-		if ( $ts = get_option('ignore_orders_before_ts') ) {
+		if ( $ts = get_option('wplister_ignore_orders_before_ts') ) {
 			WPLE()->logger->info( "getDateOfFirstOrder() - using ignore_orders_before_ts: $ts (raw)");
 			return $ts;
 		}

@@ -191,7 +191,7 @@
 						// handle new primary category
 						// update item specifics
 						function updateItemSpecifics() {
-							var primary_category_id = jQuery('#ebay_category_id_1')[0].value;
+							var primary_category_id = jQuery('#ebay_item_specifics_category_id')[0].value;
 
 							jQuery('#EbayItemSpecificsBox .inside').slideUp(500);
 							jQuery('#EbayItemSpecificsBox .loadingMsg').slideDown(500);

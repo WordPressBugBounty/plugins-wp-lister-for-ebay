@@ -720,7 +720,7 @@ class ListingsModel extends WPL_Model {
 
 		// check listing type and if product has variations
 		$listing_item = self::getItem( $id );
-		$profile_details = $listing_item['profile_data']['details'];
+		$profile_details = $listing_item['profile_data']['details'] ?? [];
 		$post_id = $listing_item['post_id'];
 
 		// check listing type - ignoring best offer etc...
@@ -1887,7 +1887,8 @@ class ListingsModel extends WPL_Model {
             $sku = $var['sku'];
             if ( isset( $variations[ $sku ] ) ) {
                 $variations[ $sku ]['stock'] = $var['stock'];
-                WPLE()->logger->info( 'SKU '. $sku .' new stock: '. $var['stock'] );
+                $variations[ $sku ]['price'] = \ProductWrapper::getPrice( $var['post_id'] );
+                WPLE()->logger->info( 'SKU '. $sku .' new stock: '. $var['stock'] .' / new price: '. $variations[$sku]['price'] );
             }
         }
 

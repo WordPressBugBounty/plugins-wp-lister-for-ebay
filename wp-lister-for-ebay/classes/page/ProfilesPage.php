@@ -142,7 +142,7 @@ class ProfilesPage extends WPL_Page {
 
 		// set account id
 		$account_id = $item['account_id'];
-		$site_id    = isset( $item['site_id'] ) ? $item['site_id'] : false;
+		$site_id    = $item['site_id'] ?? false;
 		if ( ! $account_id ) $account_id = get_option( 'wplister_default_account_id' );
 
 		if ( !$site_id && isset( WPLE()->accounts[ $account_id ] ) ) {
@@ -198,6 +198,10 @@ class ProfilesPage extends WPL_Page {
 		$locked_listings    = WPLE_ListingQueryHelper::countItemsUsingProfile( $item['profile_id'], 'locked' );
 
 		// do we have a primary category?
+        $primary_category_id = 0;
+        $default_category_id = 0;
+        $specifics = [];
+
 		$details = $item['details'];
 		if ( intval( $details['ebay_category_1_id'] ) != 0 ) {
 			$primary_category_id = $details['ebay_category_1_id'];
@@ -208,7 +212,9 @@ class ProfilesPage extends WPL_Page {
 		}
 
 		// fetch updated item specifics for category
-		$specifics = EbayCategoriesModel::getItemSpecificsForCategory( $primary_category_id, $site_id, $account_id );
+        if ( !empty( $primary_category_id ) ) {
+	        $specifics = EbayCategoriesModel::getItemSpecificsForCategory( $primary_category_id, $site_id, $account_id );
+        }
 
         // Load the item specifics from the default eBay Category and add them to the list of Item Specifics
         if ( $account_id ) {
@@ -219,8 +225,8 @@ class ProfilesPage extends WPL_Page {
         }
 
 		// fetch updated available conditions array
-		// $item['conditions'] = $this->fetchItemConditions( $primary_category_id, $item['profile_id'], $item['account_id'] );
-		$available_conditions = EbayCategoriesModel::getConditionsForCategory( $primary_category_id, false, $account_id );
+		$current_primary_category_id = $primary_category_id ?: $default_category_id;
+		$available_conditions = EbayCategoriesModel::getConditionsForCategory( $current_primary_category_id, false, $account_id );
 		$available_condition_descriptions = [];
         $conditions_and_descriptions = [];
         $condition_descriptor_fields = [];

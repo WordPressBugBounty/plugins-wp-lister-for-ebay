@@ -177,6 +177,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setCityName($value)
 	{
 		$this->CityName= $value;
+		return $this;
 	}
 
 	/**
@@ -194,6 +195,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setCompanyName($value)
 	{
 		$this->CompanyName= $value;
+		return $this;
 	}
 
 	/**
@@ -211,6 +213,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setCountry($value)
 	{
 		$this->Country = $value;
+		return $this;
 	}
 
 	/**
@@ -228,6 +231,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setEmail($value)
 	{
 		$this->Email = $value;
+		return $this;
 	}
 
 	/**
@@ -245,6 +249,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setPhone($value)
 	{
 		$this->Phone = $value;
+		return $this;
 	}
 
 	/**
@@ -262,6 +267,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setPostalCode($value)
 	{
 		$this->PostalCode = $value;
+		return $this;
 	}
 
 	/**
@@ -279,6 +285,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setStateOrProvince($value)
 	{
 		$this->StateOrProvince = $value;
+		return $this;
 	}
 
 	/**
@@ -296,6 +303,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setStreet1($value)
 	{
 		$this->Street1 = $value;
+		return $this;
 	}
 
 	/**
@@ -313,6 +321,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setStreet2($value)
 	{
 		$this->Street2 = $value;
+		return $this;
 	}
 
 	/**
@@ -330,6 +339,7 @@ class ResponsiblePersonType extends EbatNs_ComplexType
 	function setType($value)
 	{
 		$this->Types = $value;
+		return $this;
 	}
 
 	function addType($value){

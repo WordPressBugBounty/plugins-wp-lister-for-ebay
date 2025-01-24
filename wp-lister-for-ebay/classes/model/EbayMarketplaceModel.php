@@ -9,8 +9,8 @@
 
 require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/wplab/guzzle/src/functions_include.php';
 require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/guzzlehttp/guzzle/src/functions_include.php';
-require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/guzzlehttp/psr7/src/functions_include.php';
-require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/guzzlehttp/promises/src/functions_include.php';
+//require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/guzzlehttp/psr7/src/functions_include.php';
+//require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/guzzlehttp/promises/src/functions_include.php';
 require_once WPLE_PLUGIN_PATH . '/includes/ebay-rest-api/vendor/autoload.php';
 
 class EbayMarketplaceModel extends WPL_Model {

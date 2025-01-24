@@ -27,9 +27,13 @@ class WPL_InventoryCheck extends WPL_Model  {
         $product = wc_get_product( $product_id );
 
         // Simply return the minmax postmeta if the product cannot be loaded #50670
-        if ( !$product ) return $minmax;
+        if ( !$product ) {
+			return [$minmax,$minmax];
+        }
 
-        if ( !$product->is_type('variable') ) return $minmax;
+        if ( !$product->is_type('variable') ) {
+			return [$product->get_price(),$product->get_price()];
+        }
 
         $children = $product->get_children();
         $prices = array();
@@ -74,7 +78,7 @@ class WPL_InventoryCheck extends WPL_Model  {
         $item['exists']              = $product ? true : false;
         $item['type']                = $product ? wple_get_product_meta( $product, 'product_type' ) : 'missing';
         $item['profile_start_price'] = $profile_start_price;
-        array_push( $this->oos_products, $item );
+        $this->oos_products[] = $item;
 
         WPLE()->logger->info( 'Added item #'. $item['post_id'] .' to the OOS list' );
         WPLE()->logger->info( 'List now contains '. count( $this->oos_products ) .' items' );
@@ -178,9 +182,15 @@ class WPL_InventoryCheck extends WPL_Model  {
 			$product_type = $item['type'] == 'simple' ? '' : $item['type'];
 
 			// highlight changed values
-			$changed_stock     =   intval( $item['qty']   )     ==   intval( $item['stock']     )     ? false : true;
-			$changed_price     = floatval( $item['price'] )     == floatval( $item['price_woo'] )     ? false : true;
-			$changed_price_max = floatval(@$item['price_max'] ) == floatval( $item['price_woo_max'] ) ? false : true;
+			$changed_stock     = ! ( intval( $item['qty'] ) == intval( $item['stock'] ) );
+			$changed_price     = ! ( floatval( $item['price'] ) == floatval( $item['price_woo'] ) );
+			//$changed_price_max = ! ( floatval( @$item['price_max'] ) == floatval( $item['price_woo_max'] ) );
+
+			$changed_price_max = false;
+			if ( $product_type == 'variable' && isset( $item['price_max'] ) && floatval($item['price_max']) != floatval($item['price_woo_max']) ) {
+				$changed_price_max = true;
+			}
+
 			$stock_css         = $changed_stock                       ? 'color:darkred; font-weight:bold;' : '';
 			$price_css         = $changed_price || $changed_price_max ? 'color:darkred;'                   : '';
 			if ( ! $compare_prices ) $price_css = '';
@@ -197,13 +207,19 @@ class WPL_InventoryCheck extends WPL_Model  {
 			}
 
 			// show price range for variations
-			if ( $item['price_woo_max'] )
+			if ( $item['price_woo_max'] && $item['price_woo'] != $item['price_woo_max'] ) {
 				$price_woo .= ' - '.wc_price( $item['price_woo_max'] );
-			if ( @$item['price_max'] )
-				$price .= ' - '.wc_price( $item['price_max'] );
+			}
 
-			if ( $item['profile_start_price'] )
+
+			if ( @$item['price_max'] && $item['price'] != $item['price_max'] ) {
+				$price .= ' - '.wc_price( $item['price_max'] );
+			}
+
+
+			if ( $item['profile_start_price'] ) {
 				$price .= ' ('. $item['profile_start_price'] .')';
+			}
 
 			// build table row
 			$msg .= "<tr>";
@@ -843,9 +859,12 @@ class WPL_InventoryCheck extends WPL_Model  {
 
                 foreach ( $children as $child_id ) {
                     $var = wc_get_product( $child_id );
+					$var_price = \ProductWrapper::getPrice( $child_id );
                     $variations[] = array(
+						'id'    => $child_id,
+						'sku'   => $var->get_sku(),
                         'stock' => $var->get_stock_quantity(),
-                        'price' => $var->get_regular_price()
+                        'price' => $var_price
                     );
                 }
             }
@@ -867,7 +886,9 @@ class WPL_InventoryCheck extends WPL_Model  {
             $ebay_price_max = 0;
 
             // check WooCommerce variations
+	        $active_skus = [];
             foreach ($variations as $var) {
+				$active_skus[] = $var['sku'];
 
                 // total stock
                 if ( $max_quantity )
@@ -880,15 +901,23 @@ class WPL_InventoryCheck extends WPL_Model  {
                 $price_max = max( $price_max, $var['price'] );
 
             }
+			WPLE()->logger->debug( 'Active SKUs for #'. $post_id .': '. print_r( $active_skus,1) );
 
             // check eBay variations
             $cached_variations = maybe_unserialize( $item['variations'] );
-            if ( is_array($cached_variations) )
-                foreach ($cached_variations as $var) {
-                    $ebay_stock    += $var['stock'];
-                    $ebay_price_min = min( $ebay_price_min, $var['price'] );
-                    $ebay_price_max = max( $ebay_price_max, $var['price'] );
-                }
+            if ( is_array($cached_variations) ) {
+	            foreach ($cached_variations as $var) {
+					if ( !in_array( $var['sku'], $active_skus ) ) {
+						WPLE()->logger->info( 'Skipping variation '. $var['sku'] .'; not in the list of active SKUs' );
+						continue;
+					}
+
+		            $ebay_stock    += $var['stock'];
+		            $ebay_price_min = min( $ebay_price_min, $var['price'] );
+		            $ebay_price_max = max( $ebay_price_max, $var['price'] );
+		            WPLE()->logger->info( 'var: '. print_r($var,1) );
+	            }
+            }
 
             // set default values
             $item['qty']       = $ebay_stock;
@@ -912,6 +941,7 @@ class WPL_InventoryCheck extends WPL_Model  {
 
         // check price
         if ( $compare_prices ) {
+	        WPLE()->logger->info( 'price: '. $price . ' / item[price]: '. $item['price'] );
             if ( empty( $variations ) ) {
                 $price_to_compare = $price;
                 if ( $profile_start_price ) {

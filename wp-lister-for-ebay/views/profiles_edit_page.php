@@ -155,7 +155,7 @@
 							<?php if ( isset( $wpl_available_conditions ) && is_array( $wpl_available_conditions ) ): ?>
 								<?php foreach ($wpl_available_conditions as $condition_id => $desc) : ?>
 									<option value="<?php echo esc_attr($condition_id) ?>"
-										<?php if ( @$item_details['condition_id'] == $condition_id ) : ?>
+										<?php if ( isset($item_details['condition_id']) && $item_details['condition_id'] == $condition_id ) : ?>
 											selected="selected"
 										<?php endif; ?>
 										><?php echo $desc ?></option>
@@ -591,9 +591,9 @@
         // get item conditions as json
         $conditions = !empty( $wpl_item['category_conditions'] ) ? unserialize( @$wpl_item['category_conditions'] ) : [];
         ?>
-        const CategoryConditionsData = <?php echo json_encode( $conditions ) ?>;
-        const wpl_CategoryConditionsNonce = '<?php echo wp_create_nonce( 'wple_getCategoryConditions' ) ?>';
-        const wpl_EditProfileNonce = '<?php echo wp_create_nonce( 'wple_edit_profile' ); ?>';
+        let CategoryConditionsData = <?php echo json_encode( $conditions ) ?>;
+        let wpl_CategoryConditionsNonce = '<?php echo wp_create_nonce( 'wple_getCategoryConditions' ) ?>';
+        let wpl_EditProfileNonce = '<?php echo wp_create_nonce( 'wple_edit_profile' ); ?>';
 
         //let wpl_site_id    = '<?php echo $wpl_site_id ?>';
         //let wpl_account_id = '<?php echo $wpl_account_id ?>';

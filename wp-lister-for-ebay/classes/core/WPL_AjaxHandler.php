@@ -763,7 +763,7 @@ class WPL_AjaxHandler extends WPL_Core {
 				$response->job  	= $job;
 				$response->task 	= $task;
 				// $response->errors   = $eps_url ? false : $lm->result->errors;
-				$response->errors   = is_object( $lm->result ) && is_array( $lm->result->errors ) ? $lm->result->errors : array();
+				$response->errors   = is_object( $lm->result ) && isset( $lm->result->errors ) ? $lm->result->errors : array();
 				// $response->success  = $lm->result->success;
 				$response->success  = $eps_url ? true : false;
 				
@@ -1416,10 +1416,11 @@ class WPL_AjaxHandler extends WPL_Core {
 			->setPostcode( $data['postcode'] );
 		$id = $person->save();
 
-		if ( $id ) {
-			$response = ['success' => true, 'id' => $id, 'data' => $data ];
+		if ( is_wp_error( $id ) ) {
+			http_response_code(400);
+			$response = ['success' => false, 'error' => $id->get_error_message()];
 		} else {
-			$response = ['success' => false];
+			$response = ['success' => true, 'id' => $id, 'data' => $data ];
 		}
 
 		die(json_encode($response));
@@ -1454,7 +1455,7 @@ class WPL_AjaxHandler extends WPL_Core {
 
 		$data   = [
 			'company'   => sanitize_text_field( $_POST['company'] ?? '' ),
-			'email'     => sanitize_email( $_POST['email'] ?? '' ),
+			'email'     => sanitize_text_field( $_POST['email'] ?? '' ),
 			'phone'     => sanitize_text_field( $_POST['phone'] ?? '' ),
 			'street1'   => sanitize_text_field( $_POST['street1'] ?? '' ),
 			'street2'   => sanitize_text_field( $_POST['street2'] ?? '' ),
@@ -1475,10 +1476,11 @@ class WPL_AjaxHandler extends WPL_Core {
 			->setPostcode( $data['postcode'] );
 		$id = $manufacturer->save();
 
-		if ( $id ) {
-			$response = ['success' => true, 'id' => $id, 'data' => $data ];
+		if ( is_wp_error( $id ) ) {
+			http_response_code(400);
+			$response = ['success' => false, 'error' => $id->get_error_message()];
 		} else {
-			$response = ['success' => false];
+			$response = ['success' => true, 'id' => $id, 'data' => $data ];
 		}
 
 		die(json_encode($response));

@@ -21,6 +21,8 @@ class EbayPaymentModel extends WPL_Model {
 	var $_cs;
 	var $site_id;
 
+	public $handle_error_code;
+
 	public function __construct() {
 		parent::__construct();
 		

@@ -285,11 +285,13 @@ class EbayCategoriesModel extends WPL_Model {
 		$wpdb->query( $wpdb->prepare("DELETE FROM {$wpdb->prefix}ebay_store_categories WHERE account_id = %s ", $account_id ) );
 		
 		// insert each category
-		foreach( $res->Store->CustomCategories as $Category ) {
-		
-			$this->handleStoreCategory( $Category, 1, 0 );
 
+		if ( is_array($res->Store->CustomCategories) ) {
+			foreach( $res->Store->CustomCategories as $Category ) {
+				$this->handleStoreCategory( $Category, 1, 0 );
+			}
 		}
+
 	}
 		
 	

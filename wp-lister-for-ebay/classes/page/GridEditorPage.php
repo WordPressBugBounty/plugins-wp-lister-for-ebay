@@ -104,7 +104,7 @@ class WPLE_GridEditorPage extends WPL_Page {
 		wp_enqueue_script(  $this->plugin_domain . '-vue' );
 
 		// ag-grid
-		wp_register_script( $this->plugin_domain . '-ag-grid', 'https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js', array(), '', 'all' );
+		wp_register_script( $this->plugin_domain . '-ag-grid', 'https://cdn.jsdelivr.net/npm/ag-grid-community@29.1.0/dist/ag-grid-community.min.noStyle.js', array(), '', 'all' );
 
 		//wp_enqueue_style( $this->plugin_domain . '-ag-grid-styles', 'https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css', array(), '', 'all' );
 		wp_enqueue_style( $this->plugin_domain . '-ag-grid-styles', WPLE_PLUGIN_URL. 'css/ag-grid/ag-grid.min.css', array(), '', 'all' );

@@ -43,6 +43,10 @@ class EbayResponsiblePerson extends EbayAddress {
 			return $this->update();
 		}
 
+		if ( $this->exists() ) {
+			return new \WP_Error( 'duplicate_data', __('A Responsible Person with the same Company and Email already exists.', 'wp-lister-for-ebay') );
+		}
+
 		$data['date_added'] = current_time('mysql');
 		unset($data['id']);
 
@@ -53,7 +57,7 @@ class EbayResponsiblePerson extends EbayAddress {
 		// something went wrong
 		WPLE()->logger->error( 'Error saving person. '. $wpdb->last_error );
 		WPLE()->logger->debug( print_r( $data, 1 ) );
-		return false;
+		return new \WP_Error( 'responsible_person_error', __('Error saving this Responsible Person. Please try again or contact support.', 'wp-lister-for-ebay') );
 	}
 
 	/**
@@ -86,6 +90,21 @@ class EbayResponsiblePerson extends EbayAddress {
 		global $wpdb;
 
 		return $wpdb->delete( $wpdb->prefix .'ebay_responsible_persons',  ['id' => $this->getId()] );
+	}
+
+	public function exists() {
+		global $wpdb;
+
+		$count = $wpdb->get_var($wpdb->prepare(
+			"SELECT COUNT(*)
+			FROM `{$wpdb->prefix}ebay_responsible_persons`
+			WHERE company = %s
+			AND email = %s",
+			$this->getCompany(),
+			$this->getEmail()
+		));
+
+		return $count > 0;
 	}
 
 	protected function toArray() {

@@ -500,6 +500,13 @@ class ToolsPage extends WPL_Page {
                     wple_show_message('Template functions have been renamed.');
                 }
 
+				if ( $_REQUEST['action'] == 'wple_fix_delayed_listing_update_loop' ) {
+                    delete_option( 'wple_job_reapply_profile_id' );
+                    delete_option( 'wple_job_reapply_template_id' );
+
+					wple_show_message('Pending profile updates have been cleared.');
+				}
+
 			} else {
 				die ('not allowed');
 			}

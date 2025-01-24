@@ -772,11 +772,11 @@ class ProductWrapper {
             // Make sure custom prices is enabled in the settings #32862
             if ( get_option( 'wplister_enable_custom_product_prices', 1 ) ) {
                 if ( $ebay_start_price = get_post_meta( $post_id, '_ebay_start_price', true ) ) {
-                    $newvar['price'] = $ebay_start_price;
+                    $newvar['price'] = wc_format_decimal( $ebay_start_price );
                 }
                 // regard custom eBay price for (locked) child variation
                 if ( $ebay_start_price = get_post_meta( $var_id, '_ebay_start_price', true ) ) {
-                    $newvar['price'] = $ebay_start_price;
+                    $newvar['price'] = wc_format_decimal( $ebay_start_price );
                 }
             }
 
@@ -1050,11 +1050,11 @@ class ProductWrapper {
 			if ( get_option( 'wplister_enable_custom_product_prices', 1 ) ) {
                 // regard custom eBay price for (locked) parent variation
                 if ( $ebay_start_price = get_post_meta( $post_id, '_ebay_start_price', true ) ) {
-                    $newvar['price'] = $ebay_start_price;
+                    $newvar['price'] = wc_format_decimal( $ebay_start_price );
                 }
                 // regard custom eBay price for (locked) child variation
                 if ( $ebay_start_price = get_post_meta( $var_id, '_ebay_start_price', true ) ) {
-                    $newvar['price'] = $ebay_start_price;
+                    $newvar['price'] = wc_format_decimal( $ebay_start_price );
                 }
             }
 

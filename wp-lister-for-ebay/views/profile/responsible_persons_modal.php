@@ -17,7 +17,7 @@
             <h4><?php echo $person->getCompany(); ?></h4>
             <p><?php echo $person->getStreet1() .' '. $person->getStreet2() .', '. $person->getCity() .' '. $person->getState() .', '. $person->getCountry(); ?></p>
             <p><?php echo $person->getPhone() .' / '. $person->getEmail(); ?></p>
-            <a class="delete button delete-person" data-id="<?php echo $person->getId(); ?>" href="#">Delete</a>
+            <a class="delete delete-person" data-id="<?php echo $person->getId(); ?>" href="#">Delete</a>
         </div>
     <?php
         endforeach;

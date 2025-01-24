@@ -1,6 +1,8 @@
 <?php
 
 namespace WPLab\Ebay\Listings;
+require_once WPLE_PLUGIN_PATH .'/includes/EbatNs/ManufacturerType.php';
+require_once WPLE_PLUGIN_PATH .'/includes/EbatNs/ResponsiblePersonsType.php';
 
 class Listing {
 
@@ -175,6 +177,7 @@ class Listing {
 	private \ListingsModel $listingModel;
 
 	private ProfileData $profileData;
+	protected $profile_details;
 
 	private ?\WC_Product $product = null;
 
@@ -195,6 +198,7 @@ class Listing {
 		if ( $item_array ) {
 			$this->setId( $id );
 			$this->populateData( $item_array );
+			$this->profile_details = $this->data['profile_data']['details'];
 		}
 	}
 
@@ -392,7 +396,7 @@ class Listing {
 			WPLE()->logger->info( 'product price from profile: '. $start_price );
 		}
 
-		return $start_price;
+		return wc_format_decimal( $start_price );
 	}
 
 	/**
@@ -414,7 +418,7 @@ class Listing {
 			WPLE()->logger->info( 'BIN Price from profile: '. $buynow_price );
 		}
 
-		return $buynow_price;
+		return wc_format_decimal($buynow_price);
 	}
 
 	public function getReservePrice() {
@@ -424,7 +428,7 @@ class Listing {
 			$reserve_price = 0;
 		}
 
-		return $reserve_price;
+		return wc_format_decimal( $reserve_price );
 	}
 
 	public function getMsrpPrice() {
@@ -1129,6 +1133,339 @@ class Listing {
 
 	}
 
+	/**
+	 * Returns TRUE if GPSR is enabled for this listing.
+	 *
+	 * This will return true if one of these statements is true:
+	 *
+	 * 1) The product meta `_ebay_gpsr_enabled` exists and is set to 1,
+	 * 2) The product meta does not exist OR is set to an empty string AND GPSR Enabled is on in the profile
+	 *
+	 * @return boolean
+	 */
+	public function isGpsrEnabled() {
+		$product_enabled = $this->getProductProperty('_ebay_gpsr_enabled');
+
+		if ( $product_enabled === '' ) {
+			// an empty string for "-- use profile setting --"
+			$enabled = $this->profile_details['gpsr_enabled'] ?? false;
+			return (bool)$enabled;
+		} elseif ( $product_enabled == 1 ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * @return mixed|string
+	 */
+	public function getGpsrRepairScore() {
+		$score  = $this->getProductProperty('_ebay_gpsr_repair_score');
+
+		if ( empty( $score ) ) {
+			$score = $this->profile_details['gpsr_repair_score'] ?? '';
+		}
+
+		return $score;
+	}
+
+	public function getGpsrEnergyEfficiencyImageId() {
+		return $this->getOverridableProfileProperty( 'gpsr_energy_efficiency_image' );
+	}
+
+	public function getGpsrEnergyEfficiencyImageEps() {
+		return $this->getOverridableProfileProperty( 'gpsr_energy_efficiency_image_eps' );
+	}
+
+	public function getGpsrEnergyEfficiencySheetImageId() {
+		return $this->getOverridableProfileProperty( 'gpsr_energy_efficiency_sheet_image' );
+	}
+
+	public function getGpsrEnergyEfficiencySheetImageEps() {
+		return $this->getOverridableProfileProperty( 'gpsr_energy_efficiency_sheet_image_eps' );
+	}
+
+	public function getGpsrEnergyEfficiencyLabelDescription() {
+		return $this->getOverridableProfileProperty( 'gpsr_energy_efficiency_label_description' );
+	}
+
+	public function getGpsrHazmatComponent() {
+		return $this->getOverridableProfileProperty( 'gpsr_hazmat_component' );
+	}
+
+	public function getGpsrHazmatPictograms() {
+		$pictograms = $this->getOverridableProfileProperty( 'gpsr_hazmat_pictograms' );
+
+		if ( !is_array( $pictograms ) ) {
+			$pictograms = array_map( 'trim', explode(',', $pictograms) );
+		}
+
+		return array_filter($pictograms);
+	}
+
+	public function getGpsrHazmatSignalWord() {
+		return $this->getOverridableProfileProperty( 'gpsr_hazmat_signalword' );
+	}
+
+	public function getGpsrHazmatStatements() {
+		$statements = $this->getOverridableProfileProperty( 'gpsr_hazmat_statements' );
+
+		if ( !is_array( $statements ) ) {
+			$statements = array_map( 'trim', explode(',', $statements) );
+		}
+
+		return array_filter($statements);
+	}
+
+	public function getGpsrProductSafetyComponent() {
+		return $this->getOverridableProfileProperty( 'gpsr_product_safety_component' );
+	}
+
+	public function getGpsrProductSafetyPictograms() {
+		$pictograms = $this->getOverridableProfileProperty( 'gpsr_product_safety_pictograms' );
+
+		if ( !is_array( $pictograms ) ) {
+			$pictograms = array_map( 'trim', explode(',', $pictograms) );
+		}
+
+		return $pictograms;
+	}
+
+	public function getGpsrProductSafetyStatements() {
+		$statements = $this->getOverridableProfileProperty( 'gpsr_product_safety_statements' );
+
+		if ( !is_array( $statements ) ) {
+			$statements = array_map( 'trim', explode(',', $statements) );
+		}
+
+		return $statements;
+	}
+
+	public function getGpsrManufacturer() {
+		$manufacturer   = new \ManufacturerType();
+		$tpl_model      = new \TemplatesModel();
+
+		$street1 = $this->getProductProperty( '_ebay_gpsr_manufacturer_street1' );
+		$city    = $this->getProductProperty( '_ebay_gpsr_manufacturer_city' );
+		$country = $this->getProductProperty( '_ebay_gpsr_manufacturer_country' );
+
+		if ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) ) {
+			$manufacturer
+				->setStreet1( $street1 )
+				->setStreet2( $this->getProductProperty( '_ebay_gpsr_manufacturer_street2' ) )
+				->setCityName( $city )
+				->setStateOrProvince( $this->getProductProperty( '_ebay_gpsr_manufacturer_state' ) )
+				->setCountry( $country )
+				->setPostalCode( $this->getProductProperty( '_ebay_gpsr_manufacturer_postcode' ) )
+				->setCompanyName( $this->getProductProperty( '_ebay_gpsr_manufacturer_company' ) )
+				->setPhone( $this->getProductProperty( '_ebay_gpsr_manufacturer_phone' ) )
+				->setEmail( $this->getProductProperty( '_ebay_gpsr_manufacturer_email' ) );
+
+			return $manufacturer;
+		} else {
+			$product_manufacturer = $this->getOverridableProfileProperty( 'gpsr_manufacturer' );
+
+			if ( empty( $product_manufacturer ) ) {
+				$product_manufacturer = $this->profile_details['gpsr_manufacturer'] ?? '';
+			}
+
+			if ( $product_manufacturer ) {
+				if ( is_numeric( $product_manufacturer ) ) {
+					$obj = new \WPLab\Ebay\Models\EbayManufacturer( $product_manufacturer );
+
+					$manufacturer
+						->setStreet1( $obj->getStreet1() )
+						->setStreet2( $obj->getStreet2() )
+						->setCityName( $obj->getCity() )
+						->setStateOrProvince( $obj->getState() )
+						->setPostalCode( $obj->getPostcode() )
+						->setCountry( $obj->getCountry() )
+						->setCompanyName( $obj->getCompany() )
+						->setPhone( $obj->getPhone() )
+						->setEmail( $obj->getEmail() );
+				} else {
+					if ( preg_match_all("/\\[\\[attribute_(.*)\\]\\]/uUsm", $product_manufacturer, $matches ) ) {
+						// process each found shortcode
+						foreach ( $matches[1] as $attribute ) {
+							$term = wc_get_product_terms( $this->getProductId(), 'pa_'. sanitize_title_with_dashes( $attribute ) );
+
+							if ( !empty( $term[0] ) ) {
+								$term = current( $term );
+
+								$manufacturer   = new \ManufacturerType();
+								$company        = $term->name;
+								$json_description    = str_replace( ["\n", "\r"], "", $term->description );
+
+								if ( wple_is_json( $json_description ) ) {
+									$address_array = json_decode( $json_description, true );
+
+									$manufacturer
+										->setCompanyName( $company )
+										->setStreet1( $address_array['street1'] ?? '' )
+										->setStreet2( $address_array['street2'] ?? '' )
+										->setCityName( $address_array['city'] ?? '' )
+										->setStateOrProvince( $address_array['state'] ?? '' )
+										->setPostalCode( $address_array['postcode'] ?? '' )
+										->setCountry( $address_array['country'] ?? '' )
+										->setPhone( $address_array['phone'] ?? '' )
+										->setEmail( $address_array['email'] ?? '' );
+								} else {
+									$address_array  = array_map( 'trim', explode( PHP_EOL, $term->description ) );
+
+									$manufacturer
+										->setCompanyName( $company )
+										->setStreet1( $address_array[0] ?? '' )
+										->setCityName( $address_array[1] ?? '' )
+										->setStateOrProvince( $address_array[2] ?? '' )
+										->setCountry( $address_array[3] ?? '' )
+										->setPostalCode( $address_array[4] ?? '' )
+										->setPhone( $address_array[5] ?? '' )
+										->setEmail( $address_array[6] ?? '' );
+								}
+
+								break;
+							}
+						}
+					}
+				}
+
+				return $manufacturer;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * @return \ResponsiblePersonsType
+	 */
+	public function getGpsrResponsiblePersons() {
+		$persons_type = new \ResponsiblePersonsType();
+
+		$i = 1;
+		$street1 = $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street1' );
+		$city    = $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_city' );
+		$country = $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_country' );
+
+		if ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) ) {
+
+			do {
+				$person_type = new \ResponsiblePersonType();
+				$person_type->setStreet1( $street1 );
+				$person_type->setStreet2( $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street2' ) );
+				$person_type->setCityName( $city );
+				$person_type->setStateOrProvince( $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_state' ) );
+				$person_type->setPostalCode( $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_postcode' ) );
+				$person_type->setCountry( $country );
+				$person_type->setCompanyName( $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_company' ) );
+				$person_type->setPhone( $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_phone' ) );
+				$person_type->setEmail( $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_email' ) );
+
+				$types = new \ResponsiblePersonCodeType();
+				$types->addType('EUResponsiblePerson');
+				$person_type->setType( $types );
+
+				$persons_type->addResponsiblePerson( $person_type );
+
+				$i++;
+				$street1 = $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_street1' );
+				$city    = $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_city' );
+				$country = $this->getProductProperty( '_ebay_gpsr_responsible_persons_'. $i .'_country' );
+			} while ( !empty( $street1 ) && !empty( $city ) && !empty( $country ) );
+		} else {
+			$persons = $this->getOverridableProfileProperty( 'gpsr_responsible_persons' );
+
+			if ( empty( $persons ) ) {
+				$persons = $this->profile_details['gpsr_responsible_persons'] ?? '';
+			}
+
+			if ( $persons ) {
+				foreach ( $persons as $person_id ) {
+					if ( is_numeric( $person_id ) ) {
+						$obj = new \WPLab\Ebay\Models\EbayResponsiblePerson( $person_id );
+
+						$person_type = new \ResponsiblePersonType();
+						$person_type->setStreet1( $obj->getStreet1() );
+						$person_type->setStreet2( $obj->getStreet2() );
+						$person_type->setCityName( $obj->getCity() );
+						$person_type->setStateOrProvince( $obj->getState() );
+						$person_type->setPostalCode( $obj->getPostcode() );
+						$person_type->setCountry( $obj->getCountry() );
+						$person_type->setCompanyName( $obj->getCompany() );
+						$person_type->setPhone( $obj->getPhone() );
+						$person_type->setEmail( $obj->getEmail() );
+						//$person_type->addType( 'EUResponsiblePerson' );
+
+						$types = new \ResponsiblePersonCodeType();
+						$types->addType('EUResponsiblePerson');
+						$person_type->setType( $types );
+
+						$persons_type->addResponsiblePerson( $person_type );
+					} else {
+						if ( preg_match_all("/\\[\\[attribute_(.*)\\]\\]/uUsm", $person_id, $matches ) ) {
+							// process each found shortcode
+							foreach ( $matches[1] as $attribute ) {
+								$term = wc_get_product_terms( $this->getProductId(), 'pa_'. sanitize_title_with_dashes( $attribute ) );
+
+								if ( !empty( $term[0] ) ) {
+									$term = current( $term );
+
+									$person_type    = new \ResponsiblePersonType();
+									$company        = $term->name;
+									$json_description    = str_replace( ["\n", "\r"], "", $term->description );
+
+									if ( wple_is_json( $json_description ) ) {
+										$address_array = json_decode( $json_description, true );
+
+										$person_type
+											->setCompanyName( $company )
+											->setStreet1( $address_array['street1'] ?? '' )
+											->setStreet2( $address_array['street2'] ?? '' )
+											->setCityName( $address_array['city'] ?? '' )
+											->setStateOrProvince( $address_array['state'] ?? '' )
+											->setPostalCode( $address_array['postcode'] ?? '' )
+											->setCountry( $address_array['country'] ?? '' )
+											->setPhone( $address_array['phone'] ?? '' )
+											->setEmail( $address_array['email'] ?? '' );
+
+										$types = new \ResponsiblePersonCodeType();
+										$types->addType('EUResponsiblePerson');
+										$person_type->setType( $types );
+
+										$persons_type->addResponsiblePerson( $person_type );
+									} else {
+										$address_array  = array_map( 'trim', explode( PHP_EOL, $term->description ) );
+
+										$person_type
+											->setCompanyName( $company )
+											->setStreet1( $address_array[0] ?? '' )
+											->setCityName( $address_array[1] ?? '' )
+											->setStateOrProvince( $address_array[2] ?? '' )
+											->setCountry( $address_array[3] ?? '' )
+											->setPostalCode( $address_array[4] ?? '' )
+											->setPhone( $address_array[5] ?? '' )
+											->setEmail( $address_array[6] ?? '' );
+
+										$types = new \ResponsiblePersonCodeType();
+										$types->addType('EUResponsiblePerson');
+										$person_type->setType( $types );
+
+										$persons_type->addResponsiblePerson( $person_type );
+									}
+
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		return $persons_type;
+	}
+
 	public function save() {
 		global $wpdb;
 
@@ -1190,6 +1527,23 @@ class Listing {
 		}
 
 		$this->changes[] = $prop;
+	}
+
+	/**
+	 * Fetch a profile property that can be overridden by a product meta. If the profile field is `gpsr_enabled`,
+	 * its product meta key would be `_ebay_gpsr_enabled`.
+	 *
+	 * @param $field
+	 * @return mixed|string
+	 */
+	private function getOverridableProfileProperty( $field ) {
+		$product_value  = $this->getProductProperty( '_ebay_'. $field );
+
+		if ( !$product_value ) {
+			$product_value  = $this->profile_details[ $field ];
+		}
+
+		return $product_value;
 	}
 
 }

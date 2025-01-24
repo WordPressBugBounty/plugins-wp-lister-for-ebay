@@ -1,28 +1,24 @@
 jQuery( document ).ready(function () {
-    jQuery('#wpl-text-gpsr_responsible_persons').on('chosen:ready', function() {
-        jQuery('#wpl-text-gpsr_enabled').trigger('change');
 
+    if ( gpsr_custom_manufacturer ) {
+        jQuery('div.gpsr-custom-manufacturer').show();
+        jQuery('div.gpsr-wpl-manufacturer').hide();
+    } else {
+        jQuery('div.gpsr-custom-manufacturer').hide();
+        jQuery('div.gpsr-wpl-manufacturer').show();
+    }
 
-        if ( gpsr_custom_manufacturer ) {
-            jQuery('div.gpsr-custom-manufacturer').show();
-            jQuery('div.gpsr-wpl-manufacturer').hide();
-        } else {
-            jQuery('div.gpsr-custom-manufacturer').hide();
-            jQuery('div.gpsr-wpl-manufacturer').show();
-        }
-
-        if ( gpsr_custom_responsible_persons ) {
-            jQuery('div.gpsr-custom-responsible-persons').show();
-            jQuery('div.gpsr-wpl-responsible-persons').hide();
-        } else {
-            jQuery('div.gpsr-custom-responsible-persons').hide();
-            jQuery('div.gpsr-wpl-responsible-persons').show();
-        }
-    });
+    if ( gpsr_custom_responsible_persons ) {
+        jQuery('div.gpsr-custom-responsible-persons').show();
+        jQuery('div.gpsr-wpl-responsible-persons').hide();
+    } else {
+        jQuery('div.gpsr-custom-responsible-persons').hide();
+        jQuery('div.gpsr-wpl-responsible-persons').show();
+    }
 
     jQuery('.wpl-remove-custom-manufacturer').on('click', function(e) {
         e.preventDefault();
-        jQuery('input[name^=wple_e2e_gpsr_manufacturer]').each(function(el) {
+        jQuery('input[name^=wpl_e2e_gpsr_manufacturer]').each(function(el) {
             jQuery(this).val('');
             jQuery('.gpsr-custom-manufacturer').hide();
             jQuery('.gpsr-wpl-manufacturer').show();
@@ -31,7 +27,7 @@ jQuery( document ).ready(function () {
 
     jQuery('.wpl-remove-custom-responsible-persons').on('click', function(e) {
         e.preventDefault();
-        jQuery('input[name^=wple_e2e_gpsr_responsible_persons_]').each(function(el) {
+        jQuery('input[name^=wpl_e2e_gpsr_responsible_persons_]').each(function(el) {
             jQuery(this).val('');
             jQuery('.gpsr-custom-responsible-persons').hide();
             jQuery('.gpsr-wpl-responsible-persons').show();
@@ -118,19 +114,21 @@ jQuery( document ).ready(function () {
         const tbURL = "#TB_inline?height="+tbHeight+"&width=750&inlineId=manufacturers_modal";
         //const tbUrl = ajaxurl + sep + "action=wple_show_responsible_persons_modal&width=800&height=400";
         tb_show( "Manage Manufacturers", tbURL );
-    }); 
+    });
 
+    jQuery('#gpsr_container').hide();
     jQuery('#wpl-text-gpsr_enabled').on('change', function() {
+        console.log(jQuery(this).val());
         if (jQuery(this).val() == 1 ) {
             jQuery('#gpsr_container').show();
-            jQuery("select.wple_chosen_select:visible").chosen('destroy');
-            jQuery("select.wple_chosen_select:visible").chosen();
         } else {
             jQuery('#gpsr_container').hide();
         }
-    })
+    }).change();
 
     jQuery("#persons_frm").on('submit', function() {
+        jQuery("#persons_frm :input").prop("disabled", true);
+
         let data = {
             action:     'wple_add_responsible_person',
             company:    jQuery('#person_company').val(),
@@ -147,21 +145,33 @@ jQuery( document ).ready(function () {
             .post( ajaxurl, data, null, 'json' )
             .done( function( response ) {
                 if ( response.success ) {
-                    console.log(response);
                     reloadPersons();
                     tb_remove();
                 } else {
-
+                    alert( "There was a problem saving this record. The server responded:\n\n" + response.error );
                 }
+
+                jQuery("#persons_frm :input").prop("disabled", false);
             })
             .fail( function(e,xhr,error) {
-                alert( "There was a problem saving this record. The server responded:\n\n" + e.responseText );
+                try {
+                    let resp = JSON.parse( e.responseText );
+
+                    if ( !resp.success ) {
+                        alert( "There was a problem saving this record.\n\n" + resp.error );
+                    }
+                } catch (e) {
+                    alert( "There was a problem completing this request. Please try again later or contact support." );
+                }
+                jQuery("#persons_frm :input").prop("disabled", false);
             });
 
         return false;
     });
 
     jQuery("#manufacturers_frm").on('submit', function() {
+        jQuery("#manufacturers_frm :input").prop("disabled", true);
+
         let data = {
             action:     'wple_add_manufacturer',
             company:    jQuery('#manufacturer_company').val(),
@@ -178,15 +188,25 @@ jQuery( document ).ready(function () {
             .post( ajaxurl, data, null, 'json' )
             .done( function( response ) {
                 if ( response.success ) {
-                    console.log(response);
                     reloadManufacturers();
                     tb_remove();
                 } else {
-
+                    alert( "There was a problem saving this record. The server responded:\n\n" + response.error );
                 }
+                jQuery("#manufacturers_frm :input").prop("disabled", false);
             })
             .fail( function(e,xhr,error) {
-                alert( "There was a problem saving this record. The server responded:\n\n" + e.responseText );
+                try {
+                    let resp = JSON.parse( e.responseText );
+
+                    if ( !resp.success ) {
+                        alert( "There was a problem saving this record.\n\n" + resp.error );
+                    }
+                } catch (e) {
+                    alert( "There was a problem completing this request. Please try again later or contact support." );
+                }
+
+                jQuery("#manufacturers_frm :input").prop("disabled", false);
             });
 
         return false;
@@ -356,9 +376,6 @@ function redrawPersonsDropdown( persons ) {
 
         dropdown.append(option);
     });
-
-    // Redraw the Chosen dropdown
-    jQuery('#wpl-text-gpsr_responsible_persons').trigger('chosen:updated')
 }
 
 function redrawPersonsList( persons ) {
@@ -410,9 +427,6 @@ function redrawManufacturersDropdown( manufacturers ) {
 
         dropdown.append(option);
     });
-
-    // Redraw the Chosen dropdown
-    jQuery('#wpl-text-gpsr_manufacturer').trigger('chosen:updated')
 }
 
 function redrawManufacturersList( manufacturers ) {
