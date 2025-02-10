@@ -844,6 +844,8 @@ class ProfilesPage extends WPL_Page {
 		wp_enqueue_script( 'thickbox' );
 		wp_enqueue_style( 'thickbox' );
 
+		wp_enqueue_script( 'jquery-blockui' );
+
 	}
 
 

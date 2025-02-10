@@ -17,7 +17,10 @@
             <h4><?php echo $row->getCompany(); ?></h4>
             <p><?php echo $row->getStreet1() .' '. $row->getStreet2() .', '. $row->getCity() .' '. $row->getState() .', '. $row->getCountry(); ?></p>
             <p><?php echo $row->getPhone() .' / '. $row->getEmail(); ?></p>
-            <p><a class="delete delete-manufacturer" data-id="<?php echo $row->getId(); ?>" href="#">Delete</a></p>
+            <p>
+                <a class="edit-manufacturer" data-id="<?php echo $row->getId(); ?>" href="#">Edit</a> |
+                <a class="delete delete-manufacturer" data-id="<?php echo $row->getId(); ?>" href="#">Delete</a>
+            </p>
         </div>
         <div class="clear"></div>
     <?php
@@ -26,7 +29,8 @@
     ?>
 </div>
 <div id="form">
-    <h3><?php _e('New Manufacturer', 'wp-lister-for-ebay'); ?></h3>
+    <h3 id="addnew"><?php _e('New Manufacturer', 'wp-lister-for-ebay'); ?></h3>
+    <h3 id="edit" style="display:none;"><?php _e('Edit Manufacturer', 'wp-lister-for-ebay'); ?></h3>
 	<form id="manufacturers_frm" method="post">
         <div class="form-field">
             <label for="company"><?php _e( 'Company', 'wp-lister-for-ebay' ); ?> *</label>
@@ -76,7 +80,10 @@
         </div>
 
 		<p class="submit">
-			<input type="submit" class="button-primary" value="<?php _e('Add Manufacturer', 'wp-lister-for-ebay' ); ?>" />
+            <input type="hidden" id="manufacturer_id" value="0" />
+			<input type="submit" id="add_btn" class="button-primary" value="<?php _e('Add Manufacturer', 'wp-lister-for-ebay' ); ?>" />
+			<input type="submit" id="update_btn" style="display:none;" class="button-primary" value="<?php _e('Update Manufacturer', 'wp-lister-for-ebay' ); ?>" />
+			<input type="button" id="update_cancel_btn" style="display:none;" class="button-secondary" value="<?php _e('Cancel', 'wp-lister-for-ebay' ); ?>" />
 		</p>
 	</form>
 </div>

@@ -197,7 +197,7 @@ class ManufacturerType extends EbatNs_ComplexType
 	 **/
 	function setCountry($value)
 	{
-		$this->Country = $value;
+		$this->Country = strtoupper( $value );
 		return $this;
 	}
 

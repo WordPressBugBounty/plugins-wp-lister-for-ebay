@@ -60,6 +60,36 @@ jQuery( document ).ready(function () {
         return false;
     });
 
+    jQuery('#responsible_persons_modal_container').on('click', '.edit-person', function(e) {
+        e.preventDefault();
+
+        wple_block( '#TB_ajaxContent' );
+
+        const el = jQuery(this);
+        let data = {
+            action:     'wple_get_responsible_person',
+            id:         jQuery(this).data('id')
+        };
+
+        jQuery
+            .post( ajaxurl, data, null, 'json' )
+            .done( function( response ) {
+                if ( response.id ) {
+                    showResponsiblePersonEditForm(response);
+                }
+                wple_unblock('#TB_ajaxContent');
+            })
+            .fail( function(e,xhr,error) {
+                alert( "There was a problem saving this record. The server responded:\n\n" + e.responseText );
+            });
+
+        return false;
+    });
+
+    jQuery('#responsible_persons_modal_container').on('click', '#update_cancel_btn', function() {
+        showResponsiblePersonAddForm();
+    });
+
     jQuery('#manufacturers_modal_container').on('click', '.delete-manufacturer', function(e) {
         e.preventDefault();
 
@@ -84,6 +114,36 @@ jQuery( document ).ready(function () {
             });
 
         return false;
+    });
+
+    jQuery('#manufacturers_modal_container').on('click', '.edit-manufacturer', function(e) {
+        e.preventDefault();
+
+        wple_block( '#TB_ajaxContent' );
+
+        const el = jQuery(this);
+        let data = {
+            action:     'wple_get_manufacturer',
+            id:         jQuery(this).data('id')
+        };
+
+        jQuery
+            .post( ajaxurl, data, null, 'json' )
+            .done( function( response ) {
+                if ( response.id ) {
+                    showManufacturerEditForm(response);
+                }
+                wple_unblock('#TB_ajaxContent');
+            })
+            .fail( function(e,xhr,error) {
+                alert( "There was a problem saving this record. The server responded:\n\n" + e.responseText );
+            });
+
+        return false;
+    });
+
+    jQuery('#manufacturers_modal_container').on('click', '#update_cancel_btn', function() {
+        showManufacturerAddForm();
     });
 
     jQuery('#show_documents_modal').on('click', function(e) {
@@ -118,7 +178,6 @@ jQuery( document ).ready(function () {
 
     jQuery('#gpsr_container').hide();
     jQuery('#wpl-text-gpsr_enabled').on('change', function() {
-        console.log(jQuery(this).val());
         if (jQuery(this).val() == 1 ) {
             jQuery('#gpsr_container').show();
         } else {
@@ -127,7 +186,7 @@ jQuery( document ).ready(function () {
     }).change();
 
     jQuery("#persons_frm").on('submit', function() {
-        jQuery("#persons_frm :input").prop("disabled", true);
+        wple_block('#TB_ajaxContent');
 
         let data = {
             action:     'wple_add_responsible_person',
@@ -141,6 +200,12 @@ jQuery( document ).ready(function () {
             postcode:   jQuery('#person_postcode').val(),
             country:    jQuery('#person_country').val()
         };
+
+        if ( jQuery('#person_id').val() > 0 ) {
+            data.action = 'wple_update_responsible_person';
+            data.id = jQuery('#person_id').val();
+        }
+
         jQuery
             .post( ajaxurl, data, null, 'json' )
             .done( function( response ) {
@@ -151,7 +216,7 @@ jQuery( document ).ready(function () {
                     alert( "There was a problem saving this record. The server responded:\n\n" + response.error );
                 }
 
-                jQuery("#persons_frm :input").prop("disabled", false);
+                wple_unblock('#TB_ajaxContent');
             })
             .fail( function(e,xhr,error) {
                 try {
@@ -163,14 +228,14 @@ jQuery( document ).ready(function () {
                 } catch (e) {
                     alert( "There was a problem completing this request. Please try again later or contact support." );
                 }
-                jQuery("#persons_frm :input").prop("disabled", false);
+                wple_unblock('#TB_ajaxContent');
             });
 
         return false;
     });
 
     jQuery("#manufacturers_frm").on('submit', function() {
-        jQuery("#manufacturers_frm :input").prop("disabled", true);
+        wple_block('#TB_ajaxContent');
 
         let data = {
             action:     'wple_add_manufacturer',
@@ -184,16 +249,24 @@ jQuery( document ).ready(function () {
             postcode:   jQuery('#manufacturer_postcode').val(),
             country:    jQuery('#manufacturer_country').val()
         };
+
+        if ( jQuery('#manufacturer_id').val() > 0 ) {
+            data.action = 'wple_update_manufacturer';
+            data.id = jQuery('#manufacturer_id').val();
+        }
+
         jQuery
             .post( ajaxurl, data, null, 'json' )
             .done( function( response ) {
                 if ( response.success ) {
                     reloadManufacturers();
+                    showManufacturerAddForm();
+                    wple_unblock('#TB_ajaxContent');
                     tb_remove();
                 } else {
                     alert( "There was a problem saving this record. The server responded:\n\n" + response.error );
                 }
-                jQuery("#manufacturers_frm :input").prop("disabled", false);
+                wple_unblock('#TB_ajaxContent');
             })
             .fail( function(e,xhr,error) {
                 try {
@@ -206,7 +279,7 @@ jQuery( document ).ready(function () {
                     alert( "There was a problem completing this request. Please try again later or contact support." );
                 }
 
-                jQuery("#manufacturers_frm :input").prop("disabled", false);
+                wple_unblock('#TB_ajaxContent');
             });
 
         return false;
@@ -382,10 +455,14 @@ function redrawPersonsList( persons ) {
     jQuery('#persons_list').empty();
     jQuery.each( persons, function() {
         let html = '<div class="address">\n' +
-            '            <a class="delete button delete-person" data-id="'+ this.id +'" href="#">Delete</a>\n' +
+            '            <div class="id">ID: '+ this.id +'</div>' +
             '            <h4>'+ this.company +'</h4>\n' +
             '            <p>'+ this.street1 +' '+ this.street2 +', '+ this.city +' '+ this.state +', '+ this.country +'</p>\n' +
             '            <p>'+ this.phone +' / '+ this.email +'</p>\n' +
+            '            <p>\n' +
+            '                <a class="edit-person" data-id="'+ this.id +'" href="#">Edit</a> |\n' +
+            '                <a class="delete delete-person" data-id="'+ this.id +'" href="#">Delete</a>\n' +
+            '            </p>'
             '        </div>';
         jQuery('#persons_list').append(html);
     } );
@@ -431,13 +508,134 @@ function redrawManufacturersDropdown( manufacturers ) {
 
 function redrawManufacturersList( manufacturers ) {
     jQuery('#manufacturers_list').empty();
+    jQuery('#manufacturers_list').append('<h3>Existing Manufacturers</h3>');
+
     jQuery.each( manufacturers, function() {
         let html = '<div class="address">\n' +
-            '            <a class="delete button delete-manufacturer" data-id="'+ this.id +'" href="#">Delete</a>\n' +
+            '            <div class="id">ID: '+ this.id +'</div>'+
             '            <h4>'+ this.company +'</h4>\n' +
             '            <p>'+ this.street1 +' '+ this.street2 +', '+ this.city +' '+ this.state +', '+ this.country +'</p>\n' +
             '            <p>'+ this.phone +' / '+ this.email +'</p>\n' +
+            '            <p><a class="edit-manufacturer" data-id="'+ this.id +'" href="#">Edit</a> | <a class="delete delete-manufacturer" data-id="'+ this.id +'" href="#">Delete</a></p>' +
             '        </div>';
         jQuery('#manufacturers_list').append(html);
     } );
+}
+
+function showManufacturerEditForm( data ) {
+    jQuery('#form #addnew').hide();
+    jQuery('#form #edit').show();
+
+    jQuery('#form #add_btn').hide();
+    jQuery('#form #update_btn').show();
+    jQuery('#form #update_cancel_btn').show();
+
+    const map = {
+        'manufacturer_company'  : 'company',
+        'manufacturer_phone'    : 'phone',
+        'manufacturer_email'    : 'email',
+        'manufacturer_street1'  : 'street1',
+        'manufacturer_street2'  : 'street2',
+        'manufacturer_city'     : 'city',
+        'manufacturer_state'    : 'state',
+        'manufacturer_postcode' : 'postcode',
+        'manufacturer_country'  : 'country',
+        'manufacturer_id'       : 'id'
+    }
+
+    for ( let key in map ) {
+        jQuery('#'+key).val( data[map[key]] );
+    }
+}
+
+function showManufacturerAddForm( data ) {
+    jQuery('#form #addnew').show();
+    jQuery('#form #edit').hide();
+
+    jQuery('#form #add_btn').show();
+    jQuery('#form #update_btn').hide();
+    jQuery('#form #update_cancel_btn').hide();
+
+    const map = {
+        'manufacturer_company'  : '',
+        'manufacturer_phone'    : '',
+        'manufacturer_email'    : '',
+        'manufacturer_street1'  : '',
+        'manufacturer_street2'  : '',
+        'manufacturer_city'     : '',
+        'manufacturer_state'    : '',
+        'manufacturer_postcode' : '',
+        'manufacturer_country'  : '',
+        'manufacturer_id'       : '0'
+    }
+
+    for ( let key in map ) {
+        jQuery('#'+key).val( map[key] );
+    }
+}
+
+function showResponsiblePersonEditForm( data ) {
+    jQuery('#form #addnew').hide();
+    jQuery('#form #edit').show();
+
+    jQuery('#form #add_btn').hide();
+    jQuery('#form #update_btn').show();
+    jQuery('#form #update_cancel_btn').show();
+
+    const map = {
+        'person_company'  : 'company',
+        'person_phone'    : 'phone',
+        'person_email'    : 'email',
+        'person_street1'  : 'street1',
+        'person_street2'  : 'street2',
+        'person_city'     : 'city',
+        'person_state'    : 'state',
+        'person_postcode' : 'postcode',
+        'person_country'  : 'country',
+        'person_id'       : 'id'
+    }
+
+    for ( let key in map ) {
+        jQuery('#'+key).val( data[map[key]] );
+    }
+}
+
+function showResponsiblePersonAddForm( data ) {
+    jQuery('#form #addnew').show();
+    jQuery('#form #edit').hide();
+
+    jQuery('#form #add_btn').show();
+    jQuery('#form #update_btn').hide();
+    jQuery('#form #update_cancel_btn').hide();
+
+    const map = {
+        'person_company'  : '',
+        'person_phone'    : '',
+        'person_email'    : '',
+        'person_street1'  : '',
+        'person_street2'  : '',
+        'person_city'     : '',
+        'person_state'    : '',
+        'person_postcode' : '',
+        'person_country'  : '',
+        'person_id'       : '0'
+    }
+
+    for ( let key in map ) {
+        jQuery('#'+key).val( map[key] );
+    }
+}
+
+function wple_block(el) {
+    jQuery(el).block({
+        message: null,
+        overlayCSS: {
+            background: '#fff',
+            opacity: 0.6
+        }
+    });
+}
+
+function wple_unblock(el) {
+    jQuery(el).unblock();
 }

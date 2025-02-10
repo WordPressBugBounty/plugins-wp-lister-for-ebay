@@ -73,7 +73,9 @@ class EbayManufacturer extends EbayAddress {
 
 		unset( $data['id'], $data['date_added'] );
 
-		if ( $wpdb->update( $wpdb->prefix .'ebay_manufacturers', $data, $where ) ) {
+		$result = $wpdb->update( $wpdb->prefix .'ebay_manufacturers', $data, $where );
+
+		if ( $result !== false ) {
 			return true;
 		}
 

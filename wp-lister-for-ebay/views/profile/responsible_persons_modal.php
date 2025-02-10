@@ -17,7 +17,10 @@
             <h4><?php echo $person->getCompany(); ?></h4>
             <p><?php echo $person->getStreet1() .' '. $person->getStreet2() .', '. $person->getCity() .' '. $person->getState() .', '. $person->getCountry(); ?></p>
             <p><?php echo $person->getPhone() .' / '. $person->getEmail(); ?></p>
-            <a class="delete delete-person" data-id="<?php echo $person->getId(); ?>" href="#">Delete</a>
+            <p>
+                <a class="edit-person" data-id="<?php echo $person->getId(); ?>" href="#">Edit</a> |
+                <a class="delete delete-person" data-id="<?php echo $person->getId(); ?>" href="#">Delete</a>
+            </p>
         </div>
     <?php
         endforeach;
@@ -25,7 +28,8 @@
     ?>
 </div>
 <div id="form">
-    <h3><?php _e('Add a Person', 'wp-lister-for-ebay'); ?></h3>
+    <h3 id="addnew"><?php _e('New Person', 'wp-lister-for-ebay'); ?></h3>
+    <h3 id="edit" style="display:none;"><?php _e('Edit Person', 'wp-lister-for-ebay'); ?></h3>
 	<form id="persons_frm" method="post">
         <div class="form-field">
             <label for="company"><?php _e( 'Company', 'wp-lister-for-ebay' ); ?> *</label>
@@ -75,7 +79,10 @@
         </div>
 
 		<p class="submit">
-			<input type="submit" class="button-primary" value="<?php _e('Add Person', 'wp-lister-for-ebay' ); ?>" />
+            <input type="hidden" id="person_id" value="0" />
+			<input type="submit" id="add_btn" class="button-primary" value="<?php _e('Add Person', 'wp-lister-for-ebay' ); ?>" />
+            <input type="submit" id="update_btn" style="display:none;" class="button-primary" value="<?php _e('Update Person', 'wp-lister-for-ebay' ); ?>" />
+            <input type="button" id="update_cancel_btn" style="display:none;" class="button-secondary" value="<?php _e('Cancel', 'wp-lister-for-ebay' ); ?>" />
 		</p>
 	</form>
 </div>

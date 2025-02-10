@@ -1329,7 +1329,7 @@ class ProductWrapper {
         if ( class_exists( 'WC_Brands' ) ) {
             // get array of brands (taxonomy terms) for $post_id
             $brands = get_the_terms( $post_id, 'product_brand' );
-        } elseif ( class_exists( '\Perfect_Woocommerce_Brands\Perfect_Woocommerce_Brands' ) ) {
+        } elseif ( class_exists( '\Perfect_Woocommerce_Brands\Perfect_Woocommerce_Brands' ) || class_exists( '\QuadLayers\PWB\Plugin' ) ) {
             $brands = get_the_terms( $post_id, 'pwb-brand' );
         }
 

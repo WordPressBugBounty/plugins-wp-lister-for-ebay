@@ -103,6 +103,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.7.4 - 2025-02-10 =
+* New: Added the ability to edit Manufacturers and Responsible Persons
+* Fix: Variation start price not getting assigned when the Custom Price field is disabled
+* Fix: Always send the manufacturer and responsible persons' countries in uppercase
+* Dev: Fixed support for the WooCommerce Perfect Brands plugin
+* Dev: Errors from the Listings check are not getting displayed
+
 = 3.7.3 - 2025-01-23 =
 * New: Added support for pulling Manufacturer and Responsible Persons data from product attributes
 * New: Added a tool that fixes the endless loop when running the delayed profile update routine

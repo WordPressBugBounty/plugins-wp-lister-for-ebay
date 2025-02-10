@@ -37,15 +37,19 @@ class WPL_AjaxHandler extends WPL_Core {
 		add_action('wp_ajax_wple_show_profile_selection', 		array( &$this, 'ajax_wple_show_profile_selection' ) );
 
 		// product matcher
-		add_action('wp_ajax_wple_show_product_matches', 		array( &$this, 'ajax_wple_show_product_matches' ) );
+		add_action('wp_ajax_wple_show_product_matches', 		    array( &$this, 'ajax_wple_show_product_matches' ) );
 
 		add_action('wp_ajax_wple_add_responsible_person', 		array( &$this, 'ajax_wple_add_responsible_person' ) );
+		add_action('wp_ajax_wple_update_responsible_person', 		array( &$this, 'ajax_wple_update_responsible_person' ) );
 		add_action('wp_ajax_wple_delete_responsible_person', 		array( &$this, 'ajax_wple_delete_responsible_person' ) );
 		add_action('wp_ajax_wple_get_responsible_persons', 		array( &$this, 'ajax_wple_get_responsible_persons' ) );
+		add_action('wp_ajax_wple_get_responsible_person', 		array( &$this, 'ajax_wple_get_responsible_person' ) );
 
-		add_action('wp_ajax_wple_add_manufacturer',             array( &$this, 'ajax_wple_add_manufacturer' ) );
-		add_action('wp_ajax_wple_delete_manufacturer',          array( &$this, 'ajax_wple_delete_manufacturer' ) );
-		add_action('wp_ajax_wple_get_manufacturers',             array( &$this, 'ajax_wple_get_manufacturers' ) );
+		add_action('wp_ajax_wple_add_manufacturer',                 array( &$this, 'ajax_wple_add_manufacturer' ) );
+		add_action('wp_ajax_wple_update_manufacturer',              array( &$this, 'ajax_wple_update_manufacturer' ) );
+		add_action('wp_ajax_wple_delete_manufacturer',              array( &$this, 'ajax_wple_delete_manufacturer' ) );
+		add_action('wp_ajax_wple_get_manufacturers',                array( &$this, 'ajax_wple_get_manufacturers' ) );
+		add_action('wp_ajax_wple_get_manufacturer',                 array( &$this, 'ajax_wple_get_manufacturer' ) );
 
 		add_action('wp_ajax_wple_add_document',                 array( &$this, 'ajax_wple_add_document' ) );
 
@@ -1390,6 +1394,14 @@ class WPL_AjaxHandler extends WPL_Core {
 		die(json_encode($persons));
 	}
 
+	public function ajax_wple_get_responsible_person() {
+		global $wpdb;
+
+		$id = wc_clean( intval( $_POST['id'] ) );
+		$persons = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ebay_responsible_persons WHERE id = %d", $id));
+		die(json_encode($persons));
+	}
+
 	public function ajax_wple_add_responsible_person() {
 		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson();
 		$data   = [
@@ -1405,6 +1417,50 @@ class WPL_AjaxHandler extends WPL_Core {
 		];
 
 		$person
+			->setEmail( $data['email'] )
+			->setCompany( $data['company'] )
+			->setPhone( $data['phone'] )
+			->setStreet1( $data['street1'] )
+			->setStreet2( $data['street2'] )
+			->setCity( $data['city'] )
+			->setState( $data['state'] )
+			->setCountry( $data['country'] )
+			->setPostcode( $data['postcode'] );
+		$id = $person->save();
+
+		if ( is_wp_error( $id ) ) {
+			http_response_code(400);
+			$response = ['success' => false, 'error' => $id->get_error_message()];
+		} else {
+			$response = ['success' => true, 'id' => $id, 'data' => $data ];
+		}
+
+		die(json_encode($response));
+	}
+
+	public function ajax_wple_update_responsible_person() {
+		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson();
+		$data   = [
+			'id'        => sanitize_text_field( $_POST['id'] ?? 0 ),
+			'company'   => sanitize_text_field( $_POST['company'] ?? '' ),
+			'email'     => sanitize_email( $_POST['email'] ?? '' ),
+			'phone'     => sanitize_text_field( $_POST['phone'] ?? '' ),
+			'street1'   => sanitize_text_field( $_POST['street1'] ?? '' ),
+			'street2'   => sanitize_text_field( $_POST['street2'] ?? '' ),
+			'city'      => sanitize_text_field( $_POST['city'] ?? '' ),
+			'state'     => sanitize_text_field( $_POST['state'] ?? '' ),
+			'postcode'  => sanitize_text_field( $_POST['postcode'] ?? '' ),
+			'country'   => sanitize_text_field( $_POST['country'] ?? '' )
+		];
+
+		if ( empty( $data['id'] ) ) {
+			http_response_code(400);
+			$response = ['success' => false, 'error' => 'Cannot update manufacture. Invalid parameters.'];
+			die(json_encode($response));
+		}
+
+		$person
+			->setId( $data['id'] )
 			->setEmail( $data['email'] )
 			->setCompany( $data['company'] )
 			->setPhone( $data['phone'] )
@@ -1450,6 +1506,14 @@ class WPL_AjaxHandler extends WPL_Core {
 		die(json_encode($rows));
 	}
 
+	public function ajax_wple_get_manufacturer() {
+		global $wpdb;
+
+		$id = wc_clean( intval( $_POST['id'] ) );
+		$row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ebay_manufacturers WHERE id = %d", $id));
+		die(json_encode($row));
+	}
+
 	public function ajax_wple_add_manufacturer() {
 		$manufacturer = new \WPLab\Ebay\Models\EbayManufacturer();
 
@@ -1465,6 +1529,51 @@ class WPL_AjaxHandler extends WPL_Core {
 			'country'   => sanitize_text_field( $_POST['country'] ?? '' )
 		];
 		$manufacturer
+			->setEmail( $data['email'] )
+			->setCompany( $data['company'] )
+			->setPhone( $data['phone'] )
+			->setStreet1( $data['street1'] )
+			->setStreet2( $data['street2'] )
+			->setCity( $data['city'] )
+			->setState( $data['state'] )
+			->setCountry( $data['country'] )
+			->setPostcode( $data['postcode'] );
+		$id = $manufacturer->save();
+
+		if ( is_wp_error( $id ) ) {
+			http_response_code(400);
+			$response = ['success' => false, 'error' => $id->get_error_message()];
+		} else {
+			$response = ['success' => true, 'id' => $id, 'data' => $data ];
+		}
+
+		die(json_encode($response));
+	}
+
+	public function ajax_wple_update_manufacturer() {
+		$manufacturer = new \WPLab\Ebay\Models\EbayManufacturer();
+
+		$data   = [
+			'id'        => sanitize_text_field( $_POST['id'] ?? 0 ),
+			'company'   => sanitize_text_field( $_POST['company'] ?? '' ),
+			'email'     => sanitize_text_field( $_POST['email'] ?? '' ),
+			'phone'     => sanitize_text_field( $_POST['phone'] ?? '' ),
+			'street1'   => sanitize_text_field( $_POST['street1'] ?? '' ),
+			'street2'   => sanitize_text_field( $_POST['street2'] ?? '' ),
+			'city'      => sanitize_text_field( $_POST['city'] ?? '' ),
+			'state'     => sanitize_text_field( $_POST['state'] ?? '' ),
+			'postcode'  => sanitize_text_field( $_POST['postcode'] ?? '' ),
+			'country'   => sanitize_text_field( $_POST['country'] ?? '' )
+		];
+
+		if ( empty( $data['id'] ) ) {
+			http_response_code(400);
+			$response = ['success' => false, 'error' => 'Cannot update manufacture. Invalid parameters.'];
+			die(json_encode($response));
+		}
+
+		$manufacturer
+			->setId( $data['id'] )
 			->setEmail( $data['email'] )
 			->setCompany( $data['company'] )
 			->setPhone( $data['phone'] )

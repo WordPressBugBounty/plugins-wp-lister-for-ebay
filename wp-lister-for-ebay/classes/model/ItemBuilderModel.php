@@ -2056,9 +2056,9 @@ class ItemBuilderModel extends WPL_Model {
                         $start_price = ListingsModel::applyProfilePrice( wc_format_decimal( $product_start_price ), $this->profile_details['start_price'] );
                     }
                 }
-
-				$newvar->setStartPrice( $start_price );
             }
+
+	        $newvar->setStartPrice( $start_price );
 
             // handle variation quantity - if no quantity set in profile
             // if ( intval( $item->Quantity ) == 0 ) {
@@ -3145,7 +3145,7 @@ class ItemBuilderModel extends WPL_Model {
 		}
 
 		if ( ! $success ) {
-			wple_show_message( $longMessage, 'error' );
+			wple_show_message( $longMessage, 'error', ['persistent' => true] );
 		} elseif ( ( $longMessage != '' ) ) {
 			wple_show_message( $longMessage, 'warn' );
 		}

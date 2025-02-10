@@ -649,7 +649,7 @@ class WPL_API_Hooks extends WPL_Core {
         }
 
         // Perfect WooCommerce Brands
-        if ( class_exists( '\Perfect_Woocommerce_Brands\Perfect_Woocommerce_Brands' ) ) {
+        if ( class_exists( '\Perfect_Woocommerce_Brands\Perfect_Woocommerce_Brands' ) || class_exists( '\QuadLayers\PWB\Plugin' ) ) {
             $attributes[] = array(
                 'label'    => 'Brand (Perfect WooCommerce Brands Addon)',
                 'id'       => '_ebay_pwb_brand',
