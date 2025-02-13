@@ -49,12 +49,12 @@ class EbayTaxonomyModel extends WPL_Model {
         $aspects = get_transient( $cache_key );
 //        $aspects = false;
 
-        // return cached response
-        if ( $aspects ) {
-            WPLE()->logger->debug( 'Returning aspects from cache:' . print_r( $aspects, 1 ) );
-            return $aspects;
-        }
-
+	    // return cached response
+	    if ( !empty( $aspects ) && get_option( 'wplister_disable_item_specifics_cache', 0 ) == 0 ) {
+		    WPLE()->logger->debug( 'Returning aspects from cache:' . print_r( $aspects, 1 ) );
+		    return $aspects;
+	    }
+		
         try {
 
             if ( is_null( $category_tree_id ) ) {

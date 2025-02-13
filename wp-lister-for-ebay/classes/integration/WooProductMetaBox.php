@@ -1194,12 +1194,14 @@ class WpLister_Product_MetaBox {
 
 				        // update fields
 				        jQuery('#ebay_category_id_'+e2e_selecting_cat).prop( 'value', cat_id );
+				        jQuery('#ebay_category_id_'+e2e_selecting_cat).prop( 'value', cat_id );
 				        jQuery('#ebay_category_name_'+e2e_selecting_cat).html( pathname );
 
 				        // close thickbox
 				        tb_remove();
 
 				        if ( e2e_selecting_cat == 1 ) {
+                            jQuery('#ebay_item_specifics_category_id').prop( 'value', cat_id );
 				        	updateItemSpecifics();
 				        // 	updateItemConditions();
 				        }

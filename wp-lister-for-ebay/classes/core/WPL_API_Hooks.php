@@ -642,7 +642,7 @@ class WPL_API_Hooks extends WPL_Core {
 	    // WC Brands
         if ( class_exists( 'WC_Brands' ) ) {
             $attributes[] = array(
-                'label'    => 'Brand (WC Brands Addon)',
+                'label'    => 'Brand (WooCommerce Brands)',
                 'id'       => '_ebay_brand',
                 'callback' => array( $this, 'get_brand_name' )
             );

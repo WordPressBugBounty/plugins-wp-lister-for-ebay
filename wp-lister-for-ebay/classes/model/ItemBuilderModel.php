@@ -3145,7 +3145,9 @@ class ItemBuilderModel extends WPL_Model {
 		}
 
 		if ( ! $success ) {
-			wple_show_message( $longMessage, 'error', ['persistent' => true] );
+			if ( ! DOING_AJAX && ! DOING_CRON ) {
+				wple_show_message( $longMessage, 'error', ['persistent' => true] );
+			}
 		} elseif ( ( $longMessage != '' ) ) {
 			wple_show_message( $longMessage, 'warn' );
 		}
