@@ -183,7 +183,7 @@
     <form id="documents_frm" method="post">
         <div class="form-field">
             <label for="document"><?php _e( 'Document', 'wp-lister-for-ebay' ); ?> *</label>
-            <input type="hidden" name="wpl_e2e_gpsr_document" id="wpl_gpsr_document" value="<?php echo esc_attr( $item_details['gpsr_documents'] ?? '' ); ?>" class="regular-text" />
+            <input type="hidden" name="wpl_e2e_gpsr_document" id="wpl_gpsr_document" value="<?php //echo esc_attr( $item_details['gpsr_documents'] ?? '' ); ?>" class="regular-text" />
             <input type="hidden" name="" id="wpl_document_account_id" value="<?php echo esc_attr( $wpl_account_id ); ?>" class="regular-text" />
             <input type='button' class="button wple-document-uploader" data-target="gpsr_document" value="<?php esc_attr_e( 'Select a document', 'wp-lister-for-ebay' ); ?>" id="wple_media_manager"/>
             <span id="wple_document_filename"></span>

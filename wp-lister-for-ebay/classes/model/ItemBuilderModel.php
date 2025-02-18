@@ -1102,9 +1102,9 @@ class ItemBuilderModel extends WPL_Model {
 				$price = $this->getDynamicShipping( $opt['price'], $product_id );
 				$add_price = $this->getDynamicShipping( $opt['add_price'], $product_id );
 				// if ( ( $price == '' ) || ( $opt['service_name'] == '' ) ) continue;
-				if ( $price                == '' ) $price = 0;
-				if ( @$opt['location']     == '' ) continue;
-				if ( @$opt['service_name'] == '' ) continue;
+				if ( empty( $price ) ) $price = 0;
+				if ( empty( $opt['location'] ) ) continue;
+				if ( empty( $opt['service_name'] ) ) continue;
 
 				$InternationalShippingServiceOptions = new InternationalShippingServiceOptionsType();
 				$InternationalShippingServiceOptions->setShippingService( $opt['service_name'] );
@@ -3145,7 +3145,8 @@ class ItemBuilderModel extends WPL_Model {
 		}
 
 		if ( ! $success ) {
-			if ( ! DOING_AJAX && ! DOING_CRON ) {
+			if ( (!defined('DOING_AJAX') || !DOING_AJAX ) && (!defined('DOING_CRON') || !DOING_CRON ) ) {
+			//if ( ! DOING_AJAX && ! DOING_CRON ) {
 				wple_show_message( $longMessage, 'error', ['persistent' => true] );
 			}
 		} elseif ( ( $longMessage != '' ) ) {

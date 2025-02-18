@@ -595,7 +595,7 @@ class TemplatesModel extends WPL_Model {
 		$tpl_html = str_replace( '[[ebay_item_id]]', $item['ebay_id'] ?? '', $tpl_html );
 
 		// ebay_store_category_id
-        $StoreCategoryID = @$ItemObj->Storefront->StoreCategoryID ? $ItemObj->Storefront->StoreCategoryID : '';
+        $StoreCategoryID = $ItemObj->Storefront->StoreCategoryID ?? '';
 		$tpl_html = str_replace( '[[ebay_store_category_id]]', $StoreCategoryID, $tpl_html );
 
 		// ebay_store_category_name

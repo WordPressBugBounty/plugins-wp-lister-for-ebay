@@ -103,10 +103,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.7.5.1 - 2025-02-15 =
+* Fix: Error in PHP8+ when testing for a possible undefined constant
+* Fix: Various code warnings
+
 = 3.7.5 - 2025-02-12 =
 * Tweak: Rename the attribute WC Brands Addon to WooCommerce Brands
 * Fix: Item Specifics are always being loaded from the default category
-* Fix: Errors from background tasks showing up in the frontend
+* Fix: Errors from background tasks showing up in the backend
 * Dev: Allow WPLE to convert armscii8 to UTF8
 
 = 3.7.4 - 2025-02-10 =
