@@ -478,8 +478,8 @@
                                 <?php wplister_tooltip( __('Enable to map matching variation attributes to the profile\'s item specifics fields. Disable if you are getting Variation Specifics Mismatch errors when revising your listings.', 'wp-lister-for-ebay')); ?>
                             </label>
                             <select id="wpl-text-enable-attribute-mapping" name="wpl_e2e_enable_attribute_mapping" class="required-entry select">
-                                <option value="1" <?php selected( !isset($item_details['enable_attribute_mapping']) || $item_details['enable_attribute_mapping'], 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
-                                <option value="0" <?php selected( isset($item_details['enable_attribute_mapping']) && $item_details['enable_attribute_mapping'], 0 ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="1" <?php selected( $item_details['enable_attribute_mapping'] ?? 1, 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
+                                <option value="0" <?php selected( $item_details['enable_attribute_mapping'] ?? 1, 0 ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
                             </select>
 						</div>
 					</div>

@@ -1425,13 +1425,16 @@ class EbayController {
 
 
 // call Shopping API to fetch matching products
-    public function callFindProducts( $query ) { 
+    public function callFindProducts( $query, $account_id = null ) {
         // $query = "test";
 
-        // $api_url = 'http://open.api.ebay.com/shopping?callname=FindProducts&responseencoding=XML&appid=MYAPPID&siteid=0&version=525&QueryKeywords=harry%20potter&AvailableItemsOnly=true&MaxEntries=2'
-        $api_url = $this->sandbox ? 'https://open.api.sandbox.ebay.com/shopping' : 'https://open.api.ebay.com/shopping';
+        //$api_url = $this->sandbox ? 'https://open.api.sandbox.ebay.com/shopping' : 'https://open.api.ebay.com/shopping';
+	    $api_url = $this->sandbox ? 'https://sandbox.api.ebay.com/buy/browse/v1/item_summary/search' : 'https://api.ebay.com/buy/browse/v1/item_summary/search';
         $api_id  = $this->appId;
-        $params = array(
+		$params = [
+			'q'     => urlencode( $query ),
+		];
+        /*$params = array(
             'callname'           => 'FindProducts',
             'responseencoding'   => 'JSON',
             'appid'              => $api_id,
@@ -1441,19 +1444,27 @@ class EbayController {
             'QueryKeywords'      => urlencode( $query ),
             'AvailableItemsOnly' => 'true',
             'MaxEntries'         => '2',
-        );
+        );*/
         $request_url = add_query_arg( $params, $api_url );
 
-        $default_account_id = get_option( 'wplister_default_account_id' );
+		if ( is_null( $account_id ) ) {
+			$account_id = get_option( 'wplister_default_account_id' );
+		}
 
-        if (! isset( WPLE()->accounts[ $default_account_id ] ) ) {
+        if (! isset( WPLE()->accounts[ $account_id ] ) ) {
             return [];
         }
 
-        $account = WPLE()->accounts[$default_account_id];
+		WPLE_eBayAccount::maybeMintToken( $account_id );
+
+        $account = WPLE()->accounts[$account_id];
+		$site = WPLE_eBaySite::getSite( $account->site_id );
         
         // call API
-        $response = wp_remote_get( $request_url, ['headers' => ['X-EBAY-API-IAF-TOKEN' => $account->oauth_token] ] );
+        $response = wp_remote_get( $request_url, ['headers' => [
+			'Authorization' => 'Bearer '. $account->oauth_token,
+	        'X-EBAY-C-MARKETPLACE-ID' => $site->code
+        ] ] );
 
         // skip further processing if an error was returned
         if ( is_wp_error( $response ) ) return $response;
@@ -1462,31 +1473,12 @@ class EbayController {
         $result = json_decode( wp_remote_retrieve_body( $response ) );
 
         // check if result was decoded
-        if ( ! $result ) return 'Unable to parse FindProducts result for query '.$query;
-
-        // check if no products found for query
-        if ( $result->Ack == 'Failure' && is_array( $result->Errors ) ) {
-            if ( $result->Errors[0]->ErrorCode == '10.20' ) {
-                return array();                
-            } else {
-                return $result->Errors[0]->LongMessage;
-            }
+        if ( ! is_object( $result ) || $result->total == 0  ) {
+			return 'Unable to parse FindProducts result for query '.$query;
         }
 
         // return products array
-        $products = $result->Product;
-
-        // parse products and make EPID available
-        foreach ($products as $product) {
-
-            // parse all ProductID nodes
-            foreach ( $product->ProductID as $pid ) {
-                if ( $pid->Type == 'Reference' ) {
-                    $product->EPID = $pid->Value;
-                }
-            }
-
-        }
+        $products = $result->itemSummaries;
 
         return $products;
     } // callFindProducts()

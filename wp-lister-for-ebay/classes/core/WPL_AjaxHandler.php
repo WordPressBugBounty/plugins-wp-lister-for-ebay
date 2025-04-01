@@ -1705,10 +1705,17 @@ class WPL_AjaxHandler extends WPL_Core {
 			$transient_key = 'wple_product_match_results_'.sanitize_key( $query );
 			$products = get_transient( $transient_key );
 			if ( empty( $products ) ){
+				$listings   = wple_get_listings_where( 'post_id', $product->get_id() );
+				$account_id = null;
+
+				if ( !empty( $listings ) ) {
+					$listing = current( $listings );
+					$account_id = $listing->account_id;
+				}
 
 				// call API
 				$this->initEC();
-				$products = $this->EC->callFindProducts( $query );
+				$products = $this->EC->callFindProducts( $query, $account_id );
 				$this->EC->closeEbay();
 
 				if ( is_array( $products ) ) {
@@ -1739,8 +1746,8 @@ class WPL_AjaxHandler extends WPL_Core {
 			// 	$errors  = sprintf( __( 'There was a problem fetching product details for %s.', 'wp-lister-for-ebay' ), $product->post->post_title ) .'<br>Error: '. $reports->Error->Message;
 			} else {
 				$errors  = sprintf( __( 'There were no products found for query %s.', 'wp-lister-for-ebay' ), $query );
-				echo $errors;
-				echo "<pre>Debug information: ";print_r($products);echo"</pre>";
+				//echo $errors;
+				//echo "<pre>Debug information: ";print_r($products);echo"</pre>";
 			}
 			exit();
 

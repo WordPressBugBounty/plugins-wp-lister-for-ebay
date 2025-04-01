@@ -358,26 +358,7 @@
 						</form>
 						<br style="clear:both;"/>
 
-						<form method="post" action="<?php echo $wpl_form_action; ?>">
-								<?php wp_nonce_field( 'e2e_tools_page' ); ?>
-								<input type="hidden" name="action" value="wplister_clear_log" />
-								<input type="submit" value="<?php echo __( 'Clear debug log', 'wp-lister-for-ebay' ); ?>" name="submit" class="button button-primary">
-								<p><?php echo __( 'Current log file size', 'wp-lister-for-ebay' ); ?>: <?php echo round($wpl_log_size/1024/1024,1) ?> mb</p>
-						</form>
-						<br style="clear:both;"/>
-
 						<?php endif; ?>
-
-
-						<!--
-						<form method="post" action="<?php echo $wpl_form_action; ?>">
-								<?php wp_nonce_field( 'e2e_tools_page' ); ?>
-								<input type="hidden" name="action" value="view_logfile" />
-								<input type="submit" value="<?php echo __( 'View debug log', 'wp-lister-for-ebay' ); ?>" name="submit" class="button button-primary">
-								<p><?php echo __( 'View Logfile', 'wp-lister-for-ebay' ); ?></p>
-						</form>
-						<br style="clear:both;"/>
-						-->
 
 					</div>
 				</div> <!-- postbox -->

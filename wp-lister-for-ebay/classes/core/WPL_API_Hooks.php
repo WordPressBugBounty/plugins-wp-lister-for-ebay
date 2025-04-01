@@ -14,7 +14,7 @@
  */
 
 class WPL_API_Hooks extends WPL_Core {
-
+	var $dblogger;
 	public function __construct() {
 		parent::__construct();
 

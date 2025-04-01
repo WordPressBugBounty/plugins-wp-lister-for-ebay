@@ -293,7 +293,7 @@ class ItemBuilderModel extends WPL_Model {
 		// adjust Site if required - eBay Motors (beta)
 		if ( $this->item->getSite() == 'US' ) {
 			// if primary category's site_id is 100, set Site to eBayMotors
-			$primary_category = EbayCategoriesModel::getItem( $this->item->getPrimaryCategory()->getCategoryID() );
+			$primary_category = EbayCategoriesModel::getItem( $this->item->getPrimaryCategory()->getCategoryID(), $this->site_id );
 			if ( $primary_category && $primary_category['site_id'] == 100 ) {
 				$this->item->setSite('eBayMotors');
 			}
@@ -2113,7 +2113,8 @@ class ItemBuilderModel extends WPL_Model {
                     $value = qtranxf_use( $locale, $value );
                 }
 
-				$name = apply_filters( 'wple_variation_attribute_name', $name, $var, $this );
+				$name  = apply_filters( 'wple_variation_attribute_name', $name, $var, $this );
+				$value = apply_filters( 'wple_variation_attribute_value', $value, $name, $var, $this );
                 $value = $this->processSizeMapReplacements( $name, $value, $this->profile_details);
 
                 $NameValueList = new NameValueListType();
@@ -2260,6 +2261,7 @@ class ItemBuilderModel extends WPL_Model {
                 }
 
 	            $name = apply_filters( 'wple_variation_attribute_name', $name, $var, $this );
+	            $value = apply_filters( 'wple_variation_attribute_value', $value, $name, $var, $this );
                 $value = $this->processSizeMapReplacements( $name, $value, $this->profile_details );
 
                 if ( ! isset($this->tmpVariationSpecificsSet[ $name ]) || ! is_array($this->tmpVariationSpecificsSet[ $name ]) ) {
@@ -3054,7 +3056,7 @@ class ItemBuilderModel extends WPL_Model {
 			if ( ! $req_spec->MinValues ) continue;
 
 			// skip if Name already exists in ItemSpecifics
-			if ( self::thisNameExistsInNameValueList( $req_spec->Name, @$item->ItemSpecifics->NameValueList ) ) {
+			if ( is_object( $item->ItemSpecifics ) && self::thisNameExistsInNameValueList( $req_spec->Name, $item->ItemSpecifics->NameValueList ) ) {
 				continue;
 			}
 

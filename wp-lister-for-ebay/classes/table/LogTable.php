@@ -162,7 +162,7 @@ class LogTable extends WP_List_Table {
                 $match = str_replace(']]>', '', $match );
                 $link .= ' - Page ' . strip_tags( $match );
             }
-            if ( preg_match("/<TotalNumberOfPages>(.*)<\/TotalNumberOfPages>/", $item['response'], $matches) ) {
+            if ( $item['response'] && preg_match("/<TotalNumberOfPages>(.*)<\/TotalNumberOfPages>/", $item['response'], $matches) ) {
                 $link .= $matches[1] ? ' of ' . strip_tags( $matches[1] ) : '';
             }
             if ( preg_match("/<ModTimeFrom>(.*)<\/ModTimeFrom>/", $item['request'], $matches) ) {

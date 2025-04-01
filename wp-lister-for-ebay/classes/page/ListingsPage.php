@@ -406,6 +406,10 @@ class ListingsPage extends WPL_Page {
         $account_id = isset( $_REQUEST['auction'] ) ? WPLE_ListingQueryHelper::getAccountID( $auction_id ) : false;
         $did_action = true;
 
+        if ( !$auction_id ) {
+            return;
+        }
+
         switch ( $this->requestAction() ) {
 
             case 'wple_save_listing':

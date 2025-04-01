@@ -790,7 +790,7 @@ class WPL_InventoryCheck extends WPL_Model  {
         }
 
         $profile_data    = ListingsModel::decodeObject( $item['profile_data'], true );
-        $profile_details = $profile_data['details'];
+        $profile_details = $profile_data['details'] ?? [];
 
         if ( isset($profile_details['custom_quantity_enabled']) && $profile_details['custom_quantity_enabled'] ) {
             WPLE()->logger->info( 'Custom Quantity enabled. Skipping' );

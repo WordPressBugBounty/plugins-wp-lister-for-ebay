@@ -3,12 +3,12 @@
 Plugin Name: WP-Lister Lite for eBay
 Plugin URI: https://www.wplab.com/plugins/wp-lister/
 Description: List your products on eBay the easy way.
-Version: 3.7.5.1
+Version: 3.7.7
 Author: WP Lab
 Author URI: https://www.wplab.com/ 
-Max WP Version: 6.7.1
+Max WP Version: 6.7.2
 WC requires at least: 6.0.0
-WC tested up to: 9.6.0
+WC tested up to: 9.7.1
 Text Domain: wp-lister-for-ebay
 Domain Path: /languages
 License: GPL2+
@@ -16,7 +16,7 @@ License: GPL2+
 
 if ( class_exists('WPL_WPLister') ) die(sprintf( 'WP-Lister for eBay %s is already installed and activated. Please deactivate any other version before you activate this one.', WPLE_PLUGIN_VERSION ));
 
-define('WPLE_PLUGIN_VERSION', '3.7.5.1' );
+define('WPLE_PLUGIN_VERSION', '3.7.7' );
 define('WPLE_PLUGIN_PATH', realpath( dirname(__FILE__) ) );
 define('WPLE_PLUGIN_URL', plugins_url() . '/' . basename(dirname(__FILE__)) . '/' );
 // backwards compatibility for add-ons - will be removed in next major release (3.3)

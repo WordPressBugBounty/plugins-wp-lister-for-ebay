@@ -198,7 +198,7 @@ class Listing {
 		if ( $item_array ) {
 			$this->setId( $id );
 			$this->populateData( $item_array );
-			$this->profile_details = $this->data['profile_data']['details'];
+			$this->profile_details = $this->data['profile_data']['details'] ?? [];
 		}
 	}
 
@@ -1197,10 +1197,11 @@ class Listing {
 	public function getGpsrHazmatPictograms() {
 		$pictograms = $this->getOverridableProfileProperty( 'gpsr_hazmat_pictograms' );
 
-		if ( !is_array( $pictograms ) ) {
+		if ( !is_array( $pictograms ) && !is_null( $pictograms ) ) {
 			$pictograms = array_map( 'trim', explode(',', $pictograms) );
 		}
 
+		$pictograms = !is_array($pictograms) ? (array)$pictograms : $pictograms;
 		return array_filter($pictograms);
 	}
 
@@ -1211,10 +1212,11 @@ class Listing {
 	public function getGpsrHazmatStatements() {
 		$statements = $this->getOverridableProfileProperty( 'gpsr_hazmat_statements' );
 
-		if ( !is_array( $statements ) ) {
+		if ( !is_array( $statements ) && !is_null( $statements ) ) {
 			$statements = array_map( 'trim', explode(',', $statements) );
 		}
 
+		$statements = !is_array($statements) ? (array)$statements : $statements;
 		return array_filter($statements);
 	}
 
@@ -1225,20 +1227,22 @@ class Listing {
 	public function getGpsrProductSafetyPictograms() {
 		$pictograms = $this->getOverridableProfileProperty( 'gpsr_product_safety_pictograms' );
 
-		if ( !is_array( $pictograms ) ) {
+		if ( !is_array( $pictograms ) && !is_null( $pictograms ) ) {
 			$pictograms = array_map( 'trim', explode(',', $pictograms) );
 		}
 
+		$pictograms = !is_array($pictograms) ? (array)$pictograms : $pictograms;
 		return $pictograms;
 	}
 
 	public function getGpsrProductSafetyStatements() {
 		$statements = $this->getOverridableProfileProperty( 'gpsr_product_safety_statements' );
 
-		if ( !is_array( $statements ) ) {
+		if ( !is_array( $statements ) && !is_null( $statements ) ) {
 			$statements = array_map( 'trim', explode(',', $statements) );
 		}
 
+		$statements = !is_array($statements) ? (array)$statements : $statements;
 		return $statements;
 	}
 
@@ -1540,7 +1544,7 @@ class Listing {
 		$product_value  = $this->getProductProperty( '_ebay_'. $field );
 
 		if ( !$product_value ) {
-			$product_value  = $this->profile_details[ $field ];
+			$product_value  = $this->profile_details[ $field ] ?? '';
 		}
 
 		return $product_value;

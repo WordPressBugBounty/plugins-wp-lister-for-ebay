@@ -622,7 +622,7 @@ class EbayCategoriesModel extends WPL_Model {
         if ( ! $category    ) return apply_filters( 'wple_get_conditions_for_category', array(), $category_id, $site_id, $account_id );
 
         // if timestamp is recent, return category conditions
-		if ( strtotime( $category['last_updated']  ) > strtotime('-1 month') && get_option( 'wplister_log_level', 0 ) < 7 ) {
+		if ( !is_null($category['last_updated']) && strtotime( $category['last_updated']  ) > strtotime('-1 month') && get_option( 'wplister_log_level', 0 ) < 7 ) {
 			// WPLE()->logger->info('found recent category conditions from '.$category['last_updated'] );
 			$features = maybe_unserialize( $category['features'] );
 			if ( is_object($features) )
@@ -975,6 +975,7 @@ class EbayCategoriesModel extends WPL_Model {
 				400013  => 'Poor'
 			],
 			183454  => [
+				400010  => 'Near mint or better',
 				400015  => 'Lightly Played (Excellent)',
 				400016  => 'Moderately Played (Very Good)',
 				400017  => 'Heavily Played (Poor)',

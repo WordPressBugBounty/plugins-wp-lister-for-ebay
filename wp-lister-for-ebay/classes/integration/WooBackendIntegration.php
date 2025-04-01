@@ -118,8 +118,10 @@ class WPL_WooBackendIntegration {
 		// add quick-edit actions
 		add_action( 'admin_enqueue_scripts', array( $this, 'quick_edit_script' ) );
 		add_action( 'manage_product_posts_custom_column', array( $this, 'render_quick_edit_values' ), 5 );
-		add_action( 'quick_edit_custom_box',  array( $this, 'quick_edit' ), 20, 2 );
+		add_action( 'quick_edit_custom_box',  array( $this, 'quick_edit' ), 10, 2 );
+		add_action( 'bulk_edit_custom_box',  array( $this, 'quick_edit' ), 10, 2 );
 		add_action( 'woocommerce_product_quick_edit_save', array( $this, 'quick_edit_save' ) );
+		add_action( 'woocommerce_product_bulk_edit_save', array( $this, 'bulk_edit_save' ) );
 
         // use ebay's order number in the WC orders
         if ( get_option( 'wplister_use_ebay_order_number', 0 ) > 0 ) {
@@ -910,7 +912,7 @@ class WPL_WooBackendIntegration {
      * @return mixed
      */
     public function rest_filter_order_line_taxes( $response, $request ) {
-        WPLE()->logger->info( 'rest_filter_order_line_taxes triggered' );
+        //WPLE()->logger->info( 'rest_filter_order_line_taxes triggered' );
         //WPLE()->logger->info( print_r( $response, 1 ) );
         //WPLE()->logger->info( print_r( $response->data['line_items']['taxes'],1 ) );
         if ( $response->data['created_via'] != 'ebay' ) {
@@ -2107,7 +2109,7 @@ class WPL_WooBackendIntegration {
 	 * @param $product
 	 */
 	public function quick_edit_save( $product ) {
-	    $product_id = wple_get_product_meta( $product, 'id' );
+	    $product_id = $product->get_id();
 		if ( isset( $_POST['_ebay_start_price'] ) ) {
 			update_post_meta( $product_id, '_ebay_start_price', wple_clean( wc_format_decimal( $_POST['_ebay_start_price'] ) ) );
 		}
@@ -2127,6 +2129,43 @@ class WPL_WooBackendIntegration {
 
 			WPLE()->logger->info('revised listing '.$listing_id );
 		}
+	}
+
+	/**
+	 * @param WC_Product $product
+	 *
+	 * @return void
+	 */
+	public function bulk_edit_save( $product ) {
+		// check bulk edit nonce
+		if ( ! wp_verify_nonce( $_REQUEST[ '_wpnonce' ], 'bulk-posts' ) ) {
+			return;
+		}
+
+		// Get the post IDs.
+		$product_id = $product->get_id();
+
+
+        if ( isset( $_GET['_ebay_start_price'] ) ) {
+            update_post_meta( $product_id, '_ebay_start_price', wple_clean( wc_format_decimal( $_GET['_ebay_start_price'] ) ) );
+        }
+
+        if ( ! empty( $_GET['revise_listing'] ) && 'yes' == $_GET['revise_listing'] ) {
+            // call markItemAsModified() to re-apply the listing profile
+            $lm = new ListingsModel();
+            $lm->markItemAsModified( $product_id );
+            $listing_id = WPLE_ListingQueryHelper::getListingIDFromPostID( $product_id );
+
+            WPLE()->logger->info('revising listing '. $listing_id );
+
+            // call EbayController
+            WPLE()->initEC();
+            $results = WPLE()->EC->reviseItems( $listing_id );
+            WPLE()->EC->closeEbay();
+
+            WPLE()->logger->info('revised listing '.$listing_id );
+        }
+
 	}
 
     /**

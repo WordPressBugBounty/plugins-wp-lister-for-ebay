@@ -2,7 +2,7 @@
 Contributors: wp-lab
 Tags: ebay, woocommerce, products, export
 Requires at least: 4.2
-Tested up to: 6.7.1
+Tested up to: 6.7.2
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -102,6 +102,29 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+
+= 3.7.7 - 2025-03-31 =
+* New: Ability to add eBay Start Price via Bulk Edit
+* Fix: Updated the call to search for products to use the Browse API
+* Fix: Various deprecated code warnings
+* Fix: Improved support for the Aelia Currency Switcher plugin
+* Fix: Bottom bulk actions form displaying a Link Expired error page
+* Fix: Error file_exists(): Passing null to parameter #1 ($filename)
+* Fix: Error Cannot access offset of type string on string
+* Fix: Decode the return value from ProductWrapper::getBrand()
+* Fix: Added Near Mint condition to Ungraded Trading Cards
+* Dev: Added the filter `wple_variation_attribute_value`
+* Dev: Store the Tax Tracking Code in a separate order meta (e.g. IOSS, ABN)
+* Dev: New filter wple_append_tax_tracking_to_company
+
+= 3.7.6 - 2025-02-28 =
+* New: Added setting to record Seller Promotions as order discounts
+* Fix: Attribute Mapping setting in the Profile page always set to Yes
+* Fix: Errors while trying to access non-existent pictograms and signal words
+* Fix: Primary category getting loaded from a different Site ID in some cases
+* Fix: `Cannot access offset of type string on string` while trying to access the profile without a valid profile_details data
+* Fix: Creation of dynamic property WPL_API_Hooks::$dblogger
+* Dev: Removed deprecated function utf8_encode()
 
 = 3.7.5.1 - 2025-02-15 =
 * Fix: Error in PHP8+ when testing for a possible undefined constant

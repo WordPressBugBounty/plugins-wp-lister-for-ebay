@@ -1,27 +1,19 @@
-<fieldset class="inline-edit-col-center">
-	<div class="inline-edit-col">
-		&nbsp;
-	</div>
-</fieldset><!-- Spacer fieldset -->
-<fieldset class="inline-edit-col-center">
-	<div id="wplister-fields" class="inline-edit-col" style="clear:left;">
-		<h4><?php _e( 'eBay Listing', 'wp-lister-for-ebay' ); ?></h4>
+<fieldset class="inline-edit-col-left">
+    <h4>WP-Lister for eBay</h4>
+	<div id="wplister-fields" class="inline-edit-col" style="">
 
-		<div class="inline-edit-group wp-clearfix">
-			<label class="alignleft">
-				<input type="checkbox" value="yes" name="revise_listing" />
-				<span class="checkbox-title"><?php _e( 'Revise on update', 'wp-lister-for-ebay' ); ?></span>
-			</label>
-		</div>
+        <label class="">
+            <input type="checkbox" value="yes" name="revise_listing" />
+            <?php _e( 'Revise on update', 'wp-lister-for-ebay' ); ?>
+        </label>
+    </div>
+    <div class="inline-edit-col" style="">
+        <label>
+            <span class="title"><?php _e( 'eBay Price', 'wp-lister-for-ebay' ); ?></span>
+            <span class="input-text-wrap">
+                <input type="text" name="_ebay_start_price" id="ebay_start_price" class="text ebay_start_price wc_input_price" value="">
+            </span>
+        </label>
+    </div>
 
-		<div class="price_fields">
-			<label>
-				<span class="title"><?php _e( 'eBay Price', 'wp-lister-for-ebay' ); ?></span>
-				<span class="input-text-wrap">
-					<input type="text" name="_ebay_start_price" id="ebay_start_price" class="text ebay_start_price wc_input_price" value="">
-				</span>
-			</label>
-			<br class="clear" />
-		</div>
-	</div>
 </fieldset>

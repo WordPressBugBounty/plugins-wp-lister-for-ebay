@@ -15,7 +15,7 @@
         width: 65%;
     }
     .select2-container, .chosen-container {
-        margin: 4px;
+        /*margin: 4px;*/
     }
     .select2-container--default .select2-results__option--highlighted[aria-selected], .select2-container--default .select2-results__option--highlighted[data-selected] {
         color: #000;
@@ -288,7 +288,7 @@
 		    foreach ( $wpl_available_attributes as $attribute ):
 			    $select_name = '[[attribute_'. $attribute->name .']]';
 			    ?>
-                <option <?php selected( true, in_array( $select_name, (array)$item_details['gpsr_responsible_persons'] ) ); ?> value="<?php echo $select_name; ?>"><?php echo __('Attribute: ', 'wp-lister-for-ebay') . $attribute->name; ?></option>
+                <option <?php selected( true, in_array( $select_name, $item_details['gpsr_responsible_persons'] ?? [] ) ); ?> value="<?php echo $select_name; ?>"><?php echo __('Attribute: ', 'wp-lister-for-ebay') . $attribute->name; ?></option>
 		    <?php endforeach; ?>
         </optgroup>
     </select>

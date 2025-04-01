@@ -92,7 +92,7 @@ if ( ( ! isset( $_GET['desc'] ) ) || ( $_GET['desc'] != 'show' ) ) {
 error_reporting( E_ALL & ~E_DEPRECATED & ~E_STRICT );
 
 // try to include PEAR and hide php warnings on fail
-@include_once ('PEAR.php');
+//@include_once ('PEAR.php');
 if ( class_exists('PEAR') && ! is_numeric($req) && ( 'custom' != get_option( 'wplister_xml_formatter', 'custom' ) ) ) {
 	// add XML dir to include path
 	$incPath = WPLE_PLUGIN_PATH.'/includes';
@@ -229,7 +229,7 @@ $REQUEST_URI = remove_query_arg( 'height', $REQUEST_URI );
     <pre><?php echo $req ?></pre>
 
     <h3>Response</h3>
-    <pre><?php echo htmlentities( $res ) ?></pre>
+    <pre><?php echo htmlentities( $res ?? '' ) ?></pre>
 
     <?php if ( $account_exists ) : ?>
     <h3>Account Details</h3>

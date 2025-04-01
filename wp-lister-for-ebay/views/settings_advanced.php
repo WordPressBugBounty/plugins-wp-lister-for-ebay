@@ -700,6 +700,22 @@
                                 </p>
                             </div>
 
+                            <div class="wple-field">
+								<?php wple_maybe_display_pro_overlay(); ?>
+
+                                <label for="wpl-option-handle_ebay_discounts" class="text_label">
+									<?php echo __( 'Apply eBay discounts (Beta)', 'wp-lister-for-ebay' ) ?>
+									<?php wplister_tooltip(__('Enable this to record Seller Discounts from eBay.', 'wp-lister-for-ebay')) ?>
+                                </label>
+                                <select id="wpl-option-handle_ebay_discounts" name="wpl_e2e_handle_ebay_discounts" class=" required-entry select">
+                                    <option value="0" <?php selected( $wpl_handle_ebay_discounts, 0 ); ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
+                                    <option value="1" <?php selected( $wpl_handle_ebay_discounts, 1 ); ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
+                                </select>
+                                <p class="desc" style="display: block;">
+									<?php echo __( 'Record Seller Discounts in WooCommerce orders.', 'wp-lister-for-ebay' ); ?><br>
+                                </p>
+                            </div>
+
 							<div class="wple-field">
 								<?php wple_maybe_display_pro_overlay(); ?>
 

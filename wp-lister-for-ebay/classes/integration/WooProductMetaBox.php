@@ -1602,7 +1602,7 @@ class WpLister_Product_MetaBox {
                 width: 65%;
             }
             .select2-container, .chosen-container {
-                margin: 4px;
+                /*margin: 4px;*/
             }
             .select2-container--default .select2-results__option--highlighted[aria-selected], .select2-container--default .select2-results__option--highlighted[data-selected] {
                 color: #000;
@@ -1773,7 +1773,8 @@ class WpLister_Product_MetaBox {
             <select id="wpl-text-gpsr_hazmat_pictograms" name="wpl_e2e_gpsr_hazmat_pictograms[]" class="wple_chosen_select" data-placeholder="<?php _e('Select up to 4 items', 'wp-lister-for-ebay'); ?>" multiple style="width:50%">
                 <option value=""></option>
 			    <?php
-			    foreach ( (array)$hazardous_materials_labels['pictograms'] as $pictogram ):
+                $pictograms = $hazardous_materials_labels['pictograms'] ?? [];
+			    foreach ( (array)$pictograms as $pictogram ):
 				    $hazmat_pictograms = $item_details['gpsr_hazmat_pictograms'] ?? [];
 				    $selected = in_array( $pictogram['pictogram_id'], (array)$hazmat_pictograms );
 				    ?>
@@ -1787,7 +1788,8 @@ class WpLister_Product_MetaBox {
             </label>
             <select id="wpl-text-gpsr_hazmat_signalword" name="wpl_e2e_gpsr_hazmat_signalword" class="wple_chosen_select" >
 			    <?php
-			    foreach ( (array)$hazardous_materials_labels['signal_words'] as $signal_word ):
+                $signal_words = $hazardous_materials_labels['signal_words'] ?? [];
+			    foreach ( (array)$signal_words as $signal_word ):
 				    ?>
                     <option <?php selected( $signal_word['signal_word_id'], $item_details['gpsr_hazmat_signalword'] ?? '' ); ?> value="<?php esc_attr_e( $signal_word['signal_word_id'] ); ?>"><?php esc_attr_e( $signal_word['signal_word_description'] ); ?></option>
 			    <?php endforeach; ?>
@@ -1895,7 +1897,8 @@ class WpLister_Product_MetaBox {
             <label class="text_label"><?php _e('Pictograms', 'wp-lister-for-ebay'); ?></label>
             <select name="wpl_e2e_gpsr_product_safety_pictograms[]" class="wple_chosen_select" data-placeholder="<?php _e('Select up to 2', 'wp-lister-for-ebay'); ?>" multiple style="width:50%">
 			    <?php
-			    foreach ( (array)$product_safety_labels['pictograms'] as $pictogram ):
+                $pictograms = $product_safety_labels['pictograms'] ?? [];
+			    foreach ( (array)$pictograms as $pictogram ):
 				    $safety_pictograms_array = $item_details['gpsr_product_safety_pictograms'] ?? [];
 				    $selected = in_array( $pictogram['pictogram_id'], (array)$safety_pictograms_array );
 				    ?>
@@ -1907,7 +1910,8 @@ class WpLister_Product_MetaBox {
             <select name="wpl_e2e_gpsr_product_safety_statements[]" class="wple_chosen_select" data-placeholder="<?php _e('Select up to 8', 'wp-lister-for-ebay'); ?>" multiple style="width:50%">
 			    <?php
 			    $safety_statements_array = $item_details['gpsr_product_safety_statements'] ?? [];
-			    foreach ( (array)$product_safety_labels['statements'] as $statement ):
+                $statements = $product_safety_labels['statements'] ?? [];
+			    foreach ( (array)$statements as $statement ):
 				    $selected = in_array( $statement['statement_id'], (array)$safety_statements_array );
 				    ?>
                     <option <?php selected($selected,true); ?> value="<?php esc_attr_e( $statement['statement_id'] ); ?>"><?php esc_attr_e( $statement['statement_description'] ); ?></option>
@@ -2307,7 +2311,7 @@ class WpLister_Product_MetaBox {
 		// get field values
 		$wpl_ebay_title                 = wple_clean( @$_POST['wpl_ebay_title'] );
 		$wpl_ebay_subtitle              = wple_clean( @$_POST['wpl_ebay_subtitle'] );
-		$wpl_ebay_global_shipping       = wple_clean( @$_POST['wpl_ebay_global_shipping'] );
+		$wpl_ebay_global_shipping       = wple_clean( @$_POST['wpl_ebay_global_shipping'] ?? '' );
 		$wpl_ebay_ebayplus_enabled      = wple_clean( $_POST['wpl_ebay_ebayplus_enabled'] ?? 0 );
 		$wpl_ebay_payment_instructions  = wple_clean( @$_POST['wpl_ebay_payment_instructions'] );
 		$wpl_ebay_condition_description = wple_clean( @$_POST['wpl_ebay_condition_description'] );
@@ -2380,8 +2384,8 @@ class WpLister_Product_MetaBox {
 		update_post_meta( $post_id, '_ebay_store_category_2_id', $wpl_store_category_2_id );
 		update_post_meta( $post_id, '_ebay_gallery_image_url', $wpl_ebay_gallery_image_url );
 
-		update_post_meta( $post_id, '_ebay_seller_payment_profile_id', 	wple_clean( @$_POST['wpl_ebay_seller_payment_profile_id'] ) );
-		update_post_meta( $post_id, '_ebay_seller_return_profile_id', 	wple_clean( @$_POST['wpl_ebay_seller_return_profile_id'] ) );
+		update_post_meta( $post_id, '_ebay_seller_payment_profile_id', 	wple_clean( @$_POST['wpl_ebay_seller_payment_profile_id'] ?? '' ) );
+		update_post_meta( $post_id, '_ebay_seller_return_profile_id', 	wple_clean( @$_POST['wpl_ebay_seller_return_profile_id'] ?? '' ) );
 		update_post_meta( $post_id, '_ebay_bestoffer_enabled', 			wple_clean( @$_POST['wpl_ebay_bestoffer_enabled'] ) );
 		update_post_meta( $post_id, '_ebay_bo_autoaccept_price', 		wple_clean( wc_format_decimal( @$_POST['wpl_ebay_bo_autoaccept_price'] ) ) );
 		update_post_meta( $post_id, '_ebay_bo_minimum_price', 			wple_clean( wc_format_decimal( @$_POST['wpl_ebay_bo_minimum_price'] ) ) );
@@ -2410,7 +2414,7 @@ class WpLister_Product_MetaBox {
 			$loc_free_shipping = strstr( 'calc', strtolower($ebay_shipping_service_type) ) ? wple_clean(@$_POST['wpl_e2e_shipping_loc_calc_free_shipping']) : wple_clean(@$_POST['wpl_e2e_shipping_loc_flat_free_shipping']);
 			update_post_meta( $post_id, '_ebay_shipping_loc_enable_free_shipping', $loc_free_shipping );
 
-			update_post_meta( $post_id, '_ebay_shipping_ShipToLocations', wple_clean(@$_POST['wpl_e2e_ShipToLocations']) );
+			update_post_meta( $post_id, '_ebay_shipping_ShipToLocations', wple_clean(@$_POST['wpl_e2e_ShipToLocations'] ?? '') );
 			update_post_meta( $post_id, '_ebay_shipping_ExcludeShipToLocations', wple_clean(@$_POST['wpl_e2e_ExcludeShipToLocations']) );
 
 		} else {

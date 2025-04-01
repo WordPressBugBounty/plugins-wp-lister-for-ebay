@@ -72,8 +72,8 @@
             <input type="text"   name="query"  value="<?php echo esc_attr( $wpl_query ) ?>" id="wplister_matcher_query_input" />
             <?php wp_nonce_field( 'wple_match_product_ajax_nonce' ); ?>
             <select id="wplister_matcher_query_select" name="query_select" class="select">
-                <option value="title" data-value="<?php echo htmlspecialchars( $wpl_query_product->post->post_title ) ?>" <?php if ( $wpl_query_select == 'title' ): ?>selected="selected"<?php endif; ?> ><?php echo __( 'Title', 'wp-lister-for-ebay' ); ?></option>
-                <option value="sku"   data-value="<?php echo htmlspecialchars( $wpl_query_product->sku )              ?>" <?php if ( $wpl_query_select == 'sku'   ): ?>selected="selected"<?php endif; ?> ><?php echo __( 'SKU', 'wp-lister-for-ebay' );   ?></option>
+                <option value="title" data-value="<?php echo htmlspecialchars( $wpl_query_product->get_title() ) ?>" <?php if ( $wpl_query_select == 'title' ): ?>selected="selected"<?php endif; ?> ><?php echo __( 'Title', 'wp-lister-for-ebay' ); ?></option>
+                <option value="sku"   data-value="<?php echo htmlspecialchars( $wpl_query_product->get_sku() )              ?>" <?php if ( $wpl_query_select == 'sku'   ): ?>selected="selected"<?php endif; ?> ><?php echo __( 'SKU', 'wp-lister-for-ebay' );   ?></option>
                 <?php foreach ($wpl_query_product_attributes as $attribute_label => $attribute_value) : ?>
                     <option value="<?php echo $attribute_label ?>" data-value="<?php echo htmlspecialchars( $attribute_value ) ?>" <?php if ( $wpl_query_select == $attribute_label ): ?>selected="selected"<?php endif; ?> ><?php echo $attribute_label ?></option>
                 <?php endforeach; ?>
@@ -88,47 +88,38 @@
     <?php foreach ($wpl_products as $product ) : ?>
     
         <tr><td class="img">
-            <a href="<?php echo $product->DetailsURL ?>" title="Click on the image to open this product on eBay" target="_blank">
-                <?php if ( isset( $product->StockPhotoURL ) && $product->StockPhotoURL ) : ?>
-                    <img src="<?php echo $product->StockPhotoURL ?>" />
-                <?php elseif ( isset( $product->ListPrice ) ) : ?>
-                    no stock photo available
+            <a href="<?php echo $product->itemWebUrl ?>" title="Click on the image to open this product on eBay" target="_blank">
+                <?php if ( isset( $product->thumbnailImages[0]->imageUrl ) ) : ?>
+                    <img src="<?php echo $product->thumbnailImages[0]->imageUrl ?>" height="50" />
                 <?php endif; ?>
             </a>
         </td><td class="info hover">
-            <?php echo $product->Title ?><br>
+            <?php echo $product->title ?><br>
 
             <small>
-            <?php if ( isset( $product->EPID ) ) : ?>
-                EPID: <?php echo $product->EPID ?><br>
+            <?php if ( isset( $product->legacyItemId ) ) : ?>
+                EPID: <?php echo $product->legacyItemId ?><br>
             <?php endif; ?>
 
-            <?php if ( isset( $product->DomainName ) ) : ?>
-                Domain: <?php echo $product->DomainName ?><br>
+            <?php if ( isset( $product->listingMarketplaceId ) ) : ?>
+                Domain: <?php echo $product->listingMarketplaceId ?><br>
             <?php endif; ?>
             </small>
 
         </td><td class="info hover" style="text-align:right; width:20%;">
 
-            <?php if ( isset( $product->lowest_price ) && $product->lowest_price ) : ?>
-                <big><?php echo wc_price( $product->lowest_price ) ?></big>
-                <br>
-            <?php elseif ( isset( $product->ListPrice ) ) : ?>
-                <big><?php echo $product->ListPrice->Amount ?>&nbsp;<?php echo $product->ListPrice->CurrencyCode ?></big>
+            <?php if ( isset( $product->price->value ) ) : ?>
+                <b><?php echo wc_price( $product->price->value ) ?></b>
                 <br>
             <?php endif; ?>
     
-            <a href="<?php echo $product->DetailsURL ?>" target="_blank" class="button button-small">
+            <a href="<?php echo $product->itemWebUrl ?>" target="_blank" class="button button-small">
                 Details
             </a>
-            <a href="#" onclick="jQuery('#wpl_ebay_epid').prop('value','<?php echo $product->EPID ?>');tb_remove();return false;" class="button button-small">
+            <a href="#" onclick="jQuery('#wpl_ebay_epid').prop('value','<?php echo $product->legacyItemId ?>');tb_remove();return false;" class="button button-small">
                 Select
             </a>
-            <!--
-            <a href="#" onclick="WPLA.ProductMatcher.match(this,'<?php echo $wpl_post_id ?>','<?php echo $product->EPID ?>');return false;" class="button button-small">
-                Select
-            </a>
-            -->
+
         </td></tr>
 
     <?php endforeach; ?>

@@ -312,6 +312,7 @@ class SettingsPage extends WPL_Page {
 			'create_incomplete_orders'        => self::getOption( 'create_incomplete_orders' ),
 			'sync_incomplete_orders'          => self::getOption( 'sync_incomplete_orders' ),
 			'handle_ebay_refunds'             => self::getOption( 'handle_ebay_refunds', 1 ),
+			'handle_ebay_discounts'           => self::getOption( 'handle_ebay_discounts', 0 ),
 			'revert_stock_changes'            => self::getOption( 'revert_stock_changes', 1 ),
 			'record_cod_cost'                 => self::getOption( 'record_cod_cost', 0 ),
 			'record_ebay_fee'                 => self::getOption( 'record_ebay_fee', 'no' ),
@@ -1130,14 +1131,9 @@ class SettingsPage extends WPL_Page {
 		wp_register_script( 'jqueryFileTree', self::$PLUGIN_URL.'js/jqueryFileTree/jqueryFileTree.js', array( 'jquery' ) );
 		wp_enqueue_script( 'jqueryFileTree' );
 
-		if ( !wp_script_is( 'chosen', 'registered' ) ) {
-            wp_register_style( 'chosen_css', WPLE_PLUGIN_URL.'js/chosen/chosen.css' );
-            wp_enqueue_style( 'chosen_css' );
-            wp_register_script( 'chosen', WPLE_PLUGIN_URL.'js/chosen/chosen.jquery.min.js', array( 'jquery' ) );
-        }
-
-        wp_enqueue_script( 'chosen' );
-
+		wp_register_style( 'wple_select2', plugins_url( '/assets/css/select2.css', WC_PLUGIN_FILE ) );
+		wp_enqueue_style( 'wple_select2' );
+        wp_enqueue_script( 'select2' );
 	}
 
 	public function renderSettingsOptions() {

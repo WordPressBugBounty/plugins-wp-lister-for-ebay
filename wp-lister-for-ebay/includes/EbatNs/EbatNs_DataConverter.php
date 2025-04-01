@@ -99,7 +99,8 @@ class EbatNs_DataConverterIso extends EbatNs_DataConverter
 
             default:
                 if (is_string($data))
-                    $data = "<![CDATA[" . utf8_encode($data) . "]]>";
+                    $data = "<![CDATA[" . $data . "]]>";
+                    //$data = "<![CDATA[" . utf8_encode($data) . "]]>";
                 break;
         }
 

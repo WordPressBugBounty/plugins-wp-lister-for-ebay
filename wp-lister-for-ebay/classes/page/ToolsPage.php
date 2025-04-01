@@ -527,14 +527,13 @@ class ToolsPage extends WPL_Page {
 		if ( $active_tab == 'stock_log' ) {
 			return $this->displayStockLogPage();
 		}
-
+        
 		$aData = array(
 			'plugin_url'				=> self::$PLUGIN_URL,
 			'message'					=> $this->message,
 			'results'					=> isset($this->results) ? $this->results : '',
 			'resultsHtml'				=> isset($this->resultsHtml) ? $this->resultsHtml : '',
 			'debug'						=> isset($debug) ? $debug : '',
-			'log_size'					=> file_exists(WPLE()->logger->file) ? filesize(WPLE()->logger->file) : '',
 			'tools_url'	 				=> 'admin.php?page='.self::ParentMenuId.'-tools',
 			'form_action'				=> 'admin.php?page='.self::ParentMenuId.'-tools'
 		);

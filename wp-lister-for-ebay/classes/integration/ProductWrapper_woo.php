@@ -1212,7 +1212,7 @@ class ProductWrapper {
 			}
 		}
 
-		WPLE()->logger->info('findVariationID('.$parent_id.','.$sku.') found nothing...');
+		WPLE()->logger->info('findVariationID('.$parent_id.','.$sku.') found nothing for '. print_r($VariationSpecifics,1) );
 		return false;
 	}
 
@@ -1337,7 +1337,8 @@ class ProductWrapper {
         if (   empty($brands)    ) return '';
 
         // return name of first brand
-        return $brands[0]->name;
+		// We need to decode this first because WC encodes the value prior to storing #69654
+        return html_entity_decode( $brands[0]->name );
     }
 
     /**
