@@ -2392,7 +2392,13 @@ class ListingsModel extends WPL_Model {
 			if ( strpos( $data['auction_title'], ']]' ) > 0 ) {
 				$templatesModel = new TemplatesModel();
 				WPLE()->logger->info('auction_title before processing: '.$data['auction_title']);
-				$data['auction_title'] = $templatesModel->processAllTextShortcodes( $listing->getProductId(), $data['auction_title'], 80 );
+
+				$title_product_id = $listing->getProductId();
+				if ( $listing->isSplitVariation() ) {
+					$title_product_id = $listing->getProduct()->get_parent_id();
+				}
+
+				$data['auction_title'] = $templatesModel->processAllTextShortcodes( $title_product_id, $data['auction_title'], 80 );
 			}
 			WPLE()->logger->info('auction_title after processing : '.$data['auction_title']);
 

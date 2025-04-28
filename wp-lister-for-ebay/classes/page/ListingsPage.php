@@ -803,7 +803,7 @@ class ListingsPage extends WPL_Page {
 
 			$account_title = WPLE_eBayAccount::getAccountTitle( $dupe->account_id );
 
-			$msg .= '<b>'.__( 'Listings for product', 'wp-lister-for-ebay' ).' #'.$dupe->post_id.' ('.$account_title.'):</b>';
+			$msg .= '<b>'. sprintf(__( 'Listings for <a href="%s" target="_blank">product #%d</a>', 'wp-lister-for-ebay' ), 'post.php?action=edit&post='. $dupe->post_id, $dupe->post_id ) .' ('.$account_title.'):</b>';
 			$msg .= '<br>';
 
 			$duplicateListings = WPLE_ListingQueryHelper::getAllListingsForProductAndAccount( $dupe->post_id, $dupe->account_id );
@@ -812,8 +812,8 @@ class ListingsPage extends WPL_Page {
 				$color = $listing->status == 'archived' ? 'silver' : '';
 				$msg .= '<span style="color:'.$color.'">';
 				$msg .= '&nbsp;&bull;&nbsp;';
-				$msg .= ''.$listing->auction_title.'';
-				if ($listing->ebay_id) $msg .= ' (#'.$listing->ebay_id.')';
+				$msg .= ''.$listing->auction_title;
+				if ($listing->ebay_id) $msg .= ' (<a href="admin.php?page=wplister&s=110555570618" target="_blank">#'.$listing->ebay_id.'</a>)';
 				$msg .= ' &ndash; <i>'.$listing->status.'</i>';
 				$msg .= '<br>';
 				if ( in_array( $listing->status, array( 'prepared', 'verified', 'ended', 'sold' ) ) ) {
@@ -826,6 +826,7 @@ class ListingsPage extends WPL_Page {
 					$msg .= '&nbsp;&nbsp;&nbsp;&nbsp;'.$delete_link;
 					$msg .= '<br>';
 				}
+
 				$msg .= '</span>';
 			}
 			$msg .= '<br>';

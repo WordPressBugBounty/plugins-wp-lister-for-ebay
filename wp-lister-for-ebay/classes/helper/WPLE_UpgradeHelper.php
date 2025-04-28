@@ -1806,6 +1806,19 @@ class WPLE_UpgradeHelper {
 			$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
 		}
 
+		if ( 76 > $db_version ) {
+			$new_db_version = 76;
+
+			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
+                    CHANGE `ShippingAddress_City` `ShippingAddress_City` varchar(100);";
+
+			$wpdb->query($sql);	echo $wpdb->last_error;
+
+			update_option('wplister_db_version', $new_db_version);
+			$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
+		}
+
+
 		// show update message
 		if ( $msg && ! $hide_message ) wple_show_message($msg,'info');
 

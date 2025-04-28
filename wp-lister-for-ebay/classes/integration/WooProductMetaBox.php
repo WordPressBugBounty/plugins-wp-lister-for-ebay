@@ -946,6 +946,10 @@ class WpLister_Product_MetaBox {
                 $item_specs_category_id = $primary_category_id;
                 $ebay_category_1_name = EbayCategoriesModel::getFullEbayCategoryName( $primary_category_id, $wpl_site_id);
                 $ebay_category_1_name = '<span style="color:silver">Default category: ' . $ebay_category_1_name . ' </span>';
+            } elseif ( $mapped_categories['primary'] ) {
+	            $ebay_category_1_name = EbayCategoriesModel::getFullEbayCategoryName( $mapped_categories['primary'], $wpl_site_id);
+	            $ebay_category_1_name = '<span style="color:silver">Mapped category: ' . $ebay_category_1_name . ' </span>';
+	            $item_specs_category_id = $mapped_categories['primary'];
             }
         }
 
@@ -1801,7 +1805,8 @@ class WpLister_Product_MetaBox {
             </label>
             <select id="wpl-text-gpsr_hazmat-statements" name="wpl_e2e_gpsr_hazmat_statements[]" class="wple_chosen_select" data-placeholder="Select up to 8 items" multiple style="width:50%">
 			    <?php
-			    foreach ( (array)$hazardous_materials_labels['statements'] as $statement ):
+                $statements = $hazardous_materials_labels['statements'] ?? [];
+			    foreach ( $statements as $statement ):
 				    $hazmat_statements = $item_details['gpsr_hazmat_statements'] ?? [];
 				    $selected = in_array( $statement['statement_id'], (array)$hazmat_statements );
 				    ?>

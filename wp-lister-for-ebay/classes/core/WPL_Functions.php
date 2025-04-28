@@ -293,20 +293,20 @@ function wple_action_scheduler_settings() {
 
     if ( ListingsModel::countQueuedChangedListings() > 50 ) {
         // Set time limit to the max_execution_time. Fallback to 60 seconds if unable to get the max_execution_time value
-        add_filter( 'action_scheduler_queue_runner_time_limit', function() {
+        /*add_filter( 'action_scheduler_queue_runner_time_limit', function() {
             $max_time_limit = @ini_get('max_execution_time');
             $max_time_limit = ( $max_time_limit ) ? $max_time_limit : 60;
             return $max_time_limit;
-        }, 100 );
+        }, 100 );*/
 
         // Increase the batch size
         add_filter( 'action_scheduler_queue_runner_batch_size', function() {
             return 50;
         }, 100 );
 
-        add_filter( 'action_scheduler_queue_runner_concurrent_batches', function() {
+        /*add_filter( 'action_scheduler_queue_runner_concurrent_batches', function() {
             return 5;
-        });
+        });*/
     }
 
 }

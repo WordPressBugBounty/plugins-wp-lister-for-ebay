@@ -30,7 +30,7 @@ class WPL_Page extends WPL_Core {
 
 
         if ( is_admin() ) {
-			add_action( 'plugins_loaded', 	array( &$this, 'handleSubmit' ) );
+			add_action( 'init', 	array( &$this, 'handleSubmit' ) );
 		}
 
 		add_action( 'plugins_loaded', array( $this, 'fix_actionscheduler_table_names' ) );

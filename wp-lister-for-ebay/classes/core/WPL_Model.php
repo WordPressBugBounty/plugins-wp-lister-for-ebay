@@ -10,7 +10,7 @@ class WPL_Model {
 	public $account_id;
 
 	protected $tablename;
-	private $handle_error_code;
+	public $handle_error_code;
 
 	public function __construct() {
 		// deprecated 

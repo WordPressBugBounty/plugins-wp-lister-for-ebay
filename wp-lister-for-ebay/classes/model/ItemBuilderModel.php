@@ -2783,7 +2783,7 @@ class ItemBuilderModel extends WPL_Model {
 
 	        	// set quantity to zero - effectively remove variations that have sales
 	        	$newvar->Quantity = 0;
-				// $newvar->StartPrice = $var['price'];
+				$newvar->StartPrice = $var['price']; // eBay now apparently requires the StartPrice when deleting variations
 
 				// handle sku
 	        	if ( $var['sku'] != '' ) {

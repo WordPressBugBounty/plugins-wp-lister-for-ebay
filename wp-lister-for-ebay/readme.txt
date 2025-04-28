@@ -103,6 +103,26 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.8 - 2025-04-27 =
+* New: Record Buyer VAT ID if provided by eBay
+* New: Support for updating product-level Item Specifics using the REST API (beta)
+* Tweak: Add links to the Duplicate Listings report table
+* Tweak: Moved the provider value of the Shipment Tracking metadata to the custom_tracking_provider property
+* Tweak: Change the context when fetching the order tracking information from view to edit to bypass the cache
+* Tweak: Added a fallback method with file_put_contents fail when saving templates
+* Fix: Changed calls triggered by the plugins_loaded to the init event to prevent getting the _load_textdomain_just_in_time warning
+* Fix: Cannot access offset of type string on string
+* Fix: Title prefix and suffix for split variations are still pulled from the parent product
+* Fix: Mapped categories not getting loaded for new/unlisted products
+* Fix: Warning when trying to access HazMat Statements
+* Fix: Include variation price in the request when deleting listing on eBay
+* Fix: Error when the WPL_WooOrderBuilder::updateShippingTotal() is NaN
+* Dev: Scope warning of the WPL_Model::handle_error_code property
+* Dev: New filter `wple_listings_search_description`
+* Dev: Changed the priority of handle_woocommerce_order_status_update to allow shipment tracking plugins to store the tracking data first
+* Dev: Commented out the action_scheduler_queue_runner_time_limit add_filter call which could be causing stalled actions in Action Scheduler
+* Dev: Increased the column length for the ShippingAddress_City
+
 = 3.7.7 - 2025-03-31 =
 * New: Ability to add eBay Start Price via Bulk Edit
 * Fix: Updated the call to search for products to use the Browse API

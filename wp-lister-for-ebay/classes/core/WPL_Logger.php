@@ -60,7 +60,7 @@ class WPL_Logger{
 
 			// $this->debug('Start Session:'.print_r($_SERVER,1));
 			// only log request for admin pages or post requests
-			if ( $_SERVER['REQUEST_METHOD'] == 'POST' || is_admin() ) {
+			if ( ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] == 'POST' ) || is_admin() ) {
 				$this->info( 
 					$_SERVER['REQUEST_METHOD'] . ': ' . 
 					$_SERVER['QUERY_STRING'] . ' - ' . 

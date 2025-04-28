@@ -1132,6 +1132,12 @@ class WPLE_ListingQueryHelper {
 				LEFT JOIN {$wpdb->prefix}ebay_profiles p  ON l.profile_id =  p.profile_id
 			";
 
+			if ( apply_filters( 'wple_listings_search_description', false ) ) {
+				$join_sql .= "
+				LEFT JOIN {$wpdb->prefix}posts ps  ON l.post_id =  ps.ID
+				";
+			}
+
 			// Search for specific listings using their IDs - prepend with a # and separate IDs with a comma #27009
 			if ( strpos( $search_query, '#' ) === 0 && strpos( $search_query, ',' ) !== false ) {
 			    $search_query = ltrim( $search_query, '#' );
@@ -1299,7 +1305,6 @@ class WPLE_ListingQueryHelper {
             $search_terms = array( $s );
         }
 
-
         $searchand = ' AND ';
         foreach ( $search_terms as $term ) {
             $like_op  = 'LIKE';
@@ -1311,6 +1316,11 @@ class WPLE_ListingQueryHelper {
                 $sku_where = "$andor_op pm.meta_value $like_op '{$like}'";
             }
 
+			$desc_where = '';
+			if ( apply_filters( 'wple_listings_search_description', false ) ) {
+				$desc_where = "$andor_op ps.post_content $like_op '{$like}'";
+			}
+
             $search   .= "
                 {$searchand}(
                     (l.auction_title {$like_op} '{$like}') 
@@ -1320,6 +1330,7 @@ class WPLE_ListingQueryHelper {
                     $andor_op (l.status $like_op '{$like}')
                     $andor_op (l.post_id $like_op '{$like}')
                     $sku_where
+                    $desc_where
                 )";
 
 //            $search   .= "

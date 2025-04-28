@@ -205,8 +205,8 @@ class TemplatesModel extends WPL_Model {
 			return false;
 		}
 
-		if ( ! file_exists( $this->folderpath . '/template.html' ) ) {
-			$this->showMessage("Template file is missing: ".$this->folderpath . '/template.html',1,1);
+		if ( ! is_writable( $this->folderpath . '/template.html' ) ) {
+			$this->showMessage("Template file is missing or is not writable: ".$this->folderpath . '/template.html',1,1);
 			return false;
 		}
 

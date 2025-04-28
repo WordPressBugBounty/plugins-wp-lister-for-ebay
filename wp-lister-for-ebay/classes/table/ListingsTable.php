@@ -376,7 +376,7 @@ class ListingsTable extends WP_List_Table {
                 return $variations_html;
             }
             
-            if ( !is_array( $profile_data['details'] ) ) {
+            if ( !is_array( $profile_data ) ) {
 	            $img_url  = WPLE_PLUGIN_URL . 'img/error.gif';
 	            $variations_html .= '<img src="'.$img_url.'" style="height:12px; padding:0;"/>&nbsp;<br>';
 	            $variations_html .= '<b style="color:darkred">Listing data error!<br> <small>Please relist this product or contact support.</small></b>';

@@ -439,15 +439,41 @@ class TemplatesPage extends WPL_Page {
 		$tpl_css = $header_css . $tpl_css;
 
 		// update template files
-		$result = file_put_contents($file_css , $tpl_css);
-		$result = file_put_contents($file_functions , $tpl_functions);
-		$result = file_put_contents($file_slider , $tpl_slider);
-		$result = file_put_contents($file_thumbnails , $tpl_thumbnails);
-		$result = file_put_contents($file_thumbnails_nojs , $tpl_thumbnails_nojs);
-		$result = file_put_contents($file_footer , $tpl_footer);
-		$result = file_put_contents($file_header , $tpl_header);
-		$result = file_put_contents($file_html, $tpl_html);
-		$result = file_put_contents($file_settings, json_encode( $settings ) );
+		if ( false === file_put_contents($file_css , $tpl_css) ) {
+			$this->saveUsingFilePointer( $file_css, $tpl_css );
+		}
+
+		if ( false === file_put_contents($file_functions , $tpl_functions) ) {
+			$this->saveUsingFilePointer( $file_functions, $tpl_functions );
+		}
+
+		if ( false === file_put_contents($file_slider , $tpl_slider) ) {
+			$this->saveUsingFilePointer( $file_slider, $tpl_slider );
+		}
+
+		if ( false === file_put_contents($file_thumbnails , $tpl_thumbnails) ) {
+			$this->saveUsingFilePointer( $file_thumbnails, $tpl_thumbnails );
+		}
+
+		if ( false === file_put_contents($file_thumbnails_nojs , $tpl_thumbnails_nojs) ) {
+			$this->saveUsingFilePointer( $file_thumbnails_nojs, $tpl_thumbnails_nojs );
+		}
+
+		if ( false === file_put_contents($file_footer , $tpl_footer) ) {
+			$this->saveUsingFilePointer( $file_footer, $tpl_footer );
+		}
+
+		if ( false === file_put_contents($file_header , $tpl_header) ) {
+			$this->saveUsingFilePointer( $file_header, $tpl_header );
+		}
+
+		if ( false === file_put_contents($file_html, $tpl_html) ) {
+			$this->saveUsingFilePointer( $file_html, $tpl_html );
+		}
+
+		if ( false === file_put_contents($file_settings, json_encode( $settings ) ) ) {
+			$this->saveUsingFilePointer( $file_settings, json_encode( $settings ) );
+		}
 
 		// catch any errors about permissions, safe mode, etc.
 	    global $php_errormsg;
@@ -468,6 +494,19 @@ class TemplatesPage extends WPL_Page {
 
 		}
 
+	}
+
+	private function saveUsingFilePointer( $path, $content ) {
+		$fp = fopen($path, 'w');
+		if ($fp === false) {
+			return false;
+		}
+
+		if (fwrite($fp, $content) === false) {
+			return false;
+		}
+
+		fclose($fp);
 	}
 
 
