@@ -112,9 +112,7 @@ class BestOfferDetailsType extends EbatNs_ComplexType
 					'cardinality' => '0..1'
 				)));
 		}
-		$this->_attributes = array_merge($this->_attributes,
-		array(
-));
+		$this->_attributes = array_merge($this->_attributes, array());
 	}
 
 	/**

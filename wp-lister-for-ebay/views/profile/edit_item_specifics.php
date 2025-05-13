@@ -172,7 +172,10 @@
 						if ( ! is_array( $specifics      ) ) $specifics      = array();
 						if ( ! is_array( $item_specifics ) ) $item_specifics = array();
                         //if ( !isset($profile) ) $profile = [];
-						if ( !isset( $profile['details']['item_specifics'] ) ) $profile['details']['item_specifics'] = array();
+						if ( !isset( $profile['details']['item_specifics'] ) ) {
+                            $profile = [];
+                            $profile['details']['item_specifics'] = array();
+						}
 					?>
 					<script type="text/javascript">
 

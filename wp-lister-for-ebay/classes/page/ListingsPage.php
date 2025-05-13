@@ -263,7 +263,7 @@ class ListingsPage extends WPL_Page {
 		    foreach ( $listings as $idx => $listing ) {
 			    // insert the attributes into the listing
 			    //$listing->variations = serialize( $variation['variation_attributes'] );
-			    ListingsModel::updateListing( $listing->id, array( 'post_id' => $variation['post_id'], 'variations' => serialize( $variation['variation_attributes'] ) ) );
+			    ListingsModel::updateListing( $listing->id, array( 'post_id' => $variation['post_id'], 'variations' => serialize( maybe_unserialize($variation['variation_attributes']) ) ) );
 			    $lm->reapplyProfileToItem( $listing->id );
 			    unset( $listings[ $idx ] );
 			    continue 2;

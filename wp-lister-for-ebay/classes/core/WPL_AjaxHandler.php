@@ -1403,6 +1403,11 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_add_responsible_person() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson();
 		$data   = [
 			'company'   => sanitize_text_field( $_POST['company'] ?? '' ),
@@ -1439,6 +1444,11 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_update_responsible_person() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		$person     = new \WPLab\Ebay\Models\EbayResponsiblePerson();
 		$data   = [
 			'id'        => sanitize_text_field( $_POST['id'] ?? 0 ),
@@ -1515,6 +1525,11 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_add_manufacturer() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		$manufacturer = new \WPLab\Ebay\Models\EbayManufacturer();
 
 		$data   = [
@@ -1551,6 +1566,11 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_update_manufacturer() {
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		$manufacturer = new \WPLab\Ebay\Models\EbayManufacturer();
 
 		$data   = [

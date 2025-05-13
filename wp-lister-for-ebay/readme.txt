@@ -103,7 +103,21 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= 3.8 - 2025-04-27 =
+= 3.8.1 - 2025-05-13 =
+* New: Added support for the new Global Unique ID in WooCommerce
+* Fix: Security patch for ticket #70341
+* Fix: Formatting issue when displaying the number of bids on the View Product page
+* Fix: Do not print/echo errors during REST requests
+* Fix: Fixed Quantity not getting implemented by variable products on the Listings table page
+* Fix: Split variation title issue due to the double-serialization of variation attributes
+* Fix: Map Size Replacements not being applied to Item Specifics
+* Dev: Added the ability to change the Profile ID of a listing using the REST API
+* Dev: ConditionDescriptorsType data type issue
+* Dev: Grouped ActionScheduler tasks
+* Dev: Accept the text version of the listing condition when publishing or updating a listing using the REST API
+
+
+= 3.8.0 - 2025-04-27 =
 * New: Record Buyer VAT ID if provided by eBay
 * New: Support for updating product-level Item Specifics using the REST API (beta)
 * Tweak: Add links to the Duplicate Listings report table

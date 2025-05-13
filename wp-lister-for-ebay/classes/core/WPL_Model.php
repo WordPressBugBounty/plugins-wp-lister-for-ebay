@@ -145,7 +145,7 @@ class WPL_Model {
 
 		// prevent fatal error when response is not an object
 		if ( ! is_object($res) ) {
-		    if ( ! $this->is_ajax() ) {
+			if ( ! $this->is_ajax() && ! $this->is_rest() ) {
                 echo '<br>Unexpected error: eBay response is invalid. Response:<br>';
                 echo "<pre>";print_r($res);echo"</pre>";
             }

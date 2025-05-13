@@ -703,7 +703,11 @@ class ListingsTable extends WP_List_Table {
 	}
 
     function calculate_quantity( $item, $profile_data ) {
-        $profile_details = !empty($profile_data['details']) ? $profile_data['details'] : array();
+        // get max_quantity from profile
+	    $profile_details = !empty($profile_data['details']) ? $profile_data['details'] : array();
+	    $max_quantity = ( isset( $profile_details['max_quantity'] ) && intval( $profile_details['max_quantity'] )  > 0 ) ? $profile_details['max_quantity'] : PHP_INT_MAX ;
+	    $fixed_quantity = ( !empty( $profile_details['quantity'] ) ) ? intval( $profile_details['quantity'] ) : false;
+
         // use profile quantity for flattened variations
         if ( isset( $profile_details['variations_mode'] ) && ( $profile_details['variations_mode'] == 'flat' ) ) {
 
@@ -722,7 +726,6 @@ class ListingsTable extends WP_List_Table {
             }
         }
 
-
         // if item has variations count them...
         if ( ProductWrapper::hasVariations( $item['post_id'] ) ) {
 	        $product = ProductWrapper::getProduct( $item['post_id'] );
@@ -734,8 +737,45 @@ class ListingsTable extends WP_List_Table {
             add_filter( 'atum/multi_inventory/bypass_mi_get_stock_quantity', '__return_false');
             foreach ( $children as $child_id ) {
                 // Use ProductWrapper::getStock() so the wple_get_stock filter gets triggered #45942
-                $quantity += ProductWrapper::getStock( $child_id );
-                //$quantity += intval( get_post_meta( $child_id, '_stock', true ) );
+                $var_quantity = ProductWrapper::getStock( $child_id );
+
+                // apply the Max Quantity rule
+	            $var_quantity = min( $max_quantity, intval( $var_quantity ) );
+
+                // apply the Fixed Quantity rule
+	            if ( $fixed_quantity > 0 ) {
+
+		            if ( $product && intval( $profile_details['restrict_fixed_quantity'] ) > 0 ) {
+			            if ( $profile_details['restrict_fixed_quantity'] == 1 ) {
+				            // only do this if the WC product is not out of stock #49283
+				            if ( $product->is_in_stock() ) {
+					            $var_quantity = $profile_details['quantity'];
+					            WPLE()->logger->info( 'Quantity from profile_details: '. $quantity );
+				            }
+			            } elseif ( $profile_details['restrict_fixed_quantity'] == 2 ) {
+				            // only apply to WC products not using Manage Stock #49660
+				            if ( ! $product->managing_stock() ) {
+					            $var_quantity = $profile_details['quantity'];
+					            WPLE()->logger->info( 'Quantity from profile_details: '. $quantity );
+				            }
+			            }
+
+		            } else {
+			            $var_quantity = $profile_details['quantity'];
+			            WPLE()->logger->info( 'Quantity from profile_details: '. $quantity );
+		            }
+	            }
+
+	            // regard WooCommerce's Out Of Stock Threshold option - if enabled
+	            if ( $out_of_stock_threshold = get_option( 'woocommerce_notify_no_stock_amount' ) ) {
+		            if ( 1 == get_option( 'wplister_enable_out_of_stock_threshold' ) ) {
+			            $var_quantity = ( $var_quantity - $out_of_stock_threshold );
+		            }
+	            }
+
+	            if ( $var_quantity < 0 ) $var_quantity = 0; // prevent error for negative qty
+
+                $quantity += $var_quantity;
             }
             remove_filter( 'atum/multi_inventory/bypass_mi_get_stock_quantity', '__return_false');
 
@@ -763,7 +803,6 @@ class ListingsTable extends WP_List_Table {
     }
 
     function column_price($item){
-
         $display_price = $this->get_display_price( $item );
         $OriginalPrice = ListingsModel::thisListingHasPromotionalSale( $item );
 

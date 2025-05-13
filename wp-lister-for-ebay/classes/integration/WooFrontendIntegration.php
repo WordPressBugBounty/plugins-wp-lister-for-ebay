@@ -209,7 +209,7 @@ class WPL_WooFrontendIntegration {
 
 				// view on ebay button
 				echo '<p>';
-				echo sprintf('<a href="%s" class="button alt" target="_blank">%s</a>', $listing->ViewItemURL, __( 'View on eBay', 'wp-lister-for-ebay' ) );
+				echo sprintf('<a href="%s" class="wpl-view-on-ebay-button button alt" target="_blank">%s</a>', $listing->ViewItemURL, __( 'View on eBay', 'wp-lister-for-ebay' ) );
 				echo '</p>';
 
 				// hide woo elements
@@ -236,7 +236,7 @@ class WPL_WooFrontendIntegration {
 				} else {
 					// current price
 					echo '<p itemprop="price" class="price startprice">'.__( 'Current bid', 'wp-lister-for-ebay' ).': <span class="amount">'.wc_price($details['CurrentPrice']).'</span>';
-					echo sprintf( _n( '%d bid', '%d bids', $details['BidCount'], 'wp-lister-for-ebay' ), $details['BidCount'] );
+					echo ' ('. sprintf( _n( '%d bid', '%d bids', $details['BidCount'], 'wp-lister-for-ebay' ), $details['BidCount'] ) .')';
 					echo '</p>';
 				}
 
@@ -251,7 +251,7 @@ class WPL_WooFrontendIntegration {
 
 				// view on ebay button
 				echo '<p>';
-				echo sprintf('<a href="%s" class=" button alt" target="_blank">%s</a>', $listing->ViewItemURL, __( 'View on eBay', 'wp-lister-for-ebay' ) );
+				echo sprintf('<a href="%s" class="wpl-view-on-ebay-button button alt" target="_blank">%s</a>', $listing->ViewItemURL, __( 'View on eBay', 'wp-lister-for-ebay' ) );
 				echo '</p>';
 
 				// hide woo elements

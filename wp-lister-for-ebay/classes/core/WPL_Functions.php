@@ -266,7 +266,7 @@ function wplister_register_custom_fields( $type, $id, $default, $label, $config 
  */
 function wple_schedule_revise_items( $id, $account_id ) {
     WPLE()->logger->info( 'wple_schedule_revise_items for #'. $id );
-    as_schedule_single_action( null, 'wple_do_background_revise_items', array( $id, $account_id ), 'wple' );
+    as_schedule_single_action( null, 'wple_do_background_revise_items', array( $id, $account_id ), 'WPLE' );
 }
 
 /**
@@ -381,7 +381,7 @@ function wple_do_background_revise_items( $id, $account_id = null, $reviseInvent
                     $order->add_order_note( sprintf( __( 'There was a problem revising the inventory on eBay for <em>%s</em>! Revision will be retried in 5 minutes. Please check the database log and contact support.', 'wp-lister-for-ebay' ), $listing['auction_title'] ) );
 
                     // Schedule a retry of the inventory sync in 5 minutes
-                    as_schedule_single_action( time() + 300, 'wple_do_background_revise_items', array( $id, $account_id, true, $order_id, true ), 'wple' );
+                    as_schedule_single_action( time() + 300, 'wple_do_background_revise_items', array( $id, $account_id, true, $order_id, true ), 'WPLE' );
 
                     $revision_retries++;
                     $order->update_meta_data( '_wple_stock_revision_retries', $revision_retries );

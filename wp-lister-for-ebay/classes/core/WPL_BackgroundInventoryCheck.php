@@ -45,7 +45,7 @@ class WPL_BackgroundInventoryCheck extends WPL_InventoryCheck {
 
         if ( ! empty( $accounts ) ) {
             $account_ids = wp_list_pluck( $accounts, 'id' );
-            as_schedule_single_action( time(), 'wple_bg_inventory_check_get_listings', $account_ids );
+            as_schedule_single_action( time(), 'wple_bg_inventory_check_get_listings', $account_ids, 'WPLE' );
         }
     }
 

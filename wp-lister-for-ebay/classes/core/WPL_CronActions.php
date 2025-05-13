@@ -287,7 +287,7 @@ class WPL_CronActions extends WPL_Core {
             // Turn it on
             if ( ! as_next_scheduled_action( 'wple_bg_inventory_check' ) ) {
                 $frequency = get_option( 'wple_inventory_check_frequency', 24 );
-                as_schedule_recurring_action( time(), $frequency * 3600, 'wple_bg_inventory_check' );
+                as_schedule_recurring_action( time(), $frequency * 3600, 'wple_bg_inventory_check', [], 'WPLE' );
             }
         } else {
             if ( as_next_scheduled_action( 'wple_bg_inventory_check' ) ) {
@@ -344,7 +344,7 @@ class WPL_CronActions extends WPL_Core {
         } else {
             // schedule another cron run for the remaining accounts
             WPLE()->logger->info( 'Scheduling wple_bg_inventory_check_get_listings for the remaining accounts: '. print_r( $accounts, 1 ) );
-            as_schedule_single_action( time(), 'wple_bg_inventory_check_get_listings', $accounts );
+            as_schedule_single_action( time(), 'wple_bg_inventory_check_get_listings', $accounts, 'WPLE' );
         }
     }
 

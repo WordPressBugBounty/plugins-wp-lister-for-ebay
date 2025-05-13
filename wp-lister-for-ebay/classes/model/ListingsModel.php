@@ -2312,8 +2312,10 @@ class ListingsModel extends WPL_Model {
 			$variations = ProductWrapper::getListingVariations( $parent_id );
 
 			// find this variation in all variations of this parent
+			WPLE()->logger->debug( 'listing->getVariations: '. serialize( maybe_unserialize($listing->getVariations()) ) );
 			foreach ($variations as $var) {
 				WPLE()->logger->debug( 'Working on variation #'. $var['post_id'] );
+				WPLE()->logger->debug( 'var[variation_attributes]: '. serialize( $var['variation_attributes'] ) );
 				###
 				# Matching if variation attributes can now be enabled in the Advanced Settings page
 				# for those who are having issues with split listing titles
@@ -2327,7 +2329,7 @@ class ListingsModel extends WPL_Model {
 				if ( apply_filters( 'wple_split_variation_match_variation_attributes', true ) === false ) {
 					$match = $var['post_id'] == $post_id;
 				} else {
-					$match = $var['post_id'] == $post_id && serialize( $var['variation_attributes'] ) == serialize( $listing->getVariations() );
+					$match = $var['post_id'] == $post_id && serialize( $var['variation_attributes'] ) == maybe_serialize( maybe_unserialize($listing->getVariations()) );
 				}
 
 				if ( $match ) {
@@ -2392,13 +2394,14 @@ class ListingsModel extends WPL_Model {
 			if ( strpos( $data['auction_title'], ']]' ) > 0 ) {
 				$templatesModel = new TemplatesModel();
 				WPLE()->logger->info('auction_title before processing: '.$data['auction_title']);
+				$data['auction_title'] = $templatesModel->processAllTextShortcodes( $listing->getProductId(), $data['auction_title'], 80 );
 
-				$title_product_id = $listing->getProductId();
+				/*$title_product_id = $listing->getProductId();
 				if ( $listing->isSplitVariation() ) {
 					$title_product_id = $listing->getProduct()->get_parent_id();
 				}
 
-				$data['auction_title'] = $templatesModel->processAllTextShortcodes( $title_product_id, $data['auction_title'], 80 );
+				$data['auction_title'] = $templatesModel->processAllTextShortcodes( $title_product_id, $data['auction_title'], 80 );*/
 			}
 			WPLE()->logger->info('auction_title after processing : '.$data['auction_title']);
 

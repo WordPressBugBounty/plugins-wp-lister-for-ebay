@@ -929,6 +929,37 @@
                             </select>
                             <br class="clear" />
 
+                            <label for="wpl-text-use_global_id_as_upc" class="text_label">
+								<?php echo __( 'Use Global ID as UPC', 'wp-lister-for-ebay' ); ?>
+								<?php wplister_tooltip(__('This is a workaround for users who use actual UPCs as SKU in their shop. <br><br>
+                                						The recommended way of listing products by UPC in order to fetch product details from the eBay catalog is by setting the UPC on the edit product page.', 'wp-lister-for-ebay')) ?>
+                            </label>
+                            <select id="wpl-text-use_global_id_as_upc" name="wpl_e2e_use_global_id_as_upc" class=" required-entry select">
+                                <option value="1" <?php if ( isset( $item_details['use_global_id_as_upc'] ) && $item_details['use_global_id_as_upc'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php if ( !isset( $item_details['use_global_id_as_upc'] ) || $item_details['use_global_id_as_upc'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                            </select>
+                            <br class="clear" />
+
+                            <label for="wpl-text-use_global_id_as_ean" class="text_label">
+								<?php echo __( 'Use Global ID as EAN', 'wp-lister-for-ebay' ); ?>
+								<?php wplister_tooltip(__('This is a workaround for users who use actual EANs as SKU in their shop.', 'wp-lister-for-ebay')) ?>
+                            </label>
+                            <select id="wpl-text-use_global_id_as_ean" name="wpl_e2e_use_global_id_as_ean" class=" required-entry select">
+                                <option value="1" <?php if ( isset( $item_details['use_global_id_as_ean'] ) && $item_details['use_global_id_as_ean'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php if ( !isset( $item_details['use_global_id_as_ean'] ) || $item_details['use_global_id_as_ean'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                            </select>
+                            <br class="clear" />
+
+                            <label for="wpl-text-use_global_id_as_mpn" class="text_label">
+								<?php echo __( 'Use Global ID as MPN', 'wp-lister-for-ebay' ); ?>
+								<?php wplister_tooltip(__('This is a workaround for users who use actual MPNs as SKU in their shop.', 'wp-lister-for-ebay')) ?>
+                            </label>
+                            <select id="wpl-text-use_global_id_as_mpn" name="wpl_e2e_use_global_id_as_mpn" class=" required-entry select">
+                                <option value="1" <?php if ( isset( $item_details['use_global_id_as_mpn'] ) && $item_details['use_global_id_as_mpn'] == '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php if ( !isset( $item_details['use_global_id_as_mpn'] ) || $item_details['use_global_id_as_mpn'] != '1' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+                            </select>
+                            <br class="clear" />
+
 							<label for="wpl-text-include_prefilled_info" class="text_label">
 								<?php echo __( 'Use Catalog Details', 'wp-lister-for-ebay' ); ?>
                                 <?php wplister_tooltip(__('<b>Use Catalog Product Details</b><br>

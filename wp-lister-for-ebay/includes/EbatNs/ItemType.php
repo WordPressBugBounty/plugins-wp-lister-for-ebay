@@ -1689,7 +1689,7 @@ class ItemType extends EbatNs_ComplexType
 				array(
 					'required' => false,
 					'type' => 'ConditionDescriptorsType',
-					'nsURI' => 'http://www.w3.org/2001/XMLSchema',
+					'nsURI' => 'urn:ebay:apis:eBLBaseComponents',
 					'array' => false,
 					'cardinality' => '0..1'
 				),

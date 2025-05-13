@@ -591,6 +591,8 @@ class ItemBuilderModel extends WPL_Model {
 
 	public function buildProductListingDetails( $product_sku ) {
 		$product_id = $this->product_id;
+		$product    = $this->listing->getProduct();
+		$global_id  = is_callable( [$product, 'get_global_unique_id'] ) ? $product->get_global_unique_id() : '';
 		$hasVariations   = ProductWrapper::hasVariations( $this->listing->getProductId() );
 		$isVariation     = ProductWrapper::isSingleVariation( $this->listing->getProductId() );
 
@@ -601,7 +603,9 @@ class ItemBuilderModel extends WPL_Model {
 
 		// if this is a single split variation, use variation post_id - but remember parent_id to fetch Brand
 		$parent_id = $product_id;
-		if ( $isVariation ) $product_id = $this->listing->getProductId();
+		if ( $isVariation ) {
+			$product_id = $this->listing->getProductId();
+		}
 
 		// handle Product ID (UPC, EAN, MPN, etc.)
 		$autofill_missing_gtin = get_option('wplister_autofill_missing_gtin');
@@ -624,16 +628,26 @@ class ItemBuilderModel extends WPL_Model {
 		$has_details           = false;
 
 		// set UPC from product - if provided
-		if ( $product_upc = get_post_meta( $product_id, '_ebay_upc', true ) ) {
+		$product_upc = get_post_meta( $product_id, '_ebay_upc', true );
+		if ( $product_upc ) {
+			$product_upc = $tplModel->processAttributeShortcodes( $product_id, $product_upc );
+			$product_upc = $tplModel->processCustomMetaShortcodes( $product_id, $product_upc );
+		}
+
+		if ( !empty( $product_upc ) ) {
 		    $product_upc = $tplModel->processAttributeShortcodes( $product_id, $product_upc );
 		    $product_upc = $tplModel->processCustomMetaShortcodes( $product_id, $product_upc );
 
             $ProductListingDetails->setUPC( $product_upc );
             $has_details = true;
         } elseif ( $product_sku && ( $this->profile_details['use_sku_as_upc'] == '1' ) ) {
-		    // Set UPC from SKU
-            $ProductListingDetails->setUPC( $product_sku );
-            $has_details = true;
+			// Set UPC from SKU
+			$ProductListingDetails->setUPC( $product_sku );
+			$has_details = true;
+		} elseif ( $global_id && !empty( $this->profile_details['use_global_id_as_upc'] ) ) {
+			// Set UPC from SKU
+			$ProductListingDetails->setUPC( $global_id );
+			$has_details = true;
 		} elseif ( ( $autofill_missing_gtin == 'upc' || $autofill_missing_gtin == 'both' )  && ! $hasVariations ) {
 			$ProductListingDetails->setUPC( $DoesNotApplyText );
 			$has_details = true;
@@ -641,17 +655,23 @@ class ItemBuilderModel extends WPL_Model {
 
 		// set EAN from product - if provided
         if ( !$hasVariations ) {
-            if ( $product_ean = get_post_meta( $product_id, '_ebay_ean', true ) ) {
-                $product_ean = $tplModel->processAttributeShortcodes( $product_id, $product_ean );
-                $product_ean = $tplModel->processCustomMetaShortcodes( $product_id, $product_ean );
+	        $product_ean = get_post_meta( $product_id, '_ebay_ean', true );
+            if ( $product_ean ) {
+	            $product_ean = $tplModel->processAttributeShortcodes( $product_id, $product_ean );
+	            $product_ean = $tplModel->processCustomMetaShortcodes( $product_id, $product_ean );
+            }
 
-
+	        if ( $product_ean ) {
                 $ProductListingDetails->setEAN( $product_ean );
                 $has_details = true;
             } elseif ( $product_sku && ( @$this->profile_details['use_sku_as_ean'] == '1' ) ) {
-                // Set EAN from SKU
-                $ProductListingDetails->setEAN( $product_sku );
-                $has_details = true;
+	            // Set EAN from SKU
+	            $ProductListingDetails->setEAN( $product_sku );
+	            $has_details = true;
+            } elseif ( $global_id && !empty( $this->profile_details['use_global_id_as_ean'] ) ) {
+	            // Set EAN from SKU
+	            $ProductListingDetails->setEAN( $global_id );
+	            $has_details = true;
             } elseif ( class_exists( 'WPM_Product_GTIN_WC' ) && $product_ean = get_post_meta( $product_id, '_wpm_gtin_code', true ) ) {
                 // Support for the Product GTIN plugin (https://wordpress.org/plugins/product-gtin-ean-upc-isbn-for-woocommerce/) #39320
                 $ProductListingDetails->setEAN( $product_ean );
@@ -686,7 +706,11 @@ class ItemBuilderModel extends WPL_Model {
 
         if ( $product_sku && ( @$this->profile_details['use_sku_as_mpn'] == '1' ) ) {
             $product_mpn = $product_sku;
+        } elseif ( $global_id && !empty( $this->profile_details['use_global_id_as_mpn'] ) ) {
+			$product_mpn = $global_id;
         }
+
+
 		if ( $product_brand && $product_mpn ) {
             $product_brand = $tplModel->processAttributeShortcodes( $product_id, $product_brand );
             $product_brand = $tplModel->processCustomMetaShortcodes( $product_id, $product_brand );
@@ -1501,6 +1525,8 @@ class ItemBuilderModel extends WPL_Model {
                     $spec['name']   = qtranxf_use( $locale, $spec['name'] );
                     $value          = qtranxf_use( $locale, $value );
                 }
+
+		        $value = $this->processSizeMapReplacements( $spec['attribute'], $value, $this->profile_details );
 
 	            $NameValueList = new NameValueListType();
 		    	$NameValueList->setName ( $spec['name'] );

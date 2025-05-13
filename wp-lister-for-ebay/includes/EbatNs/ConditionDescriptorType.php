@@ -40,7 +40,7 @@ class ConditionDescriptorType extends EbatNs_ComplexType
                         array(
                             'required' => false,
                             'type' => 'string',
-                            'nsURI' => 'urn:ebay:apis:eBLBaseComponents',
+                            'nsURI' => 'http://www.w3.org/2001/XMLSchema',
                             'array' => false,
                             'cardinality' => '0..1'
                         ),
@@ -48,20 +48,21 @@ class ConditionDescriptorType extends EbatNs_ComplexType
                         array(
                             'required' => false,
                             'type' => 'string',
-                            'nsURI' => 'urn:ebay:apis:eBLBaseComponents',
+                            'nsURI' => 'http://www.w3.org/2001/XMLSchema',
                             'array' => false,
-                            'cardinality' => '0..*'
+                            'cardinality' => '1'
                         ),
                     'Value' =>
                         array(
                             'required' => false,
-                            'type' => 'array',
-                            'nsURI' => 'urn:ebay:apis:eBLBaseComponents',
+                            'type' => 'string',
+                            'nsURI' => 'http://www.w3.org/2001/XMLSchema',
                             'array' => false,
                             'cardinality' => '0..*'
                         )
                 ));
         }
+	    $this->_attributes = array_merge($this->_attributes, array());
     }
 
     /**
