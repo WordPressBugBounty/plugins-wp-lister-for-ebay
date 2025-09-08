@@ -628,11 +628,9 @@ class ProductWrapper {
 			$label = html_entity_decode( $label, ENT_QUOTES, 'UTF-8' ); // US Shoe Size (Men&#039;s) => US Shoe Size (Men's)
 
             // attempt to translate
-            if ( function_exists( 'qtranxf_use' ) && $account_id ) {
-                $lang = WPLE_eBayAccount::getAccountLocale( $account_id );
-
-                $label = qtranxf_use( $lang, $label );
-                $name = qtranxf_use( $lang, $name );
+            if ( $account_id ) {
+                $label = WPLE_TranslationHelper::translateText( $label, $account_id );
+                $name = WPLE_TranslationHelper::translateText( $name, $account_id );
             }
 
 			$id   = "attribute_".sanitize_title($name);

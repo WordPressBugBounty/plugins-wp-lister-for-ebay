@@ -162,12 +162,8 @@ class ItemBuilderModel extends WPL_Model {
 		$this->item->setDescription( $this->getFinalHTML( $id, $this->item, $preview ) );
 
 		// qTranslate support - translate title and description
-        if ( function_exists( 'qtranxf_use' ) ) {
-            $lang = WPLE_eBayAccount::getAccountLocale( $listing->getAccountId() );
-
-            $this->item->setTitle( qtranxf_use( $lang, $this->item->getTitle() ) );
-            $this->item->setDescription( qtranxf_use( $lang, $this->item->getDescription() ) );
-        }
+        $this->item->setTitle( WPLE_TranslationHelper::translateText( $this->item->getTitle(), $listing->getAccountId() ) );
+        $this->item->setDescription( WPLE_TranslationHelper::translateText( $this->item->getDescription(), $listing->getAccountId() ) );
 
 
 		// adjust item if this is a ReviseItem request
@@ -1435,10 +1431,8 @@ class ItemBuilderModel extends WPL_Model {
         		//if ( $this->mb_strlen( $value ) > 65 ) continue;
 
                 // qTranslate support
-                if ( function_exists( 'qtranxf_use' ) ) {
-                    $spec['name']   = qtranxf_use( $locale, $spec['name'] );
-                    $value          = qtranxf_use( $locale, $value );
-                }
+                $spec['name']   = WPLE_TranslationHelper::translateText( $spec['name'], $this->account_id );
+                $value          = WPLE_TranslationHelper::translateText( $value, $this->account_id );
 
                 // support for multi value attributes
                 // $value = 'blue|red|green';
@@ -1521,10 +1515,8 @@ class ItemBuilderModel extends WPL_Model {
         		}
 
                 // qTranslate support
-                if ( function_exists( 'qtranxf_use' ) ) {
-                    $spec['name']   = qtranxf_use( $locale, $spec['name'] );
-                    $value          = qtranxf_use( $locale, $value );
-                }
+                $spec['name']   = WPLE_TranslationHelper::translateText( $spec['name'], $this->account_id );
+                $value          = WPLE_TranslationHelper::translateText( $value, $this->account_id );
 
 		        $value = $this->processSizeMapReplacements( $spec['attribute'], $value, $this->profile_details );
 
@@ -1581,9 +1573,7 @@ class ItemBuilderModel extends WPL_Model {
     		}
 
             // qTranslate support
-            if ( function_exists( 'qtranxf_use' ) ) {
-                $name = qtranxf_use( $locale, $name );
-            }
+            $name = WPLE_TranslationHelper::translateText( $name, $this->account_id );
 
 	        $name = apply_filters( 'wple_item_specifics_attribute_name', $name, $this );
 
@@ -1594,9 +1584,7 @@ class ItemBuilderModel extends WPL_Model {
     		// $value = 'blue|red|green';
     		$values = explode('|', $value);
     		foreach ($values as $value) {
-                if ( function_exists( 'qtranxf_use' ) ) {
-                    $value = qtranxf_use( $locale, $value );
-                }
+                $value = WPLE_TranslationHelper::translateText( $value, $this->account_id );
 
                 $value = $this->processSizeMapReplacements( $name, $value, $this->profile_details );
 
@@ -2134,10 +2122,8 @@ class ItemBuilderModel extends WPL_Model {
                     }
                 }
 
-                if ( function_exists( 'qtranxf_use' ) ) {
-                    $name  = qtranxf_use( $locale, $name );
-                    $value = qtranxf_use( $locale, $value );
-                }
+                $name  = WPLE_TranslationHelper::translateText( $name, $this->account_id );
+                $value = WPLE_TranslationHelper::translateText( $value, $this->account_id );
 
 				$name  = apply_filters( 'wple_variation_attribute_name', $name, $var, $this );
 				$value = apply_filters( 'wple_variation_attribute_value', $value, $name, $var, $this );
@@ -2281,10 +2267,8 @@ class ItemBuilderModel extends WPL_Model {
                     }
                 }
 
-                if ( function_exists( 'qtranxf_use' ) ) {
-                    $name  = qtranxf_use( $locale, $name );
-                    $value = qtranxf_use( $locale, $value );
-                }
+                $name  = WPLE_TranslationHelper::translateText( $name, $this->account_id );
+                $value = WPLE_TranslationHelper::translateText( $value, $this->account_id );
 
 	            $name = apply_filters( 'wple_variation_attribute_name', $name, $var, $this );
 	            $value = apply_filters( 'wple_variation_attribute_value', $value, $name, $var, $this );
@@ -2809,7 +2793,40 @@ class ItemBuilderModel extends WPL_Model {
 
 	        	// set quantity to zero - effectively remove variations that have sales
 	        	$newvar->Quantity = 0;
-				$newvar->StartPrice = $var['price']; // eBay now apparently requires the StartPrice when deleting variations
+				
+				// eBay now apparently requires the StartPrice when deleting variations
+				// Apply the same price processing logic as working variations
+				$start_price = $var['price'];
+				
+				// Apply profile pricing if price exists
+				if ( !empty($start_price) ) {
+					$start_price = ListingsModel::applyProfilePrice( $start_price, $this->profile_details['start_price'] );
+				}
+				
+				// Handle custom eBay start prices if available
+				if ( get_option( 'wplister_enable_custom_product_prices', 1 ) && isset($var['post_id']) ) {
+					$product_start_price = get_post_meta( $var['post_id'], '_ebay_start_price', true );
+					if ( $product_start_price ) {
+						if ( 0 == get_option( 'wplister_apply_profile_to_ebay_price', 0 ) ) {
+							$start_price = wc_format_decimal( $product_start_price );
+						} else {
+							$start_price = ListingsModel::applyProfilePrice( wc_format_decimal( $product_start_price ), $this->profile_details['start_price'] );
+						}
+					}
+				}
+				
+				// Fallback to listing price if variation price is empty/invalid
+				if ( empty($start_price) || $start_price <= 0 ) {
+					$start_price = $this->listing->getStartPrice();
+					if ( !empty($start_price) ) {
+						$start_price = ListingsModel::applyProfilePrice( $start_price, $this->profile_details['start_price'] );
+					}
+				}
+				
+				// Set the processed price using the proper method
+				if ( !empty($start_price) && $start_price > 0 ) {
+					$newvar->setStartPrice( self::dbSafeFloatval( $start_price ) );
+				}
 
 				// handle sku
 	        	if ( $var['sku'] != '' ) {

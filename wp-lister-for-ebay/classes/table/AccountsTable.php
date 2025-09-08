@@ -166,7 +166,7 @@ class WPLE_AccountsTable extends WP_List_Table {
         //Return the title contents
         return sprintf('%1$s %2$s',
             /*$1%s*/ $title,
-            /*$2%s*/ $this->row_actions($actions)
+            /*$2%s*/ $this->row_actions($actions, true)
         );
     }
 

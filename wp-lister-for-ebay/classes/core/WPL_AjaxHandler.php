@@ -1848,8 +1848,8 @@ class WPL_AjaxHandler extends WPL_Core {
 		$from_item = $id ? ListingsModel::getItem( $id ) : false;
 		if ( $from_item ) {
 			// if gallery.php exists in listing template, use it
-			$upload_dir = wp_upload_dir();
-			$gallery_tpl_file = $upload_dir['basedir'] . '/wp-lister/templates/' . basename( $from_item['template'] ) . '/gallery.php';
+			$tpl = new TemplatesModel();
+			$gallery_tpl_file = $tpl->getTemplatesDirectory() .'/' . basename( $from_item['template'] ) . '/gallery.php';
 			if ( file_exists( $gallery_tpl_file ) ) $view = $gallery_tpl_file;
 		}
 

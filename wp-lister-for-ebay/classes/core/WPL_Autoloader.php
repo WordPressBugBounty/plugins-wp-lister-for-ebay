@@ -28,6 +28,7 @@ class WPL_Autoloader {
 		'WPLE_UpgradeHelper'   		=> '/classes/helper/WPLE_UpgradeHelper.php',
 		'WPLE_ListingQueryHelper'   => '/classes/helper/WPLE_ListingQueryHelper.php',
 		'WPLE_ValidationHelper'     => '/classes/helper/WPLE_ValidationHelper.php',
+		'WPLE_TranslationHelper'    => '/classes/helper/WPLE_TranslationHelper.php',
 		'EbayMarketplaceApi'        => '/classes/helper/EbayMarketplaceApi.php',
 		'EbayMediaApi'              => '/classes/helper/EbayMediaApi.php',
 

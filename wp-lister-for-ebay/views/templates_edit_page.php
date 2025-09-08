@@ -264,12 +264,10 @@
 					<div class="postbox" id="HelpBox">
 						<h3 class="hndle"><span><?php echo __( 'Help', 'wp-lister-for-ebay' ); ?></span></h3>
 						<div class="inside">
+                            <h4><?php echo __( 'Available Shortcodes', 'wp-lister-for-ebay' ); ?></h4>
 							<p>
 								<?php echo __( 'You can use the following shortcodes in your listing template.', 'wp-lister-for-ebay' ); ?>
 								<?php echo __( 'WordPress shortcodes will not work here.', 'wp-lister-for-ebay' ); ?>
-							</p>
-							<p>
-								<b><?php echo __( 'Available Shortcodes', 'wp-lister-for-ebay' ); ?></b><br>
 							</p>
 							<p>
 								<code>[[product_title]]</code><br>
@@ -346,14 +344,6 @@
 								<code>[[meta_<em>custom-meta-field-name</em>]]</code><br>
 								<?php echo __( 'custom meta values', 'wp-lister-for-ebay' ); ?><br>
 							</p>
-							<p>
-								<code>[[widget_new_listings]]</code><br>
-								<code>[[widget_ending_listings]]</code><br>
-								<code>[[widget_related_listings]]</code><br>
-								<code>[[widget_featured_listings]]</code><br>
-								<?php // echo __( 'Use these dynamic widgets to add a gallery showing your other listings.', 'wp-lister-for-ebay' ); ?>
-								<?php echo __( 'Note: These legacy widgets are deprecated since eBay banned active content in 2017.', 'wp-lister-for-ebay' ); ?>
-							</p>
 							<!--
 							<p>
 								<small><?php // echo __( 'Note: The related listings widget will only show up-sells or cross-sells, which need to be defined for each product in WooCommerce.', 'wp-lister-for-ebay' ); ?></small>
@@ -382,6 +372,18 @@
 								<!-- If you need help setting up your template, please contact support at wplab.com. -->
 							</p>
 							<?php endif; ?>
+
+                            <h4>Safe Mode</h4>
+
+                            <?php
+                            // templates safe mode is a global setting
+                            $safe_mode = get_option( 'wplister_templates_safe_mode', 0 );
+                            ?>
+                            <label for="safe_mode" class="text_label">Enable Safe Mode</label>
+                            <select id="safe_mode" name="wpl_templates_safe_mode" class="select">
+                                <option value="1" <?php selected(1, $safe_mode ); ?>>Yes</option>
+                                <option value="0" <?php selected(0, $safe_mode ); ?>>No</option>
+                            </select>
 							
 						</div>
 					</div>
@@ -482,54 +484,57 @@
 				    	<div id="styles_editor"></div>
 				    </div>
 				    <p>&nbsp;</p>
-				    
-				    <a name="header">&nbsp;</a>
-				    <h2>header.php</h2>
 
-				    <div id="header-editor-wrapper">
-				    	<textarea name="wpl_e2e_tpl_header"><?php echo $wpl_header ?></textarea>
-				    	<div id="header_editor"><?php #echo htmlspecialchars( $wpl_header ) ?></div>
-				    </div>
-				    <p>&nbsp;</p>
-				    
-				    <h2>footer.php</h2>
+                    <div id="advanced_mode_fields">
+                        <div id="advanced_fields">
+                            <h2>header.php</h2>
 
-				    <div id="footer-editor-wrapper">
-				    	<textarea name="wpl_e2e_tpl_footer"><?php echo $wpl_footer ?></textarea>
-				    	<div id="footer_editor"></div>
-				    </div>
-				    <p>&nbsp;</p>
-				    
-				    <h2>functions.php</h2>
+                            <div id="header-editor-wrapper">
+                                <textarea name="wpl_e2e_tpl_header"><?php echo $wpl_header ?></textarea>
+                                <div id="header_editor"><?php #echo htmlspecialchars( $wpl_header ) ?></div>
+                            </div>
+                            <p>&nbsp;</p>
 
-				    <div id="functions-editor-wrapper">
-				    	<textarea name="wpl_e2e_tpl_functions"><?php echo $wpl_functions ?></textarea>
-				    	<div id="functs_editor"></div>
-				    </div>
-				    <p>&nbsp;</p>
+                            <h2>footer.php</h2>
 
-                    <h2>gallery_slider.php (new)</h2>
-                    <div id="slider-editor-wrapper">
-                        <textarea name="wpl_e2e_tpl_slider"><?php echo $wpl_slider ?></textarea>
-                        <div id="slider_editor"></div>
+                            <div id="footer-editor-wrapper">
+                                <textarea name="wpl_e2e_tpl_footer"><?php echo $wpl_footer ?></textarea>
+                                <div id="footer_editor"></div>
+                            </div>
+                            <p>&nbsp;</p>
+
+                            <h2>functions.php</h2>
+
+                            <div id="functions-editor-wrapper">
+                                <textarea name="wpl_e2e_tpl_functions"><?php echo $wpl_functions ?></textarea>
+                                <div id="functs_editor"></div>
+                            </div>
+                            <p>&nbsp;</p>
+
+                            <h2>gallery_slider.php (new)</h2>
+                            <div id="slider-editor-wrapper">
+                                <textarea name="wpl_e2e_tpl_slider"><?php echo $wpl_slider ?></textarea>
+                                <div id="slider_editor"></div>
+                            </div>
+                            <p>&nbsp;</p>
+
+                            <h2>thumbnails_nojs.php</h2>
+
+                            <div id="thumbnails_nojs-editor-wrapper">
+                                <textarea name="wpl_e2e_tpl_thumbnails_nojs"><?php echo $wpl_thumbnails_nojs ?></textarea>
+                                <div id="thumb2_editor"></div>
+                            </div>
+                            <p>&nbsp;</p>
+
+
+                            <h2>thumbnails.php (legacy)</h2>
+                            <div id="thumbnails-editor-wrapper">
+                                <textarea name="wpl_e2e_tpl_thumbnails"><?php echo $wpl_thumbnails ?></textarea>
+                                <div id="thumbs_editor"></div>
+                            </div>
+                            <p>&nbsp;</p>
+                        </div>
                     </div>
-                    <p>&nbsp;</p>
-
- 				    <h2>thumbnails_nojs.php</h2>
-
-				    <div id="thumbnails_nojs-editor-wrapper">
-				    	<textarea name="wpl_e2e_tpl_thumbnails_nojs"><?php echo $wpl_thumbnails_nojs ?></textarea>
-				    	<div id="thumb2_editor"></div>
-				    </div>
-				    <p>&nbsp;</p>
-
-
-				    <h2>thumbnails.php (legacy)</h2>
-				    <div id="thumbnails-editor-wrapper">
-				    	<textarea name="wpl_e2e_tpl_thumbnails"><?php echo $wpl_thumbnails ?></textarea>
-				    	<div id="thumbs_editor"></div>
-				    </div>
-				    <p>&nbsp;</p>
 
 
 <!--				    <h2>thumbnails_nojs.php - controls output for [[product_thumbnails]] shortcode</h2>
@@ -581,6 +586,8 @@
 
 	</form>
 
+    <div id="safe_mode_fields" style="display:none;"></div>
+
 	<br style="clear:both;"/>
 
 	<?php if ( get_option('wplister_log_level') > 6 ): ?>
@@ -616,78 +623,7 @@
 		jQuery( document ).ready(
 			function () {
 
-			    var styles_editor = ace.edit("styles_editor");
-			    var header_editor = ace.edit("header_editor");
-			    var footer_editor = ace.edit("footer_editor");
-			    var functs_editor = ace.edit("functs_editor");
-			    var slider_editor = ace.edit("slider_editor");
-			    var thumbs_editor = ace.edit("thumbs_editor");
-			    var thumb2_editor = ace.edit("thumb2_editor");
-			    var styles_textarea = jQuery('textarea[name="wpl_e2e_tpl_css"]').hide();
-			    var header_textarea = jQuery('textarea[name="wpl_e2e_tpl_header"]').hide();
-			    var footer_textarea = jQuery('textarea[name="wpl_e2e_tpl_footer"]').hide();
-			    var functs_textarea = jQuery('textarea[name="wpl_e2e_tpl_functions"]').hide();
-			    var slider_textarea = jQuery('textarea[name="wpl_e2e_tpl_slider"]').hide();
-			    var thumbs_textarea = jQuery('textarea[name="wpl_e2e_tpl_thumbnails"]').hide();
-			    var thumb2_textarea = jQuery('textarea[name="wpl_e2e_tpl_thumbnails_nojs"]').hide();
 
-			    styles_editor.setTheme("ace/theme/chrome");
-			    header_editor.setTheme("ace/theme/chrome");
-			    footer_editor.setTheme("ace/theme/chrome");
-			    functs_editor.setTheme("ace/theme/chrome");
-			    slider_editor.setTheme("ace/theme/chrome");
-			    thumbs_editor.setTheme("ace/theme/chrome");
-			    thumb2_editor.setTheme("ace/theme/chrome");
-			    styles_editor.setShowPrintMargin( false );
-			    header_editor.setShowPrintMargin( false );
-			    footer_editor.setShowPrintMargin( false );
-			    functs_editor.setShowPrintMargin( false );
-			    slider_editor.setShowPrintMargin( false );
-			    thumbs_editor.setShowPrintMargin( false );
-			    thumb2_editor.setShowPrintMargin( false );
-
-			    // var JavaScriptMode = require("ace/mode/javascript").Mode;
-			    var PhpMode = require("ace/mode/php").Mode;
-			    var ScssMode = require("ace/mode/scss").Mode;
-			    styles_editor.getSession().setMode(new ScssMode());
-			    header_editor.getSession().setMode(new PhpMode());
-			    footer_editor.getSession().setMode(new PhpMode());
-			    functs_editor.getSession().setMode(new PhpMode());
-			    slider_editor.getSession().setMode(new PhpMode());
-			    thumbs_editor.getSession().setMode(new PhpMode());
-			    thumb2_editor.getSession().setMode(new PhpMode());
-	
-			    // connect editors with textareas
-			    // http://stackoverflow.com/questions/6440439/how-do-i-make-a-textarea-an-ace-editor
-			    styles_editor.getSession().setValue(styles_textarea.val());
-			    header_editor.getSession().setValue(header_textarea.val());
-			    footer_editor.getSession().setValue(footer_textarea.val());
-			    functs_editor.getSession().setValue(functs_textarea.val());
-			    slider_editor.getSession().setValue(slider_textarea.val());
-			    thumbs_editor.getSession().setValue(thumbs_textarea.val());
-			    thumb2_editor.getSession().setValue(thumb2_textarea.val());
-			    
-			    styles_editor.getSession().on('change', function(){
-					styles_textarea.val(styles_editor.getSession().getValue());
-				});
-			    header_editor.getSession().on('change', function(){
-					header_textarea.val(header_editor.getSession().getValue());
-				});
-			    footer_editor.getSession().on('change', function(){
-					footer_textarea.val(footer_editor.getSession().getValue());
-				});
-			    functs_editor.getSession().on('change', function(){
-					functs_textarea.val(functs_editor.getSession().getValue());
-				});
-                slider_editor.getSession().on('change', function(){
-                    slider_textarea.val(slider_editor.getSession().getValue());
-                });
-			    thumbs_editor.getSession().on('change', function(){
-					thumbs_textarea.val(thumbs_editor.getSession().getValue());
-				});
-			    thumb2_editor.getSession().on('change', function(){
-					thumb2_textarea.val(thumb2_editor.getSession().getValue());
-				});
 				// or just call
 				// textarea.val(editor.getSession().getValue());
 				// only when you submit the form 
@@ -698,6 +634,7 @@
 
 		jQuery( document ).ready(
 			function () {
+                init_editors();
 
 				// farbtastic color picker
 				jQuery('.colorpick').each(function(){
@@ -768,8 +705,117 @@
                     // Finally, open the modal
                     file_frame.open();
                 });
+
+
+                jQuery('#safe_mode').on('change', function() {
+                    let safe_mode = jQuery(this).val() == 1;
+                    wpl_toggle_safe_mode(safe_mode);
+                }).change();
 			}
-		);	
+		);
+
+        let styles_editor;
+        let header_editor;
+        let footer_editor;
+        let functs_editor;
+        let slider_editor;
+        let thumbs_editor;
+        let thumb2_editor;
+        function init_editors() {
+            styles_editor = ace.edit("styles_editor");
+            header_editor = ace.edit("header_editor");
+            footer_editor = ace.edit("footer_editor");
+            functs_editor = ace.edit("functs_editor");
+            slider_editor = ace.edit("slider_editor");
+            thumbs_editor = ace.edit("thumbs_editor");
+            thumb2_editor = ace.edit("thumb2_editor");
+            var styles_textarea = jQuery('textarea[name="wpl_e2e_tpl_css"]').hide();
+            var header_textarea = jQuery('textarea[name="wpl_e2e_tpl_header"]').hide();
+            var footer_textarea = jQuery('textarea[name="wpl_e2e_tpl_footer"]').hide();
+            var functs_textarea = jQuery('textarea[name="wpl_e2e_tpl_functions"]').hide();
+            var slider_textarea = jQuery('textarea[name="wpl_e2e_tpl_slider"]').hide();
+            var thumbs_textarea = jQuery('textarea[name="wpl_e2e_tpl_thumbnails"]').hide();
+            var thumb2_textarea = jQuery('textarea[name="wpl_e2e_tpl_thumbnails_nojs"]').hide();
+
+            styles_editor.setTheme("ace/theme/chrome");
+            header_editor.setTheme("ace/theme/chrome");
+            footer_editor.setTheme("ace/theme/chrome");
+            functs_editor.setTheme("ace/theme/chrome");
+            slider_editor.setTheme("ace/theme/chrome");
+            thumbs_editor.setTheme("ace/theme/chrome");
+            thumb2_editor.setTheme("ace/theme/chrome");
+            styles_editor.setShowPrintMargin( false );
+            header_editor.setShowPrintMargin( false );
+            footer_editor.setShowPrintMargin( false );
+            functs_editor.setShowPrintMargin( false );
+            slider_editor.setShowPrintMargin( false );
+            thumbs_editor.setShowPrintMargin( false );
+            thumb2_editor.setShowPrintMargin( false );
+
+            // var JavaScriptMode = require("ace/mode/javascript").Mode;
+            var PhpMode = require("ace/mode/php").Mode;
+            var ScssMode = require("ace/mode/scss").Mode;
+            styles_editor.getSession().setMode(new ScssMode());
+            header_editor.getSession().setMode(new PhpMode());
+            footer_editor.getSession().setMode(new PhpMode());
+            functs_editor.getSession().setMode(new PhpMode());
+            slider_editor.getSession().setMode(new PhpMode());
+            thumbs_editor.getSession().setMode(new PhpMode());
+            thumb2_editor.getSession().setMode(new PhpMode());
+
+            // connect editors with textareas
+            // http://stackoverflow.com/questions/6440439/how-do-i-make-a-textarea-an-ace-editor
+            styles_editor.getSession().setValue(styles_textarea.val());
+            header_editor.getSession().setValue(header_textarea.val());
+            footer_editor.getSession().setValue(footer_textarea.val());
+            functs_editor.getSession().setValue(functs_textarea.val());
+            slider_editor.getSession().setValue(slider_textarea.val());
+            thumbs_editor.getSession().setValue(thumbs_textarea.val());
+            thumb2_editor.getSession().setValue(thumb2_textarea.val());
+
+            styles_editor.getSession().on('change', function(){
+                styles_textarea.val(styles_editor.getSession().getValue());
+            });
+            header_editor.getSession().on('change', function(){
+                header_textarea.val(header_editor.getSession().getValue());
+            });
+            footer_editor.getSession().on('change', function(){
+                footer_textarea.val(footer_editor.getSession().getValue());
+            });
+            functs_editor.getSession().on('change', function(){
+                functs_textarea.val(functs_editor.getSession().getValue());
+            });
+            slider_editor.getSession().on('change', function(){
+                slider_textarea.val(slider_editor.getSession().getValue());
+            });
+            thumbs_editor.getSession().on('change', function(){
+                thumbs_textarea.val(thumbs_editor.getSession().getValue());
+            });
+            thumb2_editor.getSession().on('change', function(){
+                thumb2_textarea.val(thumb2_editor.getSession().getValue());
+            });
+        }
+
+        function destroy_editors() {
+            styles_editor.destroy();
+            header_editor.destroy();
+            footer_editor.destroy();
+            functs_editor.destroy();
+            slider_editor.destroy();
+            thumbs_editor.destroy();
+            thumb2_editor.destroy();
+        }
+
+        // Turning on safe mode moves the PHP fields outside the form, so they do not get included in the submission
+        function wpl_toggle_safe_mode( safe_mode ) {
+            if ( safe_mode ) {
+                jQuery("#advanced_fields").detach().appendTo('#safe_mode_fields');
+                destroy_editors();
+            } else {
+                jQuery("#advanced_fields").detach().appendTo('#advanced_mode_fields');
+                init_editors();
+            }
+        }
 	</script>
 
 </div>

@@ -2079,7 +2079,11 @@ class ListingsModel extends WPL_Model {
 		}
 
 		// support for qTranslate
-		if ( function_exists('qtrans_useCurrentLanguageIfNotFoundUseDefaultLanguage') ) {
+		$account_id = ( $profile && isset( $profile['account_id'] ) ) ? $profile['account_id'] : null;
+		if ( $account_id ) {
+			$post_title   = WPLE_TranslationHelper::translateText( $post_title, $account_id );
+			$post_content = WPLE_TranslationHelper::translateText( $post_content, $account_id );
+		} elseif ( function_exists('qtrans_useCurrentLanguageIfNotFoundUseDefaultLanguage') ) {
 			$post_title   = qtrans_useCurrentLanguageIfNotFoundUseDefaultLanguage( $post_title );
 			$post_content = qtrans_useCurrentLanguageIfNotFoundUseDefaultLanguage( $post_content );
 		}

@@ -35,6 +35,8 @@
 </style>
 
 					<?php
+                        // Store the eBay Category that will be used for pulling the Item Specifics
+                        $item_specs_category_id = $item_details['ebay_category_1_id'];
 						// fetch full category names
 						$item_details['ebay_category_1_name']  = EbayCategoriesModel::getFullEbayCategoryName( $item_details['ebay_category_1_id'], $wpl_site_id );
 						$item_details['ebay_category_2_name']  = EbayCategoriesModel::getFullEbayCategoryName( $item_details['ebay_category_2_id'], $wpl_site_id );
@@ -54,6 +56,7 @@
 	                                						You can leave this empty if you assigned a primary eBay category to your local WooCommerce categories at WP-Lister &raquo; Settings &raquo; Categories. (Pro only)', 'wp-lister-for-ebay')) ?>
 								</label>
 								<input type="hidden" name="wpl_e2e_ebay_category_1_id" id="ebay_category_id_1" value="<?php echo $item_details['ebay_category_1_id']; ?>" class="" />
+                                <input type="hidden" name="wpl_ebay_item_specifics_category_id" id="ebay_item_specifics_category_id" value="<?php echo $item_specs_category_id; ?>" class="" />
 								<span  id="ebay_category_name_1" class="text_input" style="width:45%;float:left;line-height:2em;"><?php echo $item_details['ebay_category_1_name']; ?></span>
 								<div class="category_row_actions">
 									<input type="button" value="<?php echo __( 'select', 'wp-lister-for-ebay' ); ?>" class="button btn_select_ebay_category" onclick="">
@@ -232,6 +235,12 @@
 			        // update fields
 			        jQuery('#ebay_category_id_'+e2e_selecting_cat).prop( 'value', cat_id );
 			        jQuery('#ebay_category_name_'+e2e_selecting_cat).html( pathname );
+
+                    if ( e2e_selecting_cat == 1 ) {
+                        jQuery('#ebay_item_specifics_category_id').prop( 'value', cat_id );
+                        updateItemSpecifics();
+                        // 	updateItemConditions();
+                    }
 			        
 			        // close thickbox
 			        tb_remove();

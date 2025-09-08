@@ -302,9 +302,16 @@ class TemplatesPage extends WPL_Page {
 	private function saveTemplate() {
 		if ( ! current_user_can('manage_ebay_listings') ) return;
 
+		// save safe_mode
+		$safe_mode = get_option( 'wplister_templates_safe_mode', 0 );
+		if ( isset( $_POST['wpl_templates_safe_mode'] ) ) {
+			$safe_mode = intval( $_POST['wpl_templates_safe_mode'] );
+			update_option( 'wplister_templates_safe_mode', $safe_mode );
+		}
+
+		$templatesModel = new TemplatesModel();
 		// set templates root folder
-		$upload_dir = wp_upload_dir();
-		$templates_dir = $upload_dir['basedir'].'/wp-lister/templates/';
+		$templates_dir = $templatesModel->getTemplatesDirectory() .'/';
 
 		// handle add_new_template
 		// if ( $this->getValueFromPost('add_new_template') == 1 ) {
@@ -344,9 +351,19 @@ class TemplatesPage extends WPL_Page {
 			}
 
 			// init default template to handle setting
-			$templatesModel = new TemplatesModel();
+
 			$templatesModel->folderpath = WPLE_PLUGIN_PATH . '/templates/default/';
 			$templatesModel->initTemplate();
+
+			// if safe_mode is enabled on a new template, we need to copy the PHP files to the new directory
+			if ( $safe_mode ) {
+				copy( $templatesModel->folderpath . 'header.php', $tpl_dir . '/header.php' );
+				copy( $templatesModel->folderpath . 'footer.php', $tpl_dir . '/footer.php' );
+				copy( $templatesModel->folderpath . 'functions.php', $tpl_dir . '/functions.php' );
+				copy( $templatesModel->folderpath . 'gallery_slider.php', $tpl_dir . '/gallery_slider.php' );
+				copy( $templatesModel->folderpath . 'thumbnails.php', $tpl_dir . '/thumbnails.php' );
+				copy( $templatesModel->folderpath . 'thumbnails_nojs.php', $tpl_dir . '/thumbnails_nojs.php' );
+			}
 		
 		// save existing template
 		} else {
@@ -403,12 +420,20 @@ class TemplatesPage extends WPL_Page {
         // then write them directly to their appropriate files (as what's being done by WP in wp_edit_theme_plugin_file())
 		$tpl_html	 				= wp_unslash( $_POST['wpl_e2e_tpl_html'] );
 		$tpl_css	 				= wp_unslash( $_POST['wpl_e2e_tpl_css'] );
-		$tpl_header	 				= wp_unslash( $_POST['wpl_e2e_tpl_header'] );
-		$tpl_footer	 				= wp_unslash( $_POST['wpl_e2e_tpl_footer'] );
-		$tpl_functions	 			= wp_unslash( $_POST['wpl_e2e_tpl_functions'] );
-		$tpl_slider 	 			= wp_unslash( $_POST['wpl_e2e_tpl_slider'] );
-		$tpl_thumbnails	 			= wp_unslash( $_POST['wpl_e2e_tpl_thumbnails'] );
-		$tpl_thumbnails_nojs	 	= wp_unslash( $_POST['wpl_e2e_tpl_thumbnails_nojs'] );
+
+		if ( !$safe_mode ) {
+			$tpl_header	 				= wp_unslash( $_POST['wpl_e2e_tpl_header'] );
+			$tpl_footer	 				= wp_unslash( $_POST['wpl_e2e_tpl_footer'] );
+			$tpl_functions	 			= wp_unslash( $_POST['wpl_e2e_tpl_functions'] );
+			$tpl_slider 	 			= wp_unslash( $_POST['wpl_e2e_tpl_slider'] );
+			$tpl_thumbnails	 			= wp_unslash( $_POST['wpl_e2e_tpl_thumbnails'] );
+			$tpl_thumbnails_nojs	 	= wp_unslash( $_POST['wpl_e2e_tpl_thumbnails_nojs'] );
+
+			// strip CDATA tags
+			$tpl_header = $this->stripCDATA( $tpl_header );
+			$tpl_footer = $this->stripCDATA( $tpl_footer );
+		}
+
 		
 		$template_name 				= stripslashes( $this->getValueFromPost( 'template_name'  ) );
 		$template_description 		= stripslashes( $this->getValueFromPost( 'template_description'  ) );
@@ -416,8 +441,6 @@ class TemplatesPage extends WPL_Page {
 
 		// strip CDATA tags
 		$tpl_html   = $this->stripCDATA( $tpl_html );
-		$tpl_header = $this->stripCDATA( $tpl_header );
-		$tpl_footer = $this->stripCDATA( $tpl_footer );
 
 		// handle custom fields settings
 		$settings = array();
@@ -443,32 +466,34 @@ class TemplatesPage extends WPL_Page {
 			$this->saveUsingFilePointer( $file_css, $tpl_css );
 		}
 
-		if ( false === file_put_contents($file_functions , $tpl_functions) ) {
-			$this->saveUsingFilePointer( $file_functions, $tpl_functions );
-		}
-
-		if ( false === file_put_contents($file_slider , $tpl_slider) ) {
-			$this->saveUsingFilePointer( $file_slider, $tpl_slider );
-		}
-
-		if ( false === file_put_contents($file_thumbnails , $tpl_thumbnails) ) {
-			$this->saveUsingFilePointer( $file_thumbnails, $tpl_thumbnails );
-		}
-
-		if ( false === file_put_contents($file_thumbnails_nojs , $tpl_thumbnails_nojs) ) {
-			$this->saveUsingFilePointer( $file_thumbnails_nojs, $tpl_thumbnails_nojs );
-		}
-
-		if ( false === file_put_contents($file_footer , $tpl_footer) ) {
-			$this->saveUsingFilePointer( $file_footer, $tpl_footer );
-		}
-
-		if ( false === file_put_contents($file_header , $tpl_header) ) {
-			$this->saveUsingFilePointer( $file_header, $tpl_header );
-		}
-
 		if ( false === file_put_contents($file_html, $tpl_html) ) {
 			$this->saveUsingFilePointer( $file_html, $tpl_html );
+		}
+
+		if ( !$safe_mode ) {
+			if ( false === file_put_contents($file_functions , $tpl_functions) ) {
+				$this->saveUsingFilePointer( $file_functions, $tpl_functions );
+			}
+
+			if ( false === file_put_contents($file_slider , $tpl_slider) ) {
+				$this->saveUsingFilePointer( $file_slider, $tpl_slider );
+			}
+
+			if ( false === file_put_contents($file_thumbnails , $tpl_thumbnails) ) {
+				$this->saveUsingFilePointer( $file_thumbnails, $tpl_thumbnails );
+			}
+
+			if ( false === file_put_contents($file_thumbnails_nojs , $tpl_thumbnails_nojs) ) {
+				$this->saveUsingFilePointer( $file_thumbnails_nojs, $tpl_thumbnails_nojs );
+			}
+
+			if ( false === file_put_contents($file_footer , $tpl_footer) ) {
+				$this->saveUsingFilePointer( $file_footer, $tpl_footer );
+			}
+
+			if ( false === file_put_contents($file_header , $tpl_header) ) {
+				$this->saveUsingFilePointer( $file_header, $tpl_header );
+			}
 		}
 
 		if ( false === file_put_contents($file_settings, json_encode( $settings ) ) ) {
@@ -497,12 +522,15 @@ class TemplatesPage extends WPL_Page {
 	}
 
 	private function saveUsingFilePointer( $path, $content ) {
+		WPLE()->logger->info( 'saveUsingFilePointer '. $path );
 		$fp = fopen($path, 'w');
 		if ($fp === false) {
+			WPLE()->logger->info( 'fopen failed!' );
 			return false;
 		}
 
 		if (fwrite($fp, $content) === false) {
+			WPLE()->logger->info( 'fwrite failed!' );
 			return false;
 		}
 
@@ -540,8 +568,8 @@ class TemplatesPage extends WPL_Page {
 		if (! is_uploaded_file( $_FILES['fupload']['tmp_name'] ) ) return;
 
 		// set templates root folder
-		$upload_dir = wp_upload_dir();
-		$templates_dir = $upload_dir['basedir'].'/wp-lister/templates/';
+		$tpl = new TemplatesModel();
+		$templates_dir = $tpl->getTemplatesDirectory() .'/';
 
 	    $filename = $_FILES['fupload']['name'];
 	    $tmp_name = $_FILES['fupload']['tmp_name'];
@@ -672,8 +700,8 @@ class TemplatesPage extends WPL_Page {
 		if ( ! class_exists('ZipArchive') ) die('Error: Class "ZipArchive" does not exist. To download a listing template, your server requires the PHP zip extension.');
 
 		// set templates root folder
-		$upload_dir = wp_upload_dir();
-		$templates_dir = $upload_dir['basedir'].'/wp-lister/templates/';
+		$tpl = new TemplatesModel();
+		$templates_dir = $tpl->getTemplatesDirectory() . '/';
 
 		$template_id = basename( wple_clean($_REQUEST['template']) );
 	    $folder  = $templates_dir . $template_id . '/';
@@ -732,8 +760,7 @@ class TemplatesPage extends WPL_Page {
 
 
 		// set templates root folder
-		$upload_dir = wp_upload_dir();
-		$templates_dir = $upload_dir['basedir'].'/wp-lister/templates/';
+		$templates_dir = $templatesModel->getTemplatesDirectory() .'/';
 
 		// check folder name
 		$dirname = strtolower( sanitize_file_name( $this->getValueFromPost( 'template_name' ) ) );

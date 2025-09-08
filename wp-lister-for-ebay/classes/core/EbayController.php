@@ -888,7 +888,7 @@ class EbayController {
     }
 
     // call EddItem on selected items
-    public function endItemsOnEbay( $id ){ 
+    public function endItemsOnEbay( $id ){
         
         $sm = new ListingsModel();
 

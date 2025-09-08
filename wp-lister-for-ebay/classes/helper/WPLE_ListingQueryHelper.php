@@ -1240,6 +1240,12 @@ class WPLE_ListingQueryHelper {
     
                 )
             )
+            AND {$wpdb->posts}.ID NOT IN (
+                SELECT post_id
+                FROM {$wpdb->prefix}postmeta
+                WHERE meta_key = '_ebay_hide_from_unlisted'
+                AND meta_value = 'yes'
+            )
         ");
     }
 
@@ -1278,6 +1284,12 @@ class WPLE_ListingQueryHelper {
                     {$wpdb->posts}.ID = {$wpdb->prefix}ebay_auctions.post_id
                 )
                 AND {$wpdb->prefix}ebay_auctions.status != 'archived'
+            )
+            AND {$wpdb->posts}.ID NOT IN (
+                SELECT post_id
+                FROM {$wpdb->prefix}postmeta
+                WHERE meta_key = '_ebay_hide_from_unlisted'
+                AND meta_value = 'yes'
             )
         ");
     }

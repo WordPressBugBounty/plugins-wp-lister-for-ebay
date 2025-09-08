@@ -136,6 +136,15 @@ class WPL_Setup extends WPL_Core {
 		
 		}
 
+		// make sure site_id is set to the default account_id
+		$account_id = get_option('wplister_default_account_id');
+		$site_id    = get_option( 'wplister_ebay_site_id' );
+		if ( isset( WPLE()->accounts[ $account_id ] ) ) {
+			if ( $site_id != WPLE()->accounts[ $account_id ]->site_id ) {
+				update_option( 'wplister_ebay_site_id', WPLE()->accounts[ $account_id ]->site_id );
+			}
+		}
+
 		// db upgrade
 		WPLE_UpgradeHelper::upgradeDB();
 

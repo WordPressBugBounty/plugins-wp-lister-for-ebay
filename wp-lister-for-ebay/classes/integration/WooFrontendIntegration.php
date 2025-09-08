@@ -12,6 +12,7 @@ class WPL_WooFrontendIntegration {
 
 		// add item compatibility table tab
         add_filter( 'woocommerce_product_tabs', array( &$this, 'add_custom_product_tabs' ) );
+        add_filter( 'woocommerce_product_tabs', array( &$this, 'force_additional_information_tab' ), 98 );
 
         if ( get_option( 'wplister_display_item_condition', 0 ) ) {
             add_action( 'woocommerce_product_additional_information', array( $this, 'display_condition_data'), 20, 1 );
@@ -346,7 +347,8 @@ class WPL_WooFrontendIntegration {
 				 continue;
 
 			// check end date
-			if ( $listing->end_date )
+            
+			if ( $listing->listing_duration != 'GTC' && $listing->end_date )
 				if ( strtotime( $listing->end_date ) < time() ) continue;
 
 			return $listing;
@@ -378,7 +380,28 @@ class WPL_WooFrontendIntegration {
         return $tabs;
     }
 
-    public function display_condition_data( $product ) {
+    public function force_additional_information_tab( $tabs ) {
+	    global $product;
+
+	    // Check if WP-Lister condition display is enabled
+	    if ( get_option( 'wplister_display_item_condition', 0 ) ) {
+		    // Check if product has eBay condition data
+		    $product_id = $product->get_id();
+		    $condition_id = get_post_meta( $product_id, '_ebay_condition_id', true );
+
+		    if ( $condition_id && !isset($tabs['additional_information']) ) {
+			    $tabs['additional_information'] = array(
+				    'title'    => __( 'Additional Information', 'woocommerce' ),
+				    'priority' => 20,
+				    'callback' => 'woocommerce_product_additional_information_tab',
+			    );
+		    }
+	    }
+
+	    return $tabs;
+    }
+
+	public function display_condition_data( $product ) {
         $product_id = wple_get_product_meta( $product, 'id' );
 
         $condition_id = get_post_meta( $product_id, '_ebay_condition_id', true );

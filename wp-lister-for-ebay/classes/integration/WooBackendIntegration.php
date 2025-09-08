@@ -87,7 +87,14 @@ class WPL_WooBackendIntegration {
 		add_action( 'save_post', array( &$this, 'wplister_product_handle_submitbox_actions' ), 100, 2 );
 
 		// make orders searchable by OrderID at WooCommerce -> Orders
-		add_filter( 'woocommerce_shop_order_search_fields', array( &$this, 'woocommerce_shop_order_search_ebay_order_id' ) );
+		if ( $this->is_hpos_enabled() ) {
+			// HPOS search functionality - use the correct filter for meta keys
+			add_filter( 'woocommerce_order_table_search_query_meta_keys', array( &$this, 'woocommerce_shop_order_search_ebay_order_id' ) );
+			add_filter( 'woocommerce_order_table_search_query_meta_keys', array( $this, 'custom_search_fields' ) );
+		} else {
+			add_filter( 'woocommerce_shop_order_search_fields', array( &$this, 'woocommerce_shop_order_search_ebay_order_id' ) );
+			add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'custom_search_fields' ) );
+		}
 
 		// hook into WooCommerce orders to create product objects for ebay listings (debug)
 		// add_action( 'woocommerce_order_get_items', array( &$this, 'wpl_woocommerce_order_get_items' ), 10, 2 );
@@ -126,10 +133,6 @@ class WPL_WooBackendIntegration {
         // use ebay's order number in the WC orders
         if ( get_option( 'wplister_use_ebay_order_number', 0 ) > 0 ) {
             add_filter( 'woocommerce_order_number', array( $this, 'get_ebay_order_number' ), 20, 2 );
-
-            if ( is_admin() ) {
-                add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'custom_search_fields' ) );
-            }
         }
 
         // Remove ebay user data from order notes
@@ -144,6 +147,44 @@ class WPL_WooBackendIntegration {
 		return $search_fields;
 	}
 
+	/**
+	 * Check if WooCommerce HPOS (High Performance Order Storage) is enabled
+	 *
+	 * HPOS was introduced in WooCommerce 6.8+ and became stable in WooCommerce 8.2+.
+	 * When HPOS is enabled, order search filters change from 'woocommerce_shop_order_search_fields'
+	 * to 'woocommerce_order_table_search_query_meta_keys'.
+	 *
+	 * @return bool True if HPOS is enabled, false otherwise
+	 */
+	private function is_hpos_enabled() {
+		return class_exists( '\Automattic\WooCommerce\Utilities\OrderUtil' ) &&
+		       \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+	}
+
+	/**
+	 * Check if we're on a WooCommerce orders admin page (HPOS or legacy)
+	 *
+	 * @return bool True if on WC orders admin page
+	 */
+	private function is_wc_orders_admin_page() {
+		global $pagenow;
+
+		if ( ! is_admin() ) {
+			return false;
+		}
+
+		// HPOS orders page
+		if ( $pagenow === 'admin.php' && isset( $_GET['page'] ) && $_GET['page'] === 'wc-orders' ) {
+			return true;
+		}
+
+		// Legacy orders page
+		if ( $pagenow === 'edit.php' && isset( $_GET['post_type'] ) && $_GET['post_type'] === 'shop_order' ) {
+			return true;
+		}
+
+		return false;
+	}
 
 	function wple_order_admin_notices() {
 		global $post, $post_ID;
@@ -2253,7 +2294,6 @@ class WPL_WooBackendIntegration {
      */
     public function custom_search_fields( $search_fields ) {
         array_push( $search_fields, '_ebay_order_id', '_ebay_extended_order_id' );
-
         return $search_fields;
     }
 

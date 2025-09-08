@@ -103,6 +103,43 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.8.3 - 2025-09-08 =
+* New: Added support for TranslatePress
+* Fix: Include the price of variations for deletion to prevent getting Invalid Price errors when revising parent variables that are out of stock
+* Fix: Added HPOS support for Order Number searching
+* Fix: Item Specifics form not rendering
+* Fix: Edit Product page notices
+* Fix: JobRunner.js syntax error
+* Fix: Count value for Not on eBay not recognizing the Hide from Unlisted option
+* Fix: Not on eBay filter not showing all products
+* Fix: Double-encoding bug in wple_encode_url()
+* Fix: WooCommerce order refunds not calculating correctly due to tax handling
+* Fix: JS error preventing the loading of Item Specifics
+* Tweak: Accounts row actions will now always be visible
+
+= 3.8.2.1 - 2025-06-26 =
+* Hotfix: Reverted calling woocommerce_update_product due to fatal errors
+
+= 3.8.2 - 2025-06-26 =
+* New: Added tool to clear the EPS (eBay Picture Services) from all listings
+* New: Added safe mode setting in the template editor page
+* Fix: AdjustmentAmount now properly handled as refund when negative value, preventing incorrect fee processing
+* Fix: Set the refund_payment property to false when calling wc_create_refund() to tell payment methods not to process the refund
+* Fix: Condition attribute not getting displayed if no other attributes exist for the product
+* Fix: Link auctions setting not showing correctly for GTC listings
+* Fix: Item Specifics not loading for some marketplaces
+* Fix: Make sure the default Site ID matches the current default account's Site ID
+* Fix: Moved refund processing to after the initial order has been saved
+* Fix: Do not record AdjustmentAmount if the Record Fees setting is disabled
+* Fix: Use get_meta on WC_Order_Refund objects
+* Fix: Make HTTP errors skippable in the JobRunner window
+* Fix: Disable automatic relisting and background inventory checks on staging sites
+* Tweak: Trigger the woocommerce_update_product action after reducing item stock from eBay orders to notify Square about changes
+* Dev: Added support for updating Trading Cards' grading attributes via REST API
+* Dev: Added new parameters to the wple_orderbuilder_update_order_status hook
+* Dev: New filter `wple_templates_directory` to allow 3rd-party code to change the location of templates
+* Dev: Removed deprecated [[widget_*]] shortcodes
+
 = 3.8.1 - 2025-05-13 =
 * New: Added support for the new Global Unique ID in WooCommerce
 * Fix: Security patch for ticket #70341

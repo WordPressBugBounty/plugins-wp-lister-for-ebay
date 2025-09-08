@@ -327,6 +327,10 @@ class WPL_CronActions extends WPL_Core {
     }
 
     public function cron_bg_inventory_check_get_listings( ...$accounts ) {
+		if ( WPLE()->isStagingSite() ) {
+			return;
+		}
+
         WPLE()->logger->info( 'cron_bg_inventory_check_get_listings' );
         WPLE()->logger->debug( 'accounts: '. print_r( $accounts, 1 ) );
 

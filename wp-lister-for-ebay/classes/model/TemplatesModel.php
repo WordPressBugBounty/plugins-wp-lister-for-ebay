@@ -20,8 +20,8 @@ class TemplatesModel extends WPL_Model {
 			$this->foldername = $foldername;
 
 			// full absolute paths
-			$upload_dir = wp_upload_dir();
-			$this->folderpath = $upload_dir['basedir'] . '/wp-lister/templates/' . $foldername;
+			$templates_dir = $this->getTemplatesDirectory();
+			$this->folderpath = $templates_dir .'/'. $foldername;
 			$this->stylesheet = $this->folderpath . '/style.css';
 
 			// save / return item (?)
@@ -30,6 +30,11 @@ class TemplatesModel extends WPL_Model {
 		}
 	}
 
+	public function getTemplatesDirectory() {
+		// full absolute paths
+		$upload_dir = wp_upload_dir();
+		return apply_filters( 'wple_templates_directory', $upload_dir['basedir'] . '/wp-lister/templates' );
+	}
 
 	function getAll() {
 
@@ -43,7 +48,8 @@ class TemplatesModel extends WPL_Model {
 		}
 
 		$templates = array();
-		$files = glob( $upload_dir['basedir'].'/wp-lister/templates/*/template.html' );
+
+		$files = glob( $this->getTemplatesDirectory() .'/*/template.html' );
 		if ( is_array($files) ) {
 			foreach ($files as $file) {
 				// save template path relative to WP_CONTENT_DIR
@@ -74,8 +80,7 @@ class TemplatesModel extends WPL_Model {
 	function getItem( $foldername = false, $fullpath = false, $type = 'user' ) {
 
 		// set templates root folder
-		$upload_dir = wp_upload_dir();
-		$templates_dir = $upload_dir['basedir'].'/wp-lister/templates/';
+		$templates_dir = $this->getTemplatesDirectory() .'/';
 
 		if ( $fullpath ) {
 			// do nothing
@@ -287,7 +292,7 @@ class TemplatesModel extends WPL_Model {
 		// handle errors
 		if ( ! $tpl_html ) {
 			WPLE()->logger->error( 'template not found ' . $listing->getTemplate() );
-			WPLE()->logger->error( 'should be here: ' . WP_CONTENT_DIR . '/uploads/wp-lister/templates/' . $listing->getTemplate()  );
+			WPLE()->logger->error( 'should be here: ' . $this->getTemplatesDirectory() . '/' . $listing->getTemplate()  );
 			$this->showMessage( 'There was a problem processing your listing template',1,1);
 			return '';
 			// echo 'Template not found: '.$item['template'];
@@ -494,8 +499,7 @@ class TemplatesModel extends WPL_Model {
 		$view = WPLE_PLUGIN_PATH.'/views/template/thumbnails_nojs.php';
 		if ( $item ) {
 			// if thumbnails.php exists in listing template, use it
-			$upload_dir = wp_upload_dir();
-			$thumbnails_tpl_file = $upload_dir['basedir'] . '/wp-lister/templates/' . basename( $this->foldername ) . '/thumbnails.php';
+			$thumbnails_tpl_file = $this->getTemplatesDirectory() .'/' . basename( $this->foldername ) . '/thumbnails.php';
 			if ( file_exists( $thumbnails_tpl_file ) ) $view = $thumbnails_tpl_file;
 		}
 
@@ -518,8 +522,7 @@ class TemplatesModel extends WPL_Model {
 		$view = WPLE_PLUGIN_PATH.'/views/template/thumbnails.php';
 		if ( $item ) {
 			// if thumbnails.php exists in listing template, use it
-			$upload_dir = wp_upload_dir();
-			$thumbnails_tpl_file = $upload_dir['basedir'] . '/wp-lister/templates/' . basename( $this->foldername ) . '/thumbnails.php';
+			$thumbnails_tpl_file = $this->getTemplatesDirectory() . '/' . basename( $this->foldername ) . '/thumbnails.php';
 			if ( file_exists( $thumbnails_tpl_file ) ) $view = $thumbnails_tpl_file;
 		}
 
@@ -555,8 +558,7 @@ class TemplatesModel extends WPL_Model {
             array_unshift( $images, $main_image );
 
             // if thumbnails.php exists in listing template, use it
-            $upload_dir = wp_upload_dir();
-            $thumbnails_tpl_file = $upload_dir['basedir'] . '/wp-lister/templates/' . basename( $this->foldername ) . '/gallery_slider.php';
+            $thumbnails_tpl_file = $this->getTemplatesDirectory() . '/' . basename( $this->foldername ) . '/gallery_slider.php';
             if ( file_exists( $thumbnails_tpl_file ) ) $view = $thumbnails_tpl_file;
         }
 

@@ -170,10 +170,10 @@ WpLister.JobRunner = function () {
             // check task success
             if ( response.success ) {
                 var statusIconURL = wplister_url + "img/icon-success.png";
-                var errors_label  = response.errors.length == 1 ? 'warning' : 'warnings';
+                var errors_label  = (response.errors && response.errors.length == 1) ? 'warning' : 'warnings';
             } else {
                 var statusIconURL = wplister_url + "img/icon-error.png";                
-                var errors_label  = response.errors.length == 1 ? 'error' : 'errors';
+                var errors_label  = (response.errors && response.errors.length == 1) ? 'error' : 'errors';
             }
 
             // update subtask row status
@@ -199,14 +199,79 @@ WpLister.JobRunner = function () {
         })
         .fail( function(e,xhr,error) {
 
-            // quit on other errors
-            jQuery('#wple_jobs_log').append( "A problem occurred while processing this task. The server responded with code " + e.status + ": " + e.responseText + "<br>" );
-            jQuery('#wple_jobs_window .btn_close').show();
-            jQuery('#wple_jobs_window .btn_cancel').hide();
-            // alert( "There was a problem running the task '"+task.displayName+"'.\n\nThe server responded:\n" + e.responseText + '\n\nPlease contact support@wplab.com.' ); 
-            console.log( "XHR object", e ); 
-            console.log( "error", xhr, error ); 
-            console.log( e.responseText ); 
+            // dont get fooled by 403, 404 or 500 errors for admin-ajax.php
+            // included code 0 for failed requests to allow skipping errors according to error handling option
+            if ( ( e.status == 403 ) || ( e.status == 404 ) || ( e.status == 500 ) || ( e.status == 0 ) ) {
+
+
+                if ( ( wplister_ajax_error_handling == 'retry') && ( self.retryCount < 5 ) ) {
+
+                    var logMsg = '<div class="logRow" style="height: auto; background-color: #ffffdd;">';
+                    logMsg += '<b>Warning: server returned an HTTP error code '+e.status+'. Will try again...</b>';
+                    logMsg += '</div>';
+                    jQuery('#wple_jobs_log').append( logMsg );
+
+                    // try running the task again
+                    self.retryCount++;
+                    self.runSubTask( self.subtaskQueue[ self.currentSubTask ] );
+
+                } else if ( wplister_ajax_error_handling == 'skip') {
+
+                    var logMsg = '<div class="logRow" style="height: auto; background-color: #ffdddd;">';
+                    // Encode the responseText to HTML entities using $().text().html() to prevent the response from breaking the script
+                    // in cases where the responseText contains HTML and JS
+                    logMsg += '<b>Error: Failed to process this task. Proceeding with next task...</b><br><small>Debug info: The server responded with HTTP code ' + e.status + '';
+                    logMsg += '</div>';
+                    jQuery('#wple_jobs_log').append( logMsg );
+
+
+                    // prepare next subtask
+                    self.currentSubTask++;
+                    if ( self.currentSubTask < self.subtaskQueue.length ) {
+                        // run next task
+                        self.runSubTask( self.subtaskQueue[ self.currentSubTask ] );
+                    } else {
+                        // all subtasks complete
+                        self.nextTask();
+                    }
+
+                } else { // halt
+
+                    // halt task processing
+                    var logMsg = '<div class="logRow" style="height: auto; background-color: #ffdddd;">';
+                    logMsg += '<b>Error: A problem occurred while processing this task.</b><br><small>Debug info: The server responded with HTTP code ' + e.status + ' and returned:</small><pre>' + jQuery("body").text(e.responseText).html() + '</pre>';
+                    logMsg += '</div>';
+                    jQuery('#wple_jobs_log').append( logMsg );
+
+                    jQuery('#wple_jobs_window .btn_close').show();
+                    jQuery('#wple_jobs_window .btn_cancel').hide();
+
+                    console.log( "XHR object", e );
+                    console.log( "error", xhr, error );
+                    console.log( e.responseText );
+
+                }
+
+                // } else if ( e.status == 500 ) {
+
+                //     // just try running the task again
+                //     jQuery('#wple_jobs_log').append( "Warning: server returned 500. going to try again...<br>" );
+                //     self.runTask( self.jobsQueue[ self.currentTask ] );
+
+            } else {
+
+                // quit on other errors
+                jQuery('#wple_jobs_log').append( "A problem occurred while processing this task. The server responded with code " + e.status + ": " + e.responseText + "<br>" );
+                jQuery('#wple_jobs_window .btn_close').show();
+                jQuery('#wple_jobs_window .btn_cancel').hide();
+                // alert( "There was a problem running the task '"+task.displayName+"'.\n\nThe server responded:\n" + e.responseText + '\n\nPlease contact support@wplab.com.' );
+                console.log( "XHR object", e );
+                console.log( "error", xhr, error );
+                console.log( e.responseText );
+
+            }
+
+
 
         });
 
@@ -295,10 +360,10 @@ WpLister.JobRunner = function () {
             // check task success
             if ( response.success ) {
                 var statusIconURL = wplister_url + "img/icon-success.png";
-                var errors_label  = response.errors.length == 1 ? 'warning' : 'warnings';
+                var errors_label  = (response.errors && response.errors.length == 1) ? 'warning' : 'warnings';
             } else {
                 var statusIconURL = wplister_url + "img/icon-error.png";                
-                var errors_label  = response.errors.length == 1 ? 'error' : 'errors';
+                var errors_label  = (response.errors && response.errors.length == 1) ? 'error' : 'errors';
             }
 
             self.runningTasks--;
@@ -311,7 +376,7 @@ WpLister.JobRunner = function () {
             currentLogRow.find('.logRowStatus').html( '<img src="'+statusIconURL+'" title="Task runtime: '+(parseFloat(currentTaskProcessingTime).toFixed(1))+' sec." />' );
 
             // handle errors
-            if ( response.errors.length > 0 ) {
+            if ( response.errors && response.errors.length > 0 ) {
 
                 // create show details button
                 var taskDetailsBtn = '<a href="#" onclick="jQuery(\'#taskDetails_'+currentTask+'\').slideToggle(300);return false;" class="" style="">'+response.errors.length + ' '+errors_label+'</a>';

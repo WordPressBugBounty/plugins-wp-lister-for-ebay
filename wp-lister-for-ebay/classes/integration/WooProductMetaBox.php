@@ -2316,7 +2316,7 @@ class WpLister_Product_MetaBox {
 		// get field values
 		$wpl_ebay_title                 = wple_clean( @$_POST['wpl_ebay_title'] );
 		$wpl_ebay_subtitle              = wple_clean( @$_POST['wpl_ebay_subtitle'] );
-		$wpl_ebay_global_shipping       = wple_clean( @$_POST['wpl_ebay_global_shipping'] ?? '' );
+		$wpl_ebay_global_shipping       = wple_clean( $_POST['wpl_ebay_global_shipping'] ?? '' );
 		$wpl_ebay_ebayplus_enabled      = wple_clean( $_POST['wpl_ebay_ebayplus_enabled'] ?? 0 );
 		$wpl_ebay_payment_instructions  = wple_clean( @$_POST['wpl_ebay_payment_instructions'] );
 		$wpl_ebay_condition_description = wple_clean( @$_POST['wpl_ebay_condition_description'] );
@@ -2389,8 +2389,8 @@ class WpLister_Product_MetaBox {
 		update_post_meta( $post_id, '_ebay_store_category_2_id', $wpl_store_category_2_id );
 		update_post_meta( $post_id, '_ebay_gallery_image_url', $wpl_ebay_gallery_image_url );
 
-		update_post_meta( $post_id, '_ebay_seller_payment_profile_id', 	wple_clean( @$_POST['wpl_ebay_seller_payment_profile_id'] ?? '' ) );
-		update_post_meta( $post_id, '_ebay_seller_return_profile_id', 	wple_clean( @$_POST['wpl_ebay_seller_return_profile_id'] ?? '' ) );
+		update_post_meta( $post_id, '_ebay_seller_payment_profile_id', 	wple_clean( $_POST['wpl_ebay_seller_payment_profile_id'] ?? '' ) );
+		update_post_meta( $post_id, '_ebay_seller_return_profile_id', 	wple_clean( $_POST['wpl_ebay_seller_return_profile_id'] ?? '' ) );
 		update_post_meta( $post_id, '_ebay_bestoffer_enabled', 			wple_clean( @$_POST['wpl_ebay_bestoffer_enabled'] ) );
 		update_post_meta( $post_id, '_ebay_bo_autoaccept_price', 		wple_clean( wc_format_decimal( @$_POST['wpl_ebay_bo_autoaccept_price'] ) ) );
 		update_post_meta( $post_id, '_ebay_bo_minimum_price', 			wple_clean( wc_format_decimal( @$_POST['wpl_ebay_bo_minimum_price'] ) ) );
@@ -2419,8 +2419,8 @@ class WpLister_Product_MetaBox {
 			$loc_free_shipping = strstr( 'calc', strtolower($ebay_shipping_service_type) ) ? wple_clean(@$_POST['wpl_e2e_shipping_loc_calc_free_shipping']) : wple_clean(@$_POST['wpl_e2e_shipping_loc_flat_free_shipping']);
 			update_post_meta( $post_id, '_ebay_shipping_loc_enable_free_shipping', $loc_free_shipping );
 
-			update_post_meta( $post_id, '_ebay_shipping_ShipToLocations', wple_clean(@$_POST['wpl_e2e_ShipToLocations'] ?? '') );
-			update_post_meta( $post_id, '_ebay_shipping_ExcludeShipToLocations', wple_clean(@$_POST['wpl_e2e_ExcludeShipToLocations']) );
+			update_post_meta( $post_id, '_ebay_shipping_ShipToLocations', wple_clean($_POST['wpl_e2e_ShipToLocations'] ?? '') );
+			update_post_meta( $post_id, '_ebay_shipping_ExcludeShipToLocations', wple_clean($_POST['wpl_e2e_ExcludeShipToLocations'] ?? '') );
 
 		} else {
 

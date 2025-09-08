@@ -446,12 +446,8 @@
                                         $label = $attribute->label;
 
                                         // qTranslate support - translate title and description
-                                        if ( function_exists( 'qtranxf_use' ) ) {
-                                            $lang = WPLE_eBayAccount::getAccountLocale( $account_id );
-
-                                            $name = qtranxf_use( $lang, $name );
-                                            $label = qtranxf_use( $lang, $label );
-                                        }
+                                        $name = WPLE_TranslationHelper::translateText( $name, $account_id );
+                                        $label = WPLE_TranslationHelper::translateText( $label, $account_id );
                                     ?>
 										<option value="<?php echo esc_attr($name) ?>"
 											<?php if ( isset($item_details['variation_image_attribute']) && $item_details['variation_image_attribute'] == $name ) : ?>

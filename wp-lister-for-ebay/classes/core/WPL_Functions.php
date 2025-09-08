@@ -514,11 +514,57 @@ function wple_add_name_prefix_index( $name, $new_index = null ) {
 
 // encode special characters and spaces for PictureURL
 function wple_encode_url( $url ) {
-	$url = rawurlencode( $url );
-	// $url = str_replace(' ', '%20', $url );
-	$url = str_replace('%2F', '/', $url );
-	$url = str_replace('%3A', ':', $url );
-	return wple_normalize_url( $url, true );
+	// Parse the URL to separate the components
+	$parsed = parse_url( $url );
+	
+	if ( $parsed === false || empty( $parsed['scheme'] ) || empty( $parsed['host'] ) ) {
+		// Fallback to original behavior for malformed URLs
+		$url = rawurlencode( $url );
+		$url = str_replace('%2F', '/', $url );
+		$url = str_replace('%3A', ':', $url );
+		return wple_normalize_url( $url, true );
+	}
+	
+	// Rebuild the URL with proper encoding
+	$encoded_url = $parsed['scheme'] . '://' . $parsed['host'];
+	
+	// Add port if present
+	if ( isset( $parsed['port'] ) ) {
+		$encoded_url .= ':' . $parsed['port'];
+	}
+	
+	// Encode the path while preserving slashes
+	if ( isset( $parsed['path'] ) ) {
+		// Split path into segments and encode each segment individually
+		$path_segments = explode( '/', $parsed['path'] );
+		$encoded_segments = array();
+		
+		foreach ( $path_segments as $segment ) {
+			// Check if segment is already encoded by attempting to decode it
+			$decoded = rawurldecode( $segment );
+			if ( $decoded !== $segment && rawurlencode( $decoded ) === $segment ) {
+				// Segment is already properly encoded, keep as-is
+				$encoded_segments[] = $segment;
+			} else {
+				// Segment needs encoding
+				$encoded_segments[] = rawurlencode( $segment );
+			}
+		}
+		
+		$encoded_url .= implode( '/', $encoded_segments );
+	}
+	
+	// Preserve the query string as-is (don't double-encode)
+	if ( isset( $parsed['query'] ) ) {
+		$encoded_url .= '?' . $parsed['query'];
+	}
+	
+	// Preserve the fragment as-is
+	if ( isset( $parsed['fragment'] ) ) {
+		$encoded_url .= '#' . $parsed['fragment'];
+	}
+	
+	return wple_normalize_url( $encoded_url, true );
 }
 
 /**

@@ -140,6 +140,15 @@
 						</form>
 						<br style="clear:both;"/>
 
+                        <!-- Remove EPS for all listings -->
+                        <form method="post" action="<?php echo $wpl_form_action; ?>">
+							<?php wp_nonce_field( 'e2e_tools_page' ); ?>
+                            <input type="hidden" name="action" value="wple_clear_eps" />
+                            <input type="submit" value="<?php echo __( 'Remove EPS from ALL LISTINGS', 'wp-lister-for-ebay' ); ?>" name="submit" class="button button-primary">
+                            <p><?php echo __( 'Clear the EPS cache.', 'wp-lister-for-ebay' ); ?></p>
+                        </form>
+                        <br style="clear:both;"/>
+
 						<!-- lock all listings --> 
 						<form method="post" action="<?php echo $wpl_form_action; ?>">
 								<?php wp_nonce_field( 'e2e_tools_page' ); ?>

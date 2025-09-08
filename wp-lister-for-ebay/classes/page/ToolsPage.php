@@ -238,6 +238,10 @@ class ToolsPage extends WPL_Page {
 					$this->checkProductImages();
 				}
 
+                if ( $_REQUEST['action'] == 'wple_clear_eps' ) {
+                    $this->clearEpsCache();
+                }
+
 				// check_missing_ebay_transactions
 				if ( $_REQUEST['action'] == 'check_missing_ebay_transactions') {
 					$this->checkTransactions( true );
@@ -1132,7 +1136,13 @@ class ToolsPage extends WPL_Page {
 
 	} // checkProductImages()
 
+    public function clearEpsCache() {
+        global $wpdb;
 
+        $wpdb->query( "UPDATE {$wpdb->prefix}ebay_auctions SET eps = NULL" );
+
+	    wple_show_message( 'EPS Cache has been cleared.' );
+    }
 
 	public function sendCurlRequestForDebugging( $url, $usePost = false ) {
 
