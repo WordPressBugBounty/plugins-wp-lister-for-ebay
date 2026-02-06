@@ -7,6 +7,7 @@
             <?php _e( 'Revise on update', 'wp-lister-for-ebay' ); ?>
         </label>
     </div>
+    <?php if ( ! isset( $is_bulk_edit ) || ! $is_bulk_edit ) : ?>
     <div class="inline-edit-col" style="">
         <label>
             <span class="title"><?php _e( 'eBay Price', 'wp-lister-for-ebay' ); ?></span>
@@ -15,5 +16,6 @@
             </span>
         </label>
     </div>
+    <?php endif; ?>
 
 </fieldset>

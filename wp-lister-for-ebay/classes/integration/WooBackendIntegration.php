@@ -88,12 +88,11 @@ class WPL_WooBackendIntegration {
 
 		// make orders searchable by OrderID at WooCommerce -> Orders
 		if ( $this->is_hpos_enabled() ) {
-			// HPOS search functionality - use the correct filter for meta keys
-			add_filter( 'woocommerce_order_table_search_query_meta_keys', array( &$this, 'woocommerce_shop_order_search_ebay_order_id' ) );
-			add_filter( 'woocommerce_order_table_search_query_meta_keys', array( $this, 'custom_search_fields' ) );
+			// For HPOS, we need to hook into the WHERE clause generation to add meta search
+			add_filter( 'woocommerce_hpos_generate_where_for_search_filter', array( $this, 'add_hpos_ebay_meta_search' ), 10, 4 );
 		} else {
+			// Legacy post-based orders
 			add_filter( 'woocommerce_shop_order_search_fields', array( &$this, 'woocommerce_shop_order_search_ebay_order_id' ) );
-			add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'custom_search_fields' ) );
 		}
 
 		// hook into WooCommerce orders to create product objects for ebay listings (debug)
@@ -133,6 +132,10 @@ class WPL_WooBackendIntegration {
         // use ebay's order number in the WC orders
         if ( get_option( 'wplister_use_ebay_order_number', 0 ) > 0 ) {
             add_filter( 'woocommerce_order_number', array( $this, 'get_ebay_order_number' ), 20, 2 );
+
+            if ( is_admin() ) {
+                add_filter( 'woocommerce_shop_order_search_fields', array( $this, 'custom_search_fields' ) );
+            }
         }
 
         // Remove ebay user data from order notes
@@ -150,10 +153,6 @@ class WPL_WooBackendIntegration {
 	/**
 	 * Check if WooCommerce HPOS (High Performance Order Storage) is enabled
 	 *
-	 * HPOS was introduced in WooCommerce 6.8+ and became stable in WooCommerce 8.2+.
-	 * When HPOS is enabled, order search filters change from 'woocommerce_shop_order_search_fields'
-	 * to 'woocommerce_order_table_search_query_meta_keys'.
-	 *
 	 * @return bool True if HPOS is enabled, false otherwise
 	 */
 	private function is_hpos_enabled() {
@@ -162,28 +161,46 @@ class WPL_WooBackendIntegration {
 	}
 
 	/**
-	 * Check if we're on a WooCommerce orders admin page (HPOS or legacy)
+	 * Add eBay order ID meta search to HPOS WHERE clauses
 	 *
-	 * @return bool True if on WC orders admin page
+	 * This hooks into the HPOS search system to ensure eBay order IDs are searchable
+	 * in general order searches, not just when specifically searching customers.
+	 *
+	 * @param string $where The existing WHERE clause
+	 * @param string $search_term The search term
+	 * @param string $search_filter The search filter type
+	 * @param object $query The order query object
+	 * @return string Modified WHERE clause
 	 */
-	private function is_wc_orders_admin_page() {
-		global $pagenow;
+	public function add_hpos_ebay_meta_search( $where, $search_term, $search_filter, $query ) {
+		global $wpdb;
 
-		if ( ! is_admin() ) {
-			return false;
+		// Only add our meta search for general searches (not for specific filters like 'products', 'customers', etc.)
+		$general_filters = array( 'order_id', 'transaction_id', 'customer_email' );
+		if ( ! in_array( $search_filter, $general_filters, true ) ) {
+			return $where;
 		}
 
-		// HPOS orders page
-		if ( $pagenow === 'admin.php' && isset( $_GET['page'] ) && $_GET['page'] === 'wc-orders' ) {
-			return true;
+		$meta_table = $query->get_table_name( 'meta' );
+		$orders_table = $query->get_table_name( 'orders' );
+
+		// Build meta search for eBay order IDs
+		$meta_where = $wpdb->prepare(
+			"$orders_table.id IN (
+				SELECT meta.order_id
+				FROM $meta_table as meta
+				WHERE meta.meta_key IN ('_ebay_order_id', '_ebay_extended_order_id', '_ebay_user_id')
+				AND meta.meta_value LIKE %s
+			)",
+			'%' . $wpdb->esc_like( $search_term ) . '%'
+		);
+
+		// Add our meta search to the existing WHERE clause
+		if ( ! empty( $where ) ) {
+			return $where . ' OR ' . $meta_where;
 		}
 
-		// Legacy orders page
-		if ( $pagenow === 'edit.php' && isset( $_GET['post_type'] ) && $_GET['post_type'] === 'shop_order' ) {
-			return true;
-		}
-
-		return false;
+		return $meta_where;
 	}
 
 	function wple_order_admin_notices() {
@@ -1041,6 +1058,7 @@ class WPL_WooBackendIntegration {
                     case 'ended':
                     case 'sold':
                         ListingsModel::updateListing( $listing->id, array( 'status' => 'archived' ) );
+                        ListingsModel::logArchiveAction( $listing->id, 'product-trashed' );
                         break;
                 }
             }
@@ -1483,7 +1501,7 @@ class WPL_WooBackendIntegration {
 		// Placed on eBay
 		// $class = ( isset( $wp_query->query['is_from_ebay'] ) && $wp_query->query['is_from_ebay'] == 'no' ) ? 'current' : '';
 		$class = ( isset( $_REQUEST['is_from_ebay'] ) && $_REQUEST['is_from_ebay'] == 'yes' ) ? 'current' : '';
-		$query_string = esc_url_raw( remove_query_arg( array( 'is_from_ebay' ) ) );
+		$query_string = esc_url_raw( remove_query_arg( array( 'is_from_ebay', 'is_from_amazon' ) ) );
 		$query_string = add_query_arg( 'is_from_ebay', urlencode('yes'), $query_string );
 		$views['listed'] = '<a href="'. $query_string . '" class="' . $class . '">' . __( 'Placed on eBay', 'wp-lister-for-ebay' ) . '</a>';
 
@@ -2143,6 +2161,9 @@ class WPL_WooBackendIntegration {
 			return;
 		}
 
+		// Determine if this is bulk edit by checking the current action
+		$is_bulk_edit = current_action() === 'bulk_edit_custom_box';
+
 		include WPLE_PLUGIN_PATH . '/views/products_quick_edit.php';
 	}
 
@@ -2186,10 +2207,7 @@ class WPL_WooBackendIntegration {
 		// Get the post IDs.
 		$product_id = $product->get_id();
 
-
-        if ( isset( $_GET['_ebay_start_price'] ) ) {
-            update_post_meta( $product_id, '_ebay_start_price', wple_clean( wc_format_decimal( $_GET['_ebay_start_price'] ) ) );
-        }
+		// Note: _ebay_start_price is not available in bulk edit, only in quick edit
 
         if ( ! empty( $_GET['revise_listing'] ) && 'yes' == $_GET['revise_listing'] ) {
             // call markItemAsModified() to re-apply the listing profile
@@ -2222,13 +2240,13 @@ class WPL_WooBackendIntegration {
 
         if ( $display == 1 ) {
             // Legacy Order ID
-            $ebay_order_id = get_post_meta( $order->get_id(), '_ebay_order_id', true );
+            $ebay_order_id = $order->get_meta( '_ebay_order_id' );
             if ( $ebay_order_id ) {
                 return $ebay_order_id;
             }
         } elseif ( $display == 2 ) {
             // Extended Order ID
-            $ebay_order_id = get_post_meta( $order->get_id(), '_ebay_extended_order_id', true );
+            $ebay_order_id = $order->get_meta( '_ebay_extended_order_id' );
             if ( $ebay_order_id ) {
                 return $ebay_order_id;
             }

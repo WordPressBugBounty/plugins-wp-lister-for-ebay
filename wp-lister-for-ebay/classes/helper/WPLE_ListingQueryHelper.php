@@ -894,7 +894,18 @@ class WPLE_ListingQueryHelper {
 
 		$table = $wpdb->prefix . self::TABLENAME;
 
-		return $wpdb->query("UPDATE $table SET status = 'archived' WHERE status = 'sold'");
+		// Get IDs first for logging
+		$listing_ids = $wpdb->get_col("SELECT id FROM $table WHERE status = 'sold'");
+
+		// Perform the update
+		$count = $wpdb->query("UPDATE $table SET status = 'archived' WHERE status = 'sold'");
+
+		// Log each archived listing
+		foreach ( $listing_ids as $listing_id ) {
+			ListingsModel::logArchiveAction( $listing_id, 'tools-bulk-sold' );
+		}
+
+		return $count;
 	}
 
 	public static function archiveEndedListings() {
@@ -902,7 +913,18 @@ class WPLE_ListingQueryHelper {
 
 		$table = $wpdb->prefix . self::TABLENAME;
 
-		return $wpdb->query("UPDATE $table SET status = 'archived' WHERE status = 'ended'");
+		// Get IDs first for logging
+		$listing_ids = $wpdb->get_col("SELECT id FROM $table WHERE status = 'ended'");
+
+		// Perform the update
+		$count = $wpdb->query("UPDATE $table SET status = 'archived' WHERE status = 'ended'");
+
+		// Log each archived listing
+		foreach ( $listing_ids as $listing_id ) {
+			ListingsModel::logArchiveAction( $listing_id, 'tools-bulk-ended' );
+		}
+
+		return $count;
 	}
 
 	static function getItemsForGallery( $related_to_id, $type = 'new', $limit = 12 ) {

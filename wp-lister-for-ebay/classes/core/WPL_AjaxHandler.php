@@ -68,11 +68,9 @@ class WPL_AjaxHandler extends WPL_Core {
 
 		// handle request for eBay store categories (JSON)
 		add_action('wp_ajax_wpl_ebay_store_categories', 		array( &$this, 'ajax_wpl_ebay_store_categories' ) );
-		add_action('wp_ajax_nopriv_wpl_ebay_store_categories', 	array( &$this, 'ajax_wpl_ebay_store_categories' ) );
 
 		// handle request for eBay item queries
 		add_action('wp_ajax_wpl_ebay_item_query', 				array( &$this, 'ajax_wpl_ebay_item_query' ) );
-		add_action('wp_ajax_nopriv_wpl_ebay_item_query', 		array( &$this, 'ajax_wpl_ebay_item_query' ) );
 
 	}
 
@@ -150,7 +148,10 @@ class WPL_AjaxHandler extends WPL_Core {
 			// $response = $lm->prepareListings( $product_ids, $profile_id );
 			$response = $lm->prepareListings( $product_ids, $profile_id );
 
-	        $lm->applyProfileToNewListings( $profile );		      
+	        $lm->applyProfileToNewListings( $profile );
+
+	        // sync profile data to product meta fields
+	        $this->syncProfileToProductMeta( $profile, $product_ids );
 
 		} elseif ( 'listings' == $select_mode ) {
 
@@ -163,6 +164,14 @@ class WPL_AjaxHandler extends WPL_Core {
 				$item = ListingsModel::getItem( $listing_id );
 				$lm->applyProfileToItem( $profile, $item );
 			}
+
+			// sync profile data to product meta fields
+			$listing_product_ids = array();
+			foreach ($product_ids as $listing_id) {
+				$item = ListingsModel::getItem( $listing_id );
+				$listing_product_ids[] = $item['post_id'];
+			}
+			$this->syncProfileToProductMeta( $profile, $listing_product_ids );
 
 			// build response
 			$response = new stdClass();
@@ -1388,6 +1397,13 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_get_responsible_persons() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		global $wpdb;
 
 		$persons = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ebay_responsible_persons ORDER BY company ASC");
@@ -1395,6 +1411,13 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_get_responsible_person() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		global $wpdb;
 
 		$id = wc_clean( intval( $_POST['id'] ) );
@@ -1403,6 +1426,8 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_add_responsible_person() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
 			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
@@ -1444,6 +1469,8 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_update_responsible_person() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
 			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
@@ -1493,7 +1520,10 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_delete_responsible_person() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
 		}
 
@@ -1510,6 +1540,13 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_get_manufacturers() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		global $wpdb;
 
 		$rows = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}ebay_manufacturers ORDER BY company ASC");
@@ -1517,6 +1554,13 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_get_manufacturer() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
+		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
+			die( json_encode( [ 'success' => false ] ) );
+		}
+
 		global $wpdb;
 
 		$id = wc_clean( intval( $_POST['id'] ) );
@@ -1525,6 +1569,8 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_add_manufacturer() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
 			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
@@ -1566,6 +1612,8 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_update_manufacturer() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
 			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
@@ -1616,7 +1664,10 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_delete_manufacturer() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
 		}
 
@@ -1633,7 +1684,10 @@ class WPL_AjaxHandler extends WPL_Core {
 	}
 
 	public function ajax_wple_add_document() {
+		check_admin_referer( 'wple_ajax_nonce' );
+
 		if ( ! current_user_can('prepare_ebay_listings') ) {
+			http_response_code(400);
 			die( json_encode( [ 'success' => false ] ) );
 		}
 
@@ -1739,36 +1793,37 @@ class WPL_AjaxHandler extends WPL_Core {
 				$this->EC->closeEbay();
 
 				if ( is_array( $products ) ) {
-	
 					// save cache
 					set_transient( $transient_key, $products, 300 );
 				}
 			}
 
-			if ( is_array( $products ) )  {
-
-				// load template
-				$tpldata = array(
-					'plugin_url'				=> self::$PLUGIN_URL,
-					'message'					=> $this->message,
-					'query'						=> $query,				
-					'query_product'				=> $product,				
-					'query_product_attributes'	=> $product_attributes,
-					'products'					=> $products,				
-					'post_id'					=> intval($_REQUEST['id']),				
-					'query_select'				=> isset($_REQUEST['query_select']) ? wple_clean($_REQUEST['query_select']) : false,
-					'form_action'				=> 'admin.php?page='.self::ParentMenuId
-				);
-
-				WPLE()->pages['listings']->display( 'match_product', $tpldata );
-
-			// } elseif ( $product->Error->Message ) {
-			// 	$errors  = sprintf( __( 'There was a problem fetching product details for %s.', 'wp-lister-for-ebay' ), $product->post->post_title ) .'<br>Error: '. $reports->Error->Message;
-			} else {
-				$errors  = sprintf( __( 'There were no products found for query %s.', 'wp-lister-for-ebay' ), $query );
-				//echo $errors;
-				//echo "<pre>Debug information: ";print_r($products);echo"</pre>";
+			// Prepare error message if products is not an array
+			$error_message = '';
+			if ( ! is_array( $products ) ) {
+				if ( is_string( $products ) ) {
+					$error_message = $products;
+				} else {
+					$error_message = sprintf( __( 'There were no products found for query %s.', 'wp-lister-for-ebay' ), $query );
+				}
 			}
+
+			// load template with products (if found) or empty array with error message
+            $tpldata = array(
+			  'plugin_url'				    => self::$PLUGIN_URL,
+			  'message'					    => $error_message ? $error_message : $this->message,
+			  'query'						=> $query,
+			  'query_product'				=> $product,
+			  'query_product_attributes'	=> $product_attributes,
+			  'products'					=> is_array( $products ) ? $products : array(),
+			  'post_id'					    => intval($_REQUEST['id']),
+			  'query_select'				=> isset($_REQUEST['query_select']) ? wple_clean($_REQUEST['query_select']) : false,
+			  'form_action'				    => 'admin.php?page='.self::ParentMenuId
+            );
+
+            WPLE()->pages['listings']->display( 'match_product', $tpldata );
+
+
 			exit();
 
 		} else {
@@ -1870,7 +1925,13 @@ class WPL_AjaxHandler extends WPL_Core {
 
 	// show dynamic listing gallery
 	public function ajax_wpl_ebay_store_categories() {
-	
+		// Security checks
+		check_admin_referer( 'wple_ajax_nonce' );
+		if ( ! current_user_can('manage_ebay_listings') ) {
+			wp_send_json_error( 'Insufficient permissions' );
+			exit();
+		}
+
 		$default_account_id = get_option( 'wplister_default_account_id' );
 		$account_id         = isset( $_REQUEST['account_id'] ) ? intval($_REQUEST['account_id']) : $default_account_id;	
 
@@ -1895,7 +1956,13 @@ class WPL_AjaxHandler extends WPL_Core {
 	// process ebay item query (AJAX)
 	// (this is/was used by JS in dynamic listing content to fetch the ebay ItemID for a specific listing_id)
 	public function ajax_wpl_ebay_item_query() {
-	
+		// Security checks
+		check_admin_referer( 'wple_ajax_nonce' );
+		if ( ! current_user_can('manage_ebay_listings') ) {
+			wp_send_json_error( 'Insufficient permissions' );
+			exit();
+		}
+
 		$col         = isset( $_REQUEST['col'] ) ? sanitize_key($_REQUEST['col'] ) : 'ebay_id';	
 		$id          = isset( $_REQUEST['id']  ) ?       intval($_REQUEST['id']  ) : false;	
 		if ( $col != 'ebay_id' ) return; // limited to single use case for now
@@ -1978,7 +2045,58 @@ class WPL_AjaxHandler extends WPL_Core {
         exit;
     }
 
-		
+
+	/**
+	 * Sync profile data to product meta fields
+	 *
+	 * @param array $profile Profile data
+	 * @param array $product_ids Array of product IDs
+	 */
+	private function syncProfileToProductMeta( $profile, $product_ids ) {
+		if ( ! $profile || ! isset($profile['type']) ) {
+			return;
+		}
+
+		foreach ($product_ids as $product_id) {
+			// check if auction type has actually changed before doing expensive operations
+			$current_auction_type = get_post_meta( $product_id, '_ebay_auction_type', true );
+			$profile_auction_type = $profile['type'];
+
+			// only process auction type if it's different from current value
+			if ( $current_auction_type !== $profile_auction_type ) {
+				// check if product has any published/live listings that prevent auction type changes
+				$existing_listings = WPLE_ListingQueryHelper::getAllListingsFromPostID( $product_id );
+				$has_live_listing = false;
+
+				foreach ($existing_listings as $listing) {
+					if ( in_array($listing->status, array('published', 'changed')) ) {
+						$has_live_listing = true;
+						break;
+					}
+				}
+
+				// only update auction type if no live listings exist
+				if ( !$has_live_listing ) {
+					update_post_meta( $product_id, '_ebay_auction_type', $profile_auction_type );
+				}
+			}
+
+			// always sync other profile settings (these are safe to change)
+			if ( isset($profile['listing_duration']) ) {
+				update_post_meta( $product_id, '_ebay_listing_duration', $profile['listing_duration'] );
+			}
+
+			if ( isset($profile['details']['condition_id']) ) {
+				$current_condition = get_post_meta( $product_id, '_ebay_condition_id', true );
+
+				// Only update if product doesn't have a condition set #72965
+				if ( empty( $current_condition ) ) {
+					update_post_meta( $product_id, '_ebay_condition_id', $profile['details']['condition_id'] );
+				}
+			}
+		}
+	}
+
 } // class WPL_AjaxHandler
 
 // instantiate object

@@ -674,6 +674,7 @@ class ProductWrapper {
 				// $newvar['name'] = $value; #deprecated
 				// v2
 				$taxonomy = str_replace('attribute_', '', $key); // attribute_pa_color -> pa_color
+				$taxonomy = rawurldecode( $taxonomy ); // Decode URL-encoded taxonomy names (e.g., pa_cable-size-mm%c2%b2 -> pa_cable-size-mm²)
 				// $term = get_term_by('slug', $value, $taxonomy );
 				$term = WPLE()->memcache->getTermBy( 'slug', $value, $taxonomy );
 				// echo "<pre>key  : ";print_r($key);echo"</pre>";
@@ -700,11 +701,13 @@ class ProductWrapper {
 					foreach ($variation_attributes[ $attribute_label ] as $custom_name ) {
 						if ( $value == sanitize_title($custom_name) ) $custom_value = $custom_name;
 					}
+					$custom_value = html_entity_decode( $custom_value, ENT_QUOTES, 'UTF-8' );
 					$newvar['variation_attributes'][ @$attribute_labels[ $key ] ] = $custom_value;
 					// echo "no term* found for $key<br>";
 					// echo "no term* found for $value<br>";
 				} elseif ( $value ) {
 					// handle fake custom product attributes
+					$value = html_entity_decode( $value, ENT_QUOTES, 'UTF-8' );
 					$newvar['variation_attributes'][ @$attribute_labels[ $key ] ] = $value;
 					// echo "no term found for $key<br>";
 					// echo "no term found for $value<br>";
@@ -986,6 +989,7 @@ class ProductWrapper {
 			foreach ($attributes as $key => $value) {	// this loop will only run once for one dimensional variations
 				// v2
 				$taxonomy = str_replace('attribute_', '', $key); // attribute_pa_color -> pa_color
+				$taxonomy = rawurldecode( $taxonomy ); // Decode URL-encoded taxonomy names (e.g., pa_cable-size-mm%c2%b2 -> pa_cable-size-mm²)
 				$term = WPLE()->memcache->getTermBy( 'slug', $value, $taxonomy );
 
 				// try to fetch term by name - required for values like "0" or "000"

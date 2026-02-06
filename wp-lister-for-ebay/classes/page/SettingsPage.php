@@ -299,6 +299,7 @@ class SettingsPage extends WPL_Page {
 			'exclude_attributes'        	=> self::getOption( 'exclude_attributes' ),
 			'exclude_variation_values'      => self::getOption( 'exclude_variation_values' ),
 			'enable_template_uploads'       => self::getOption( 'enable_template_uploads', 0 ),
+			'auto_archive_listings'         => self::getOption( 'auto_archive_listings', 1 ),
 			'autofill_missing_gtin'         => self::getOption( 'autofill_missing_gtin', '' ),
 			'option_local_timezone'         => self::getOption( 'local_timezone', '' ),
 			'text_admin_menu_label'         => wp_kses( self::getOption( 'admin_menu_label', $this->app_name ), [] ),
@@ -503,6 +504,7 @@ class SettingsPage extends WPL_Page {
 		self::updateOption( 'apply_profile_to_ebay_price',		$this->getValueFromPost( 'apply_profile_to_ebay_price' ) );
 		self::updateOption( 'description_blacklist',		        $this->getValueFromPost( 'description_blacklist', null, true ) );
 		self::updateOption( 'enable_template_uploads',			$this->getValueFromPost( 'enable_template_uploads' ) );
+		self::updateOption( 'auto_archive_listings',			$this->getValueFromPost( 'auto_archive_listings' ) );
 		self::updateOption( 'autofill_missing_gtin',			$this->getValueFromPost( 'autofill_missing_gtin' ) );
 		self::updateOption( 'auto_update_ended_items',			$this->getValueFromPost( 'auto_update_ended_items' ) );
 

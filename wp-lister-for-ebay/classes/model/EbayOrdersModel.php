@@ -83,7 +83,11 @@ class EbayOrdersModel extends WPL_Model {
             $now = gmdate('U');
             $lastdate = $this->getDateOfLastOrder( $this->account_id );
             WPLE()->logger->info("getDateOfLastOrder( {$this->account_id} ) returned: ".$lastdate);
-            if ($lastdate) $lastdate = mysql2date('U', $lastdate);
+            if ($lastdate) {
+                $lastdate = mysql2date('U', $lastdate);
+                // Add 1 second to prevent re-fetching the same order (ModTimeFrom is inclusive)
+                $lastdate = $lastdate + 1;
+            }
 
             // if last date is older than 30 days, fall back to default
             if ( $lastdate < $now - 3600 * 24 * 30 ) {

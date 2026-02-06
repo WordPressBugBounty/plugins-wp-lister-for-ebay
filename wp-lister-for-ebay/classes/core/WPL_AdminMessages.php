@@ -49,6 +49,9 @@ class WPLE_AdminMessages {
             return;
         }
 
+        // Track if we have persistent messages to clear
+        $had_persistent_messages = !empty( $this->messages );
+
         // Start with flash messages
         foreach ( $this->flash_messages as $msg ) {
             $this->show_single_message( $msg->message, $msg->type, $msg->params );
@@ -62,7 +65,11 @@ class WPLE_AdminMessages {
         // clear messages after display
         $this->messages = array();
         $this->flash_messages = array();
-        set_transient( 'wple_admin_messages', $this->messages );
+
+        // Only update transient if we actually had persistent messages to clear
+        if ( $had_persistent_messages ) {
+            set_transient( 'wple_admin_messages', $this->messages );
+        }
 
     } // show_admin_notices()
 

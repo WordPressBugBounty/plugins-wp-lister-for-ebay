@@ -103,6 +103,51 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.8.6 - 2026-01-28 =
+* New: Setting to disable the automatic archiving of listings
+* Fix: Profile Secondary Category form displays wrong value due to key mismatch
+* Fix: Profile secondary category setting ignored when category mapping exists
+* Fix: Bulk edit clears custom eBay Start Price when field is left empty
+* Fix: Preparing a listing overwrites any existing product-level Item Conditions without checking
+* Fix: Null pointer exception when processing refunds with corrupted data
+* Fix: Order sync infinite loop caused by inclusive timestamp boundary
+* Fix: Fatal error when verifying listings without assigned profiles
+* Fix: License UI deadlock when activation flag set without credentials
+* Fix: Hidden variation prices included in display and flatten calculations
+* Fix: Apply unit quantity decimal fix to product-level attributes
+* Fix: Unit quantity decimal separator handling for EU decimals
+* Fix: SiteID is incorrect when relisting to eBayMotors
+* Fix: Auto-relist infinite rescheduling loop and processing order
+* Fix: Double profile price adjustment in listings table for simple products
+* Fix: URL-decode taxonomy names for proper variation attribute display
+* Fix: Prevent VAT calculation on eBay-collected fees
+* Fix: "Placed on eBay" filter conflicts with Amazon plugin filter highlighting
+* Fix: eBay Fee label showing on non-eBay orders with discount fees
+* Fix: Only set the StoreFront if at least one store category has a valid ID
+* Fix: PHP Warning: preg_match(): Unknown modifier 't'
+* Dev: Ajax Handler security fixes
+
+= 3.8.5 - 2025-11-19 =
+* Fix: Packaging and Handling Cost for International Shipping always showing 1
+* Fix: Double encoding of variation values causing Variation Specifics Mismatch error
+* Fix: Security fixes
+* Fix: Match Product window is blank if the product title doesn't return any matches
+* Fix: Additional fix to check for the value of the Secondary Store Category ID
+* Fix: Extending the WC_Rest_Controller class when WC isn't active is causing a fatal error
+* Fix: Skip setting the SecondaryCategory to 0 if no category is selected
+* Fix: Don't read MPNs for variations if it is disabled in the settings
+* Fix: Profile price adjustments ignored for simple products in listings table
+* Dev: Only update admin message transient when messages were displayed
+
+= 3.8.4 - 2025-10-02 =
+* Fix: Decode HTML entities prior to sending them to eBay as item attributes
+* Fix: Undefined array key "custom_tracking_link"
+* Fix: Switching profiles should overwrite product-level auction type and duration
+* Fix: Error when trying to access $Pictures->getPicture()
+* Fix: Use eBay Order Number setting not working with HPOS
+* Fix: Allow zero-quantity variable listings when Out-of-Stock Control is enabled
+* Fix: Quantity check for items returning FALSE even when Quantity is set to 1
+
 = 3.8.3 - 2025-09-08 =
 * New: Added support for TranslatePress
 * Fix: Include the price of variations for deletion to prevent getting Invalid Price errors when revising parent variables that are out of stock

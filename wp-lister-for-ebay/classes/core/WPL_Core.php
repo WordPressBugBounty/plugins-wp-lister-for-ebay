@@ -134,8 +134,8 @@ class WPL_Core {
 		    $parts = parse_url( get_bloginfo( 'siteurl' ) );
 		    $domain = $parts['host'];
         }*/
-		
-		if ( preg_match( "/$staging_site_pattern/", $url ) ) {
+
+		if ( preg_match( "#". preg_quote( $staging_site_pattern, '#' ) ."#", $url ) ) {
 			return true;
 		}
 		if ( preg_match( "/wpstagecoach.com/", $url ) ) {

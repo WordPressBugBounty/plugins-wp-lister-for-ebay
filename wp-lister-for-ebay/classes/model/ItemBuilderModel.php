@@ -262,29 +262,36 @@ class ItemBuilderModel extends WPL_Model {
 			$this->item->setSecondaryCategory( $category );
 		}
 
+		/**
+		 * Disabled this block since SecondaryCategory is already being set above #72307
+		 */
 		// if no secondary category, set to zero
 		// Also set to zero if Secondary Category in the profile is disabled
-		$secondary = $this->item->getSecondaryCategory();
+		/*$secondary = $this->item->getSecondaryCategory();
 		if ( empty( $secondary ) || @$profile_details['enable_secondary_category'] == 0 ) {
 			$category = new CategoryType();
 			$category->setCategoryID( 0 );
 
 			$this->item->setSecondaryCategory( $category );
-		}
+		}*/
 
 		$primary_store_category = $listing->getPrimaryStoreCategory( $product_id);
 		$secondary_store_category = $listing->getSecondaryStoreCategory( $product_id );
 
-		$storefront = new StorefrontType();
-		if ( intval( $primary_store_category ) > 0 ) {
-			$storefront->setStoreCategoryID( $primary_store_category );
-		}
+		// Only set Storefront if at least one store category has a valid ID
+		if ( intval( $primary_store_category ) > 0 || intval( $secondary_store_category ) > 0 ) {
+			$storefront = new StorefrontType();
+			if ( intval( $primary_store_category ) > 0 ) {
+				$storefront->setStoreCategoryID( $primary_store_category );
+			}
 
-		if ( $secondary_store_category && $secondary_store_category != $primary_store_category ) {
-			$storefront->setStoreCategory2ID( $secondary_store_category );
-		}
+			// Only set secondary store category if it's a valid ID (> 0) and different from primary
+			if ( intval( $secondary_store_category ) > 0 && $secondary_store_category != $primary_store_category ) {
+				$storefront->setStoreCategory2ID( $secondary_store_category );
+			}
 
-		$this->item->setStorefront( $storefront );
+			$this->item->setStorefront( $storefront );
+		}
 
 		// adjust Site if required - eBay Motors (beta)
 		if ( $this->item->getSite() == 'US' ) {
@@ -1436,7 +1443,8 @@ class ItemBuilderModel extends WPL_Model {
 
                 // support for multi value attributes
                 // $value = 'blue|red|green';
-                if ( apply_filters( 'wple_attribute_comma_separated_values', true ) ) {
+                // Preserve comma in numeric values (e.g., "0,75" for German sites)
+                if ( apply_filters( 'wple_attribute_comma_separated_values', true ) && !$this->isNumericValue( $value ) ) {
                     $value = str_replace( ',', '|', $value );
                 }
 
@@ -1526,6 +1534,11 @@ class ItemBuilderModel extends WPL_Model {
 
 	    		// support for multi value attributes
 	    		// $value = 'blue|red|green';
+                // Preserve comma in numeric values (e.g., "0,75" for German sites)
+                if ( apply_filters( 'wple_attribute_comma_separated_values', true ) && !$this->isNumericValue( $value ) ) {
+                    $value = str_replace( ',', '|', $value );
+                }
+
 	    		$values = explode('|', $value);
 	    		foreach ($values as $value) {
 	        		if ( $this->mb_strlen( $value ) > 65 ) continue;
@@ -1582,6 +1595,11 @@ class ItemBuilderModel extends WPL_Model {
 
     		// support for multi value attributes
     		// $value = 'blue|red|green';
+            // Preserve comma in numeric values (e.g., "0,75" for German sites)
+            if ( apply_filters( 'wple_attribute_comma_separated_values', true ) && !$this->isNumericValue( $value ) ) {
+                $value = str_replace( ',', '|', $value );
+            }
+
     		$values = explode('|', $value);
     		foreach ($values as $value) {
                 $value = WPLE_TranslationHelper::translateText( $value, $this->account_id );
@@ -1615,21 +1633,15 @@ class ItemBuilderModel extends WPL_Model {
         // Add UnitInfo from WC Germanized #32412
         // reference https://developer.ebay.com/devzone/shopping/docs/callref/types/UnitInfoType.html
         // reference https://ebaydts.com/eBayKBDetails?KBid=2202
-        if ( $this->is_plugin_active( 'woocommerce-germanized/woocommerce-germanized.php' ) ) {
+        if ( class_exists( 'WooCommerce_Germanized' ) ) {
             $unit_quantity = get_post_meta( $this->product_id, '_unit_product', true );
             $unit_type = get_post_meta( $this->product_id, '_unit', true );
-
-            // Seems like we need to convert . to , for the unit_quantity
-            $unit_quantity = str_replace( '.', ',', $unit_quantity );
         }
 
         // And add support for the German Market plugin as well #34774
         if ( $this->is_plugin_active( 'woocommerce-german-market/WooCommerce-German-Market.php' ) ) {
             $unit_quantity = get_post_meta( $this->product_id, '_unit_regular_price_per_unit_mult', true );
             $unit_type = get_post_meta( $this->product_id, '_unit_regular_price_per_unit', true );
-
-            // Seems like we need to convert . to , for the unit_quantity
-            $unit_quantity = str_replace( '.', ',', $unit_quantity );
         }
 
         // Added filters for #43788
@@ -1663,6 +1675,19 @@ class ItemBuilderModel extends WPL_Model {
         }
 
 	} /* end of buildItemSpecifics() */
+
+	/**
+	 * Check if a value is numeric, allowing both comma and dot as decimal separators.
+	 * Used to preserve locale-specific decimal formatting in ItemSpecifics.
+	 *
+	 * @param string $value The value to check
+	 * @return bool True if the value is numeric (e.g., "75", "0.75", "0,75"), false otherwise
+	 */
+	private function isNumericValue( $value ) {
+		// Match: digits, optional comma/dot, optional digits
+		// Examples: "75", "0.75", "0,75", "100"
+		return preg_match('/^\d+[,.]?\d*$/', trim($value)) === 1;
+	}
 
 	/**
 	 * @return EnergyEfficiencyType
@@ -2129,6 +2154,9 @@ class ItemBuilderModel extends WPL_Model {
 				$value = apply_filters( 'wple_variation_attribute_value', $value, $name, $var, $this );
                 $value = $this->processSizeMapReplacements( $name, $value, $this->profile_details);
 
+                // Decode URL-encoded values (fixes issue with %c2%b2 encoding of ² character) #72430
+                $value = rawurldecode( $value );
+
                 $NameValueList = new NameValueListType();
                 $NameValueList->setName ( $name  );
                 $NameValueList->setValue( $value );
@@ -2222,7 +2250,10 @@ class ItemBuilderModel extends WPL_Model {
             // the Brand must be specified at the item level (ItemSpecifics container)
             // and the MPN for each product variation must be specified at the variation level (VariationSpecifics container).
             // The Brand name must be the same for all variations within a single listing.
-	        if ( $product_mpn = get_post_meta( $post_id, '_ebay_mpn', true ) ) {
+            // Only add MPN to variations if the setting is enabled (1 = Yes, not 2 = Hide for variations)
+            $enable_mpn_for_variations = get_option( 'wplister_enable_mpn_and_isbn_fields', 2 ) == 1;
+
+	        if ( $enable_mpn_for_variations && ( $product_mpn = get_post_meta( $post_id, '_ebay_mpn', true ) ) ) {
             //if ( $product_mpn = $this->listing->getProductProperty( '_ebay_mpn' ) ) {
 
                 $NameValueList = new NameValueListType();
@@ -2233,7 +2264,7 @@ class ItemBuilderModel extends WPL_Model {
                 $newvar->setVariationSpecifics( $VariationSpecifics );
 
                 $collectedMPNs[] = $product_mpn;
-            } elseif ( $var['sku'] && ( $this->profile_details['use_sku_as_mpn'] == '1' ) ) {
+            } elseif ( $enable_mpn_for_variations && $var['sku'] && ( $this->profile_details['use_sku_as_mpn'] == '1' ) ) {
                 $NameValueList = new NameValueListType();
                 $NameValueList->setName ( 'MPN' );
                 $NameValueList->setValue( $var['sku'] );
@@ -2274,6 +2305,9 @@ class ItemBuilderModel extends WPL_Model {
 	            $value = apply_filters( 'wple_variation_attribute_value', $value, $name, $var, $this );
                 $value = $this->processSizeMapReplacements( $name, $value, $this->profile_details );
 
+                // Decode URL-encoded values (fixes issue with %c2%b2 encoding of ² character) #72430
+                $value = rawurldecode( $value );
+
                 if ( ! isset($this->tmpVariationSpecificsSet[ $name ]) || ! is_array($this->tmpVariationSpecificsSet[ $name ]) ) {
                     $this->tmpVariationSpecificsSet[ $name ] = array();
                 }
@@ -2285,14 +2319,18 @@ class ItemBuilderModel extends WPL_Model {
         }
 
         // add collected MPNs to tmp array
-        foreach ( $collectedMPNs as $value ) {
-            $name = 'MPN';
+        // Only add if MPNs are enabled for variations (setting = 1)
+        $enable_mpn_for_variations = get_option( 'wplister_enable_mpn_and_isbn_fields', 2 ) == 1;
+        if ( $enable_mpn_for_variations ) {
+            foreach ( $collectedMPNs as $value ) {
+                $name = 'MPN';
 
-            if ( ! is_array($this->tmpVariationSpecificsSet[ $name ]) ) {
-                $this->tmpVariationSpecificsSet[ $name ] = array();
-            }
-            if ( ! in_array( $value, $this->tmpVariationSpecificsSet[ $name ], true ) ) {
-                $this->tmpVariationSpecificsSet[ $name ][] = $value;
+                if ( ! is_array($this->tmpVariationSpecificsSet[ $name ]) ) {
+                    $this->tmpVariationSpecificsSet[ $name ] = array();
+                }
+                if ( ! in_array( $value, $this->tmpVariationSpecificsSet[ $name ], true ) ) {
+                    $this->tmpVariationSpecificsSet[ $name ][] = $value;
+                }
             }
         }
 
@@ -2368,6 +2406,9 @@ class ItemBuilderModel extends WPL_Model {
             if ( isset($VariationIndexForPictures) && isset( $var['variation_attributes'][$VariationIndexForPictures] ) ) {
                 $VariationValue = $var['variation_attributes'][$VariationIndexForPictures];
             }
+
+            // Decode URL-encoded values (fixes issue with %c2%b2 encoding of ² character) #72430
+            $VariationValue = rawurldecode( $VariationValue );
 
             if ( in_array( $VariationValue, (array)$VariationValuesForPictures ) ) {
 
@@ -2487,7 +2528,11 @@ class ItemBuilderModel extends WPL_Model {
             }
 
         }
-        $this->item->getVariations()->setPictures( $Pictures );
+        
+        // Only set Pictures if it has content to avoid empty XML tags
+        if ( $Pictures && is_array($Pictures->getVariationSpecificPictureSet()) && count($Pictures->getVariationSpecificPictureSet()) > 0 ) {
+            $this->item->getVariations()->setPictures( $Pictures );
+        }
 
         // ebay doesn't allow different weight and dimensions for varations
         // so for calculated shipping services we just fetch those from the first variation
@@ -2657,6 +2702,7 @@ class ItemBuilderModel extends WPL_Model {
 
         $this->variationAttributes = array();
         $total_stock = 0;
+        $variation_prices = array();
 
         // find default variation
         $default_variation = reset( $variations );
@@ -2672,6 +2718,9 @@ class ItemBuilderModel extends WPL_Model {
 
 	        // count total stock
 	        $total_stock += $var['stock'];
+
+	        // collect prices from filtered variations (excludes hidden variations)
+	        $variation_prices[] = $var['price'];
         }
 
         // list accumulated stock quantity if not set in profile
@@ -2679,15 +2728,16 @@ class ItemBuilderModel extends WPL_Model {
         	$this->item->Quantity = $total_stock;
 
         /**
-         * Set the product's price.
+         * Set the product's price from filtered variations.
          *
-         * Check for a custom Start Price in the parent and use it if it exists. Otherwise, load the price of the
-         * default variation.
+         * Calculate minimum price from filtered variations (excludes hidden variations)
+         * and pass to getStartPrice() which handles custom prices and profile modifiers.
          */
-		$start_price = $this->listing->getStartPrice();
+        $min_variation_price = !empty($variation_prices) ? min($variation_prices) : 0;
+        $start_price = $this->listing->getStartPrice($min_variation_price);
 
         $this->item->getStartPrice()->setTypeValue( self::dbSafeFloatval( $start_price ) );
-        WPLE()->logger->info("using start price from Listing::getStartPrice(): ".print_r($this->item->getStartPrice()->getTypeValue(),1));
+        WPLE()->logger->info("using start price from filtered variations: ".print_r($this->item->getStartPrice()->getTypeValue(),1));
 
 
     	// ebay doesn't allow different weight and dimensions for varations
@@ -2795,37 +2845,13 @@ class ItemBuilderModel extends WPL_Model {
 	        	$newvar->Quantity = 0;
 				
 				// eBay now apparently requires the StartPrice when deleting variations
-				// Apply the same price processing logic as working variations
-				$start_price = $var['price'];
-				
-				// Apply profile pricing if price exists
-				if ( !empty($start_price) ) {
-					$start_price = ListingsModel::applyProfilePrice( $start_price, $this->profile_details['start_price'] );
-				}
-				
-				// Handle custom eBay start prices if available
-				if ( get_option( 'wplister_enable_custom_product_prices', 1 ) && isset($var['post_id']) ) {
-					$product_start_price = get_post_meta( $var['post_id'], '_ebay_start_price', true );
-					if ( $product_start_price ) {
-						if ( 0 == get_option( 'wplister_apply_profile_to_ebay_price', 0 ) ) {
-							$start_price = wc_format_decimal( $product_start_price );
-						} else {
-							$start_price = ListingsModel::applyProfilePrice( wc_format_decimal( $product_start_price ), $this->profile_details['start_price'] );
-						}
-					}
-				}
-				
-				// Fallback to listing price if variation price is empty/invalid
-				if ( empty($start_price) || $start_price <= 0 ) {
-					$start_price = $this->listing->getStartPrice();
-					if ( !empty($start_price) ) {
-						$start_price = ListingsModel::applyProfilePrice( $start_price, $this->profile_details['start_price'] );
-					}
-				}
+				$start_price = $this->getVariationPriceForDeletion( $var );
 				
 				// Set the processed price using the proper method
 				if ( !empty($start_price) && $start_price > 0 ) {
-					$newvar->setStartPrice( self::dbSafeFloatval( $start_price ) );
+					// Round to 2 decimal places to avoid eBay price validation errors
+					$rounded_price = round( $start_price, 2 );
+					$newvar->setStartPrice( self::dbSafeFloatval( $rounded_price ) );
 				}
 
 				// handle sku
@@ -2836,6 +2862,9 @@ class ItemBuilderModel extends WPL_Model {
 	        	// add VariationSpecifics (v2)
 	        	$VariationSpecifics = new NameValueListArrayType();
 	            foreach ($var['variation_attributes'] as $name => $value) {
+                    // Decode URL-encoded values (fixes issue with %c2%b2 encoding of ² character) #72430
+                    $value = rawurldecode( $value );
+
 		            $NameValueList = new NameValueListType();
 	    	    	$NameValueList->setName ( $name  );
 	        		$NameValueList->setValue( $value );
@@ -2843,19 +2872,30 @@ class ItemBuilderModel extends WPL_Model {
 	            }
 	        	$newvar->setVariationSpecifics( $VariationSpecifics );
 
-	        	// tell eBay to delete this variation - only possible for items without sales
-                $delete_unsold = apply_filters( 'wplister_delete_unsold_variations', array(true), '2.8.4', 'wple_delete_unsold_variations' );
-                $delete_unsold = apply_filters( 'wple_delete_unsold_variations', $delete_unsold );
-	        	if ( isset($var['sold']) && ( intval($var['sold']) == 0 ) && $delete_unsold ) {
-		        	$newvar->setDelete( true );
-	                WPLE()->logger->info('setDelete(true) - sold qty: '.$var['sold']);
+	        	// Check if account uses Out-of-Stock Control
+	        	if ( \ListingsModel::thisAccountUsesOutOfStockControl( $this->account_id ) ) {
+	        	    // With OOSC enabled, just set quantity to 0 - don't try to delete
+	        	    WPLE()->logger->info('OOSC enabled - setting variation quantity to 0 instead of deleting. SKU: ' . $var['sku']);
+	        	    // Variation will be added with quantity 0, no deletion flag needed
 	        	} else {
-	        	    // It doesn't make sense to continue if this variation cannot be deleted
-                    continue;
-                }
+	        	    // Original deletion logic for accounts without OOSC
+	        	    $delete_unsold = apply_filters( 'wplister_delete_unsold_variations', array(true), '2.8.4', 'wple_delete_unsold_variations' );
+	        	    $delete_unsold = apply_filters( 'wple_delete_unsold_variations', $delete_unsold );
+	        	    if ( isset($var['sold']) && ( intval($var['sold']) == 0 ) && $delete_unsold ) {
+	        	        $newvar->setDelete( true );
+	        	        WPLE()->logger->info('setDelete(true) - sold qty: '.$var['sold']);
+	        	    } else {
+	        	        // It doesn't make sense to continue if this variation cannot be deleted
+	        	        continue;
+	        	    }
+	        	}
 
 				$item->Variations->addVariation( $newvar );
-                WPLE()->logger->info('added variation to be deleted: '.print_r($newvar,1) );
+                if ( \ListingsModel::thisAccountUsesOutOfStockControl( $this->account_id ) ) {
+                    WPLE()->logger->info('added variation with 0 quantity (OOSC): '.print_r($newvar,1) );
+                } else {
+                    WPLE()->logger->info('added variation to be deleted: '.print_r($newvar,1) );
+                }
 
                 //
                 // update VariationSpecificsSet - to avoid Error 21916608: Variation cannot be deleted during restricted revise
@@ -2864,6 +2904,9 @@ class ItemBuilderModel extends WPL_Model {
 		        // build extra (!) temporary array for VariationSpecificsSet
 		    	$extraVariationSpecificsSet = array();
 	            foreach ($var['variation_attributes'] as $name => $value) {
+                    // Decode URL-encoded values (fixes issue with %c2%b2 encoding of ² character) #72430
+                    $value = rawurldecode( $value );
+
 	    	    	if ( ! is_array($this->tmpVariationSpecificsSet[ $name ]) ) {
 			        	$this->tmpVariationSpecificsSet[ $name ] = array(); 	// make sure the second level array exists
 	    	    	}
@@ -2873,26 +2916,54 @@ class ItemBuilderModel extends WPL_Model {
 		        	if ( ! in_array( $value, $this->tmpVariationSpecificsSet[ $name ] ) ) {
 		        		$extraVariationSpecificsSet[ $name ][]     = $value;	// add extra value which doesn't exist yet
 		        		$this->tmpVariationSpecificsSet[ $name ][] = $value;	// add extra value which doesn't exist yet
+		        		
+		        		// Also update variationAttributes to exclude this from ItemSpecifics
+		        		if ( ! in_array( $name, $this->variationAttributes ) ) {
+		        			$this->variationAttributes[] = $name;
+		        			WPLE()->logger->info('Added variation attribute from deleted variation: ' . $name);
+		        		}
 		        	}
 	            }
-		        // build VariationSpecificsSet
-		    	// $VariationSpecificsSet = new NameValueListArrayType();
+		        // build VariationSpecificsSet - update existing one with deleted variation attributes
+		        WPLE()->logger->info('Updating VariationSpecificsSet with deleted variation attributes: ' . print_r($extraVariationSpecificsSet, true));
 		        foreach ($extraVariationSpecificsSet as $name => $values) {
-
-		        	foreach ($item->Variations->VariationSpecificsSet->NameValueList as $NameValueList) {
-
-		        		// check if this is the attribute we're looking for
-		        		if ( $NameValueList->Name != $name ) continue;
-
-						// add missing attribute values
-			            foreach ($values as $value) {
-				        	$NameValueList->addValue( $value );
-				        }
-
+		        	$attribute_found = false;
+		        	
+		        	// Check if VariationSpecificsSet exists and has NameValueList
+		        	if ($item->Variations->VariationSpecificsSet && $item->Variations->VariationSpecificsSet->NameValueList) {
+		        		foreach ($item->Variations->VariationSpecificsSet->NameValueList as $NameValueList) {
+		        			// check if this is the attribute we're looking for
+		        			if ( $NameValueList->Name == $name ) {
+		        				$attribute_found = true;
+		        				// add missing attribute values to existing attribute
+		        				foreach ($values as $value) {
+		        					$NameValueList->addValue( $value );
+		        				}
+		        				break;
+		        			}
+		        		}
 		        	}
-
+		        	
+		        	// If attribute doesn't exist in VariationSpecificsSet, add it as new attribute
+		        	if ( !$attribute_found ) {
+		        		WPLE()->logger->info('Adding new attribute to VariationSpecificsSet: ' . $name);
+		        		
+		        		// Create VariationSpecificsSet if it doesn't exist
+		        		if (!$item->Variations->VariationSpecificsSet) {
+		        			$item->Variations->VariationSpecificsSet = new NameValueListArrayType();
+		        		}
+		        		
+		        		$NameValueList = new NameValueListType();
+		        		$NameValueList->setName( $name );
+		        		foreach ($values as $value) {
+		        			$NameValueList->addValue( $value );
+		        		}
+		        		$item->Variations->VariationSpecificsSet->addNameValueList( $NameValueList );
+		        	}
 		        } // foreach $extraVariationSpecificsSet
-
+		        
+		        // Remove any variation attributes from ItemSpecifics to avoid eBay's "Requires Unique Variation Specifics and Item Specifics" error
+		        $this->removeVariationAttributesFromItemSpecifics( $extraVariationSpecificsSet );
 
         	} // if checkIfVariationExistsInItem()
 
@@ -2904,6 +2975,11 @@ class ItemBuilderModel extends WPL_Model {
     function checkIfVariationExistsInItem( $variation, $item ) {
         WPLE()->logger->info( 'checkIfVariationExistsInItem' );
     	$variation_attributes = $variation['variation_attributes'];
+
+        // Decode URL-encoded attribute values (fixes issue with %c2%b2 encoding of ² character) #72430
+        foreach ( $variation_attributes as $key => $value ) {
+            $variation_attributes[ $key ] = rawurldecode( $value );
+        }
 
         // loop existing item variations
         foreach ( $item->Variations->Variation as $Variation ) {
@@ -3005,14 +3081,20 @@ class ItemBuilderModel extends WPL_Model {
 				}
 
 				// check for MPNs in VariationSpecifics container
-				foreach ($var->VariationSpecifics->NameValueList as $spec) {
-					if ( $spec->Name == 'MPN' ) $VariationsHaveMPNs = true;
+				// Only check if MPNs are enabled for variations
+				$enable_mpn_for_variations = get_option( 'wplister_enable_mpn_and_isbn_fields', 2 ) == 1;
+				if ( $enable_mpn_for_variations ) {
+					foreach ($var->VariationSpecifics->NameValueList as $spec) {
+						if ( $spec->Name == 'MPN' ) $VariationsHaveMPNs = true;
+					}
 				}
 
 			}
 
 			// fix missing MPNs in VariationSpecifics container - prevent Error: Missing name in name-value list. (21916587)
-			if ( $VariationsHaveMPNs ) {
+			// Only fix if MPNs are enabled for variations
+			$enable_mpn_for_variations = get_option( 'wplister_enable_mpn_and_isbn_fields', 2 ) == 1;
+			if ( $enable_mpn_for_variations && $VariationsHaveMPNs ) {
 
 				$DoesNotApplyText = WPLE_eBaySite::getSiteObj( $this->site_id )->DoesNotApplyText;
 				$DoesNotApplyText = empty( $DoesNotApplyText ) ? 'Does not apply' : $DoesNotApplyText;
@@ -3634,6 +3716,118 @@ class ItemBuilderModel extends WPL_Model {
 
         $html = str_ireplace( $lines, '', $html );
         return $html;
+    }
+
+    /**
+     * Get the price for a variation being deleted, with comprehensive fallback logic
+     * 
+     * @param array $var Variation data from cache
+     * @return float|string The price to use for deletion
+     */
+    private function getVariationPriceForDeletion( $var ) {
+        $start_price = $var['price'];
+        
+        // Helper function to apply profile pricing only if price is valid
+        $applyProfilePricing = function( $price ) {
+            return !empty($price) && $price > 0 
+                ? ListingsModel::applyProfilePrice( $price, $this->profile_details['start_price'] )
+                : $price;
+        };
+        
+        // Step 1: Try cached price
+        if ( !empty($start_price) && $start_price > 0 ) {
+            return $applyProfilePricing( $start_price );
+        }
+        
+        // Step 2: Try WooCommerce variation price using post_id
+        if ( isset($var['post_id']) ) {
+            $variation_product = wc_get_product($var['post_id']);
+            if ( $variation_product && is_a($variation_product, 'WC_Product_Variation') ) {
+                $start_price = $variation_product->get_price();
+                if ( !empty($start_price) && $start_price > 0 ) {
+                    return $applyProfilePricing( $start_price );
+                }
+            }
+        }
+        
+        // Step 3: Handle custom eBay start price if available
+        if ( get_option( 'wplister_enable_custom_product_prices', 1 ) && isset($var['post_id']) ) {
+            $product_start_price = get_post_meta( $var['post_id'], '_ebay_start_price', true );
+            if ( $product_start_price ) {
+                if ( 0 == get_option( 'wplister_apply_profile_to_ebay_price', 0 ) ) {
+                    $start_price = wc_format_decimal( $product_start_price );
+                } else {
+                    $start_price = $applyProfilePricing( wc_format_decimal( $product_start_price ) );
+                }
+                
+                if ( !empty($start_price) && $start_price > 0 ) {
+                    return $start_price;
+                }
+            }
+        }
+        
+        // Step 4: Try SKU lookup
+        WPLE()->logger->info('start_price is empty. Trying to find post_id from SKU: ' . $var['sku']);
+        if ( !empty($var['sku']) && function_exists('wc_get_product_id_by_sku') ) {
+            $post_id = wc_get_product_id_by_sku($var['sku']);
+            if ( $post_id ) {
+                WPLE()->logger->info('Found post_id: ' . $post_id . ' for SKU: ' . $var['sku']);
+                $start_price = \ProductWrapper::getPrice( $post_id );
+                WPLE()->logger->info('start_price from SKU lookup: ' . $start_price);
+                $start_price = $applyProfilePricing( $start_price );
+                
+                if ( !empty($start_price) && $start_price > 0 ) {
+                    return $start_price;
+                }
+            }
+        }
+        
+        // Step 5: Try ProductWrapper with post_id (if different from step 2)
+        if ( isset($var['post_id']) ) {
+            WPLE()->logger->info('SKU lookup failed. Loading price from ProductWrapper::getPrice() with post_id');
+            $start_price = \ProductWrapper::getPrice( $var['post_id'] );
+            WPLE()->logger->info('start_price: ' . $start_price);
+            $start_price = $applyProfilePricing( $start_price );
+            
+            if ( !empty($start_price) && $start_price > 0 ) {
+                return $start_price;
+            }
+        }
+        
+        // Step 6: Final fallback - use listing price
+        WPLE()->logger->info('Still no price found. Using listing price as final fallback.');
+        $start_price = $this->listing->getStartPrice();
+        $start_price = $applyProfilePricing( $start_price );
+        WPLE()->logger->info('Final fallback price: ' . $start_price);
+        
+        return $start_price;
+    }
+
+    /**
+     * Remove variation attributes from ItemSpecifics to avoid eBay's uniqueness validation
+     * 
+     * @param array $variation_attributes Attributes that are used in variations
+     */
+    private function removeVariationAttributesFromItemSpecifics( $variation_attributes ) {
+        if ( !$this->item->ItemSpecifics || !$this->item->ItemSpecifics->NameValueList ) {
+            return; // No ItemSpecifics to clean up
+        }
+        
+        $cleaned_item_specifics = array();
+        foreach ( $this->item->ItemSpecifics->NameValueList as $nameValueList ) {
+            $attribute_name = $nameValueList->Name;
+            
+            // Keep only attributes that are NOT used in variations
+            if ( !array_key_exists( $attribute_name, $variation_attributes ) ) {
+                $cleaned_item_specifics[] = $nameValueList;
+            } else {
+                WPLE()->logger->info('Removed variation attribute from ItemSpecifics: ' . $attribute_name);
+            }
+        }
+        
+        // Replace the ItemSpecifics with cleaned version
+        $this->item->ItemSpecifics->NameValueList = $cleaned_item_specifics;
+        WPLE()->logger->info('ItemSpecifics cleaned. Remaining count: ' . count($cleaned_item_specifics));
     }
 
 } // class ItemBuilderModel

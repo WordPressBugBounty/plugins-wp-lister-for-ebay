@@ -232,9 +232,8 @@ class WPL_API_Hooks extends WPL_Core {
 
 	// archive a WP-Lister listing
 	function wple_archive_item( $listing_id ) {
-        WPLE()->logger->info( 'Archiving listing #'. $listing_id );
-
         ListingsModel::updateListing( $listing_id, array( 'status' => 'archived' ) );
+        ListingsModel::logArchiveAction( $listing_id, 'api-hook' );
     }
 
 	/**

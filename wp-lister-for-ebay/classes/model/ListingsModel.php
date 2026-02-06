@@ -134,7 +134,8 @@ class ListingsModel extends WPL_Model {
 		WPLE()->logger->info( "isUsingEPS( $id ) " );
 
 		$listing_item    = self::getItem( $id );
-		$profile_details = $listing_item['profile_data']['details'];
+		$profile_data    = $listing_item['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
 
         $with_additional_images = isset( $profile_details['with_additional_images'] ) ? $profile_details['with_additional_images'] : false;
         if ( $with_additional_images == '0' ) $with_additional_images = false;
@@ -145,8 +146,9 @@ class ListingsModel extends WPL_Model {
 	static function isUsingVariationImages( $id ) {
 		WPLE()->logger->info( "isUsingVariationImages( $id ) " );
 
-		$listing_item = self::getItem( $id );
-		$profile_details = $listing_item['profile_data']['details'];
+		$listing_item    = self::getItem( $id );
+		$profile_data    = $listing_item['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
 
         $with_variation_images = isset( $profile_details['with_variation_images'] ) ? $profile_details['with_variation_images'] : false;
         if ( $with_variation_images == '0' ) $with_variation_images = false;
@@ -276,8 +278,9 @@ class ListingsModel extends WPL_Model {
         }
 
 		// apply profile price - if set
-		$profile_details = $listing_item['profile_data']['details'];
-		$profile_price   = $profile_details['start_price'];
+		$profile_data    = $listing_item['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
+		$profile_price   = $profile_details['start_price'] ?? null;
 		$pv['price']     = empty( $profile_price )  ?  $pv['price']  :  self::applyProfilePrice( $pv['price'], $profile_price );
 
         // compare price
@@ -297,8 +300,9 @@ class ListingsModel extends WPL_Model {
 		$useFixedPriceItem = 'FixedPriceItem' == $listing_item['auction_type'];
 
 		// but switch to AddItem if BestOffer is enabled
-		$profile_details = $listing_item['profile_data']['details'];
-        if ( @$profile_details['bestoffer_enabled'] == '1' ) $useFixedPriceItem = false;
+		$profile_data    = $listing_item['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
+        if ( isset( $profile_details['bestoffer_enabled'] ) && $profile_details['bestoffer_enabled'] == '1' ) $useFixedPriceItem = false;
 
 		// or switch to AddItem if product level listing type is Chinese
 		$product_listing_type = get_post_meta( $listing_item['post_id'], '_ebay_auction_type', true );
@@ -468,7 +472,13 @@ class ListingsModel extends WPL_Model {
 			$data['status'] = 'published';
 
 			// update listing status
-			if (  17 == $this->handle_error_code ) $data['status'] = 'archived';
+			if ( 17 == $this->handle_error_code ) {
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+				$data['status'] = $auto_archive_enabled ? 'archived' : 'ended';
+				if ( !$auto_archive_enabled ) {
+					WPLE()->logger->info( sprintf( 'Error code 17 detected - Listing #%d status changed to "ended" (auto-archive disabled)', $id ) );
+				}
+			}
 			self::updateListing( $id, $data );
 
 			// get details like ViewItemURL from ebay automatically - unless item does not exist on eBay (17)
@@ -508,7 +518,28 @@ class ListingsModel extends WPL_Model {
 		// use Item.Site from listing details - this way we don't need to check primary category for eBayMotors
 		// $listing_details = maybe_unserialize( $listing_item['details'] );
         $listing_details = self::decodeObject( $listing_item['details'] );
-		$item->Site = $listing_details->Site;
+
+		// Set Site from listing details if available, otherwise fall back to listing's account site
+		if ( !empty($listing_details->Site) ) {
+			$item->Site = $listing_details->Site;
+		} else {
+			// Fall back to listing's account site_id to prevent relist on wrong site
+			$account = WPLE_eBayAccount::getAccount( $listing_item['account_id'] );
+			if ( $account ) {
+				$sites = EbayController::getEbaySites();
+				$site_name = isset($sites[$account->site_id]) ? $sites[$account->site_id] : null;
+				if ( $site_name ) {
+					// if primary category's site_id is 100, set Site to eBayMotors
+					$primary_category = EbayCategoriesModel::getItem( $item->getPrimaryCategory()->getCategoryID(), $account->site_id );
+					if ( $primary_category && $primary_category['site_id'] == 100 ) {
+						$site_name = 'eBayMotors';
+					}
+
+					$item->setSite( $site_name );
+					WPLE()->logger->info( "Site not found in listing details for #$id, using account site: $site_name (site_id: {$account->site_id})" );
+				}
+			}
+		}
 
 		// eBay Motors (beta)
 		if ( $item->Site == 'eBayMotors' ) $session->setSiteId( 100 );
@@ -547,7 +578,13 @@ class ListingsModel extends WPL_Model {
 			$data['relist_date'] = NULL;
 
 			// update listing status
-			if (  17 == $this->handle_error_code ) $data['status'] = 'archived';
+			if ( 17 == $this->handle_error_code ) {
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+				$data['status'] = $auto_archive_enabled ? 'archived' : 'ended';
+				if ( !$auto_archive_enabled ) {
+					WPLE()->logger->info( sprintf( 'Error code 17 detected - Listing #%d status changed to "ended" (auto-archive disabled)', $id ) );
+				}
+			}
 			self::updateListing( $id, $data );
 
 			// get details like ViewItemURL from ebay automatically - unless item does not exist on eBay (17)
@@ -631,7 +668,7 @@ class ListingsModel extends WPL_Model {
 		}
 
 		// if quantity is zero, end item instead
-		if ( ( $item->Quantity == 0 ) && ( ! $ibm->VariationsHaveStock ) && ( ! self::thisListingUsesOutOfStockControl( $listing_item ) ) ) {
+		if ( ( empty( intval($item->Quantity) ) ) && ( ! $ibm->VariationsHaveStock ) && ( ! self::thisListingUsesOutOfStockControl( $listing_item ) ) ) {
 			WPLE()->logger->info( "Item #$id has no stock, switching from reviseItem() to endItem()" );
 			return $this->endItem( $id, $session );
 		}
@@ -688,7 +725,13 @@ class ListingsModel extends WPL_Model {
 			if ( 1047 == $this->handle_error_code ) $data['status'] = 'ended';
 			if (  291 == $this->handle_error_code ) $data['status'] = 'ended';
 			if (  21916750 == $this->handle_error_code ) $data['status'] = 'ended';
-			if (   17 == $this->handle_error_code ) $data['status'] = 'archived';
+			if ( 17 == $this->handle_error_code ) {
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+				$data['status'] = $auto_archive_enabled ? 'archived' : 'ended';
+				if ( !$auto_archive_enabled ) {
+					WPLE()->logger->info( sprintf( 'Error code 17 detected - Listing #%d status changed to "ended" (auto-archive disabled)', $id ) );
+				}
+			}
 			self::updateListing( $id, $data );
 
 			// get details like ViewItemURL from ebay automatically - unless item does not exist on eBay (17)
@@ -992,7 +1035,12 @@ class ListingsModel extends WPL_Model {
 			} elseif ( 1047 == $this->handle_error_code ) {
 				self::updateListing( $id, array( 'status' => 'ended' ) );
 			} elseif ( 17 == $this->handle_error_code ) {
-                self::updateListing( $id, array( 'status' => 'archived' ) );
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+				$status = $auto_archive_enabled ? 'archived' : 'ended';
+				self::updateListing( $id, array( 'status' => $status ) );
+				if ( !$auto_archive_enabled ) {
+					WPLE()->logger->info( sprintf( 'Error code 17 detected - Listing #%d status changed to "ended" (auto-archive disabled)', $id ) );
+				}
             } else {
 			//} elseif ( ! $cart_item ) { // this is causing listings to be stuck in the changed status when bought via WC #28574
 				self::updateListing( $id, array( 'status' => 'published' ) );
@@ -1025,8 +1073,9 @@ class ListingsModel extends WPL_Model {
 		$variations = array_slice( $variations, $offset, $batch_size );
 
 		// check for profile price modifier
-		$profile_details = $listing_item['profile_data']['details'];
-		$profile_price   = $profile_details['start_price'];
+		$profile_data    = $listing_item['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
+		$profile_price   = $profile_details['start_price'] ?? null;
 
 		$variation_qtys = array();
 		foreach ( $variations as $var ) {
@@ -1235,7 +1284,8 @@ class ListingsModel extends WPL_Model {
 		if ( ! is_array( $listing_item) ) $listing_item = (array) $listing_item;
 
 		$post_id         = $listing_item['post_id'];
-		$profile_details = $listing_item['profile_data']['details'];
+		$profile_data    = $listing_item['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
 		$locked          = $listing_item['locked'];
 
 		if ( ProductWrapper::hasVariations( $post_id ) ) {
@@ -1412,7 +1462,13 @@ class ListingsModel extends WPL_Model {
 				$data['status'] = 'sold';
 
 			// update listing status
-			if (  17 == $this->handle_error_code ) $data['status'] = 'archived';
+			if ( 17 == $this->handle_error_code ) {
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+				$data['status'] = $auto_archive_enabled ? 'archived' : 'ended';
+				if ( !$auto_archive_enabled ) {
+					WPLE()->logger->info( sprintf( 'Error code 17 detected - Listing #%d status changed to "ended" (auto-archive disabled)', $id ) );
+				}
+			}
 			self::updateListing( $id, $data );
 
 			WPLE()->logger->info( "Item #$id was ended manually. " );
@@ -1527,9 +1583,13 @@ class ListingsModel extends WPL_Model {
 
 			// archive listing if API returned error 17: "This item cannot be accessed..."
 			if ( 17 == $this->handle_error_code ) {
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
 				$data = array();
-				$data['status'] = 'archived';
+				$data['status'] = $auto_archive_enabled ? 'archived' : 'ended';
 				self::updateListing( $id, $data );
+				if ( !$auto_archive_enabled ) {
+					WPLE()->logger->info( sprintf( 'Error code 17 detected - Listing #%d status changed to "ended" (auto-archive disabled)', $id ) );
+				}
 			}
 
 			do_action( 'wplister_updated_item_details', $id, $item );
@@ -1748,17 +1808,65 @@ class ListingsModel extends WPL_Model {
 		$wpdb->update( $table, $data, $where );
 	}
 
+	/**
+	 * Log an archive action with complete details
+	 *
+	 * @param int $listing_id The listing ID being archived
+	 * @param string $context The context (e.g., 'user', 'bulk', 'api', 'reset')
+	 */
+	public static function logArchiveAction( $listing_id, $context = 'user' ) {
+		global $wpdb;
+		$table = $wpdb->prefix . self::TABLENAME;
+
+		// Get listing details
+		$listing = $wpdb->get_row( $wpdb->prepare(
+			"SELECT listing_title, status FROM {$table} WHERE id = %d",
+			$listing_id
+		), ARRAY_A );
+
+		if ( ! $listing ) {
+			WPLE()->logger->warn( sprintf( 'Attempted to log archive action for non-existent listing #%d', $listing_id ) );
+			return;
+		}
+
+		// Get current user info
+		$current_user = wp_get_current_user();
+		$user_login = $current_user->ID > 0 ? $current_user->user_login : 'system';
+		$user_id = $current_user->ID > 0 ? $current_user->ID : 0;
+
+		// Format timestamp
+		$timestamp = current_time( 'mysql' );
+
+		// Log the archive action
+		WPLE()->logger->info( sprintf(
+			'User %s (ID:%d) archived listing #%d (%s) from status "%s" via %s at %s',
+			$user_login,
+			$user_id,
+			$listing_id,
+			$listing['listing_title'],
+			$listing['status'],
+			$context,
+			$timestamp
+		) );
+	}
+
 	public function updateEndedListings( $session ) {
 		global $wpdb;
 
 
 		// set listing status to archived for all listings with an end_date < 90 days in the past
-		$items = WPLE_ListingQueryHelper::getAllOldListingsToBeArchived();
-		WPLE()->logger->info('getAllOldListingsToBeArchived() found '.sizeof($items).' items');
-		foreach ($items as $item) {
-			// TODO: use self::updateWhere()
-			$wpdb->update( $this->tablename, array( 'status' => 'archived' ), array( 'id' => $item['id'] ) );
-			WPLE()->logger->info('updateEndedListings() changed item '.$item['id'].' to status archived');
+		$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+		if ( $auto_archive_enabled ) {
+			$items = WPLE_ListingQueryHelper::getAllOldListingsToBeArchived();
+			WPLE()->logger->info('getAllOldListingsToBeArchived() found '.sizeof($items).' items');
+			foreach ($items as $item) {
+				// TODO: use self::updateWhere()
+				$wpdb->update( $this->tablename, array( 'status' => 'archived' ), array( 'id' => $item['id'] ) );
+				WPLE()->logger->info('updateEndedListings() changed item '.$item['id'].' to status archived');
+			}
+		} else {
+			$items = WPLE_ListingQueryHelper::getAllOldListingsToBeArchived();
+			WPLE()->logger->info( 'Skipping auto-archive of ' . sizeof($items) . ' old listings (disabled in settings)' );
 		}
 
 
@@ -2171,6 +2279,19 @@ class ListingsModel extends WPL_Model {
 		$product_price = apply_filters_deprecated( 'wplister_ebay_price', array($product_price), '2.8.4', 'wple_ebay_price' );
 		$product_price = apply_filters( 'wple_ebay_price', floatval( $product_price ) );
 		return $product_price;
+	}
+
+	/**
+	 * Apply only the wple_ebay_price filter to a price without recalculating profile adjustments.
+	 * Used when displaying prices that have already been adjusted.
+	 *
+	 * @param float $price The already-adjusted price
+	 * @return float The price with filters applied
+	 */
+	static function applyPriceFilters( $price ) {
+		$price = apply_filters_deprecated( 'wplister_ebay_price', array($price), '2.8.4', 'wple_ebay_price' );
+		$price = apply_filters( 'wple_ebay_price', floatval( $price ) );
+		return $price;
 	}
 
 	static function calculateProfilePrice( $product_price, $profile_price ) {

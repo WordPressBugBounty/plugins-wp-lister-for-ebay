@@ -213,11 +213,18 @@ class WPL_Model {
             }
 			
 			// #17 - This item cannot be accessed because the listing has been deleted, ... or you are not the seller.
-			if ( $error->getErrorCode() == 17 ) { 
+			if ( $error->getErrorCode() == 17 ) {
 				// change status from Error to Warning to allow post processing of this error
 				$res->setAck('Warning');
 				$this->handle_error_code = 17;
-				$longMessage .= '<br><br>'. '<b>Note:</b> Listing status was changed to archived.';
+
+				// Check if auto-archive is enabled to determine status message
+				$auto_archive_enabled = get_option( 'wplister_auto_archive_listings', 1 );
+				if ( $auto_archive_enabled ) {
+					$longMessage .= '<br><br>'. '<b>Note:</b> Listing status was changed to archived.';
+				} else {
+					$longMessage .= '<br><br>'. '<b>Note:</b> Listing status changed to ended (item deleted on eBay).';
+				}
 			}
 			
 			// #21916734 - Error: Pictures cannot be removed. - Variation pictures cannot be removed during restricted revise.

@@ -21,7 +21,8 @@ class ProfilesModel extends WPL_Model {
 	public static function getProfileDetailsforProduct( $listing_id ) {
 		$listing         = ListingsModel::getItem( $listing_id );
 		$product_id      = $listing['post_id'];
-		$profile_details = $listing['profile_data']['details'];
+		$profile_data    = $listing['profile_data'] ?? [];
+		$profile_details = is_array( $profile_data ) ? ( $profile_data['details'] ?? [] ) : [];
 
 		// use parent post_id for split variations
 		if ( ProductWrapper::isSingleVariation( $product_id ) ) {

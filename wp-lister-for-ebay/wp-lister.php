@@ -3,12 +3,12 @@
 Plugin Name: WP-Lister Lite for eBay
 Plugin URI: https://www.wplab.com/plugins/wp-lister/
 Description: List your products on eBay the easy way.
-Version: 3.8.3
+Version: 3.8.6
 Author: WP Lab
 Author URI: https://www.wplab.com/ 
-Max WP Version: 6.8
+Max WP Version: 6.9
 WC requires at least: 6.0.0
-WC tested up to: 9.8.1
+WC tested up to: 10.4
 Text Domain: wp-lister-for-ebay
 Domain Path: /languages
 License: GPL2+
@@ -16,7 +16,7 @@ License: GPL2+
 
 if ( class_exists('WPL_WPLister') ) die(sprintf( 'WP-Lister for eBay %s is already installed and activated. Please deactivate any other version before you activate this one.', WPLE_PLUGIN_VERSION ));
 
-define('WPLE_PLUGIN_VERSION', '3.8.3' );
+define('WPLE_PLUGIN_VERSION', '3.8.6' );
 define('WPLE_PLUGIN_PATH', realpath( dirname(__FILE__) ) );
 define('WPLE_PLUGIN_URL', plugins_url() . '/' . basename(dirname(__FILE__)) . '/' );
 // backwards compatibility for add-ons - will be removed in next major release (3.3)
@@ -65,6 +65,7 @@ class WPL_WPLister extends WPL_BasePlugin {
 	var $accounts      = array();
 	var $multi_account = false;
 	var $db_version    = 0;
+    /* @var WPL_Logger */
 	var $logger;
 
 	/**
@@ -134,7 +135,7 @@ class WPL_WPLister extends WPL_BasePlugin {
 		$this->memcache       = new WPLE_MemCache();
 		$this->messages       = new WPLE_AdminMessages();
 
-        if (! WPLE_IS_LITE_VERSION ) {
+        if (! WPLE_IS_LITE_VERSION && class_exists( 'WPLE_Rest_Controller' ) ) {
 	        $this->restapi        = new WPLE_Rest_Controller();
         }
 

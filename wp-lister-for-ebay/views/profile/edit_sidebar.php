@@ -973,8 +973,8 @@
                                 <?php wplister_tooltip(__('Disable this if you only want to list items to the primary category.', 'wp-lister-for-ebay')); ?>
                             </label>
                             <select id="wpl-text-secondary_category" name="wpl_e2e_secondary_category" class="required-entry select">
-                                <option value="1" <?php selected( isset( $item_details['secondary_category'] ) && $item_details['secondary_category'], 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?></option>
-                                <option value="0" <?php selected( !isset( $item_details['secondary_category'] ) || $item_details['secondary_category'] == 0, true ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="1" <?php selected( isset( $item_details['enable_secondary_category'] ) && $item_details['enable_secondary_category'], 1 ); ?>><?php _e( 'Yes', 'wp-lister-for-ebay' ); ?></option>
+                                <option value="0" <?php selected( !isset( $item_details['enable_secondary_category'] ) || $item_details['enable_secondary_category'] == 0, true ); ?>><?php _e( 'No', 'wp-lister-for-ebay' ); ?></option>
                             </select>
 
 							<label for="wpl-text-strikethrough_pricing" class="text_label">

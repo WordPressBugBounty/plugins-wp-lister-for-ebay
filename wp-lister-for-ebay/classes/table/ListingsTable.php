@@ -820,6 +820,11 @@ class ListingsTable extends WP_List_Table {
 
     function get_display_price($item){
 
+        // Get profile data once for all code paths
+        $profile_data = $this->getProfileData( $item );
+        $profile_details = !empty($profile_data['details']) ? $profile_data['details'] : array();
+        $profile_start_price = !empty( $profile_details['start_price'] ) ? $profile_details['start_price'] : 0;
+
         // if item has variations check each price...
         if ( ProductWrapper::hasVariations( $item['post_id'] ) ) {
 
@@ -842,6 +847,11 @@ class ListingsTable extends WP_List_Table {
             $price_min = 1000000; // one million should be a high enough ceiling
             $price_max = 0;
             foreach ( $children as $child_id ) {
+                // Skip hidden variations (matching ProductWrapper::getVariations() behavior)
+                if ( get_post_meta( $child_id, '_ebay_is_disabled', true ) == 'on' ) {
+                    continue;
+                }
+
                 $price = ProductWrapper::getPrice( $child_id );
 
                 if ( $custom_prices ) {
@@ -854,14 +864,14 @@ class ListingsTable extends WP_List_Table {
                 if ( $price < $price_min ) $price_min = $price;
             }
 
+            // If all variations are hidden, return empty (no valid prices found)
+            if ( $price_min == 1000000 && $price_max == 0 ) {
+                return '';
+            }
+
             // apply price modifiers
-            $profile_data = $this->getProfileData( $item );
-            $profile_details = !empty($profile_data['details']) ? $profile_data['details'] : array();
-			$profile_start_price = !empty( $profile_details['start_price'] ) ? $profile_details['start_price'] : 0;
-            //if ( !empty( $profile_details['start_price'] ) ) {
-                $price_min = ListingsModel::applyProfilePrice( $price_min, $profile_start_price );
-                $price_max = ListingsModel::applyProfilePrice( $price_max, $profile_start_price );
-            //}
+            $price_min = ListingsModel::applyProfilePrice( $price_min, $profile_start_price );
+            $price_max = ListingsModel::applyProfilePrice( $price_max, $profile_start_price );
 
             // use lowest price for flattened variations
             if ( isset( $profile_data['details']['variations_mode'] ) && ( $profile_data['details']['variations_mode'] == 'flat' ) ) {
@@ -885,8 +895,8 @@ class ListingsTable extends WP_List_Table {
                 $start_price  = $product_start_price;
         }
 
-	    $profile_start_price = !empty( $profile_details['start_price'] ) ? $profile_details['start_price'] : 0;
-        $start_price = ListingsModel::applyProfilePrice( $start_price, $profile_start_price );
+        // apply price filters only (price is already adjusted when stored in database)
+        $start_price = ListingsModel::applyPriceFilters( $start_price );
         return $this->number_format( $start_price, 2 );
     }
 

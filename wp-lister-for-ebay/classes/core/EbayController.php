@@ -700,17 +700,18 @@ class EbayController {
     }
 
     // update listings
+    // - process auto relist schedule (must run BEFORE updateEndedListings to prevent rescheduling items that are due)
     // - update ended listings
-    // - process auto relist schedule
-    public function updateListings(){ 
+    public function updateListings(){
+        // Process scheduled relists FIRST, before updateEndedListings reschedules them
+        $this->processAutoRelistSchedule();
+
         $lm = new ListingsModel();
         $lm->updateEndedListings( $this->session );
-
-        $this->processAutoRelistSchedule();
     }
 
     // process listings scheduled for auto relist
-    public function processAutoRelistSchedule(){ 
+    public function processAutoRelistSchedule(){
     }
 
     // get category conditions
@@ -926,9 +927,9 @@ class EbayController {
 
 
     // call autoRelistItem on selected items - quick relist without any changes
-    public function autoRelistItems( $id ){ 
-        //WPLE()->logger->info('EC::autoRelistItems('.$id.')');
-        
+    public function autoRelistItems( $id ){
+        WPLE()->logger->info('EC::autoRelistItems('.( is_array($id) ? count($id).' items' : $id ).')');
+
         $sm = new ListingsModel();
 
         if ( is_array( $id )) {

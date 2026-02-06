@@ -48,6 +48,16 @@ class WPL_CronActions extends WPL_Core {
 
 	// update auctions - called by wp_cron if activated
 	public function cron_update_auctions() {
+		// Rate limiting: max one execution every 2 minutes for external/unauthenticated calls
+		if ( ! is_user_logged_in() ) {
+			$last_run = get_option( 'wplister_cron_last_run' );
+			if ( $last_run && ( time() - $last_run ) < 120 ) {
+				$time_since_last_run = time() - $last_run;
+				WPLE()->logger->error( "WP-CRON: Rate limit exceeded - last run was {$time_since_last_run} seconds ago (minimum 120 seconds required)" );
+				wp_die( 'Rate limit exceeded. Please wait a few minutes between requests.', 'Too Many Requests', array( 'response' => 429 ) );
+			}
+		}
+
         WPLE()->logger->info("*** WP-CRON: cron_update_auctions()");
 
         // log cron run to db

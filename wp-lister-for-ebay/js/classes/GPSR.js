@@ -40,7 +40,8 @@ jQuery( document ).ready(function () {
         const el = jQuery(this);
         let data = {
             action:     'wple_delete_responsible_person',
-            id:         jQuery(this).data('id')
+            id:         jQuery(this).data('id'),
+            _wpnonce:   wple_ajax_nonce
         };
 
         jQuery
@@ -68,7 +69,8 @@ jQuery( document ).ready(function () {
         const el = jQuery(this);
         let data = {
             action:     'wple_get_responsible_person',
-            id:         jQuery(this).data('id')
+            id:         jQuery(this).data('id'),
+            _wpnonce:   wple_ajax_nonce
         };
 
         jQuery
@@ -96,7 +98,8 @@ jQuery( document ).ready(function () {
         const el = jQuery(this);
         let data = {
             action:     'wple_delete_manufacturer',
-            id:         jQuery(this).data('id')
+            id:         jQuery(this).data('id'),
+            _wpnonce:   wple_ajax_nonce
         };
 
         jQuery
@@ -124,7 +127,8 @@ jQuery( document ).ready(function () {
         const el = jQuery(this);
         let data = {
             action:     'wple_get_manufacturer',
-            id:         jQuery(this).data('id')
+            id:         jQuery(this).data('id'),
+            _wpnonce:   wple_ajax_nonce
         };
 
         jQuery
@@ -198,7 +202,8 @@ jQuery( document ).ready(function () {
             city:       jQuery('#person_city').val(),
             state:      jQuery('#person_state').val(),
             postcode:   jQuery('#person_postcode').val(),
-            country:    jQuery('#person_country').val()
+            country:    jQuery('#person_country').val(),
+            _wpnonce:   wple_ajax_nonce
         };
 
         if ( jQuery('#person_id').val() > 0 ) {
@@ -247,7 +252,8 @@ jQuery( document ).ready(function () {
             city:       jQuery('#manufacturer_city').val(),
             state:      jQuery('#manufacturer_state').val(),
             postcode:   jQuery('#manufacturer_postcode').val(),
-            country:    jQuery('#manufacturer_country').val()
+            country:    jQuery('#manufacturer_country').val(),
+            _wpnonce:   wple_ajax_nonce
         };
 
         if ( jQuery('#manufacturer_id').val() > 0 ) {
@@ -417,7 +423,7 @@ function reloadPersons() {
     // fetch category conditions
     const params = {
         action: 'wple_get_responsible_persons',
-        //_wpnonce: wpl_EditProfileNonce
+        _wpnonce: wple_ajax_nonce
     };
     let jqxhr = jQuery.getJSON(
         ajaxurl,
@@ -472,7 +478,7 @@ function reloadManufacturers() {
     // fetch category conditions
     const params = {
         action: 'wple_get_manufacturers',
-        //_wpnonce: wpl_EditProfileNonce
+        _wpnonce: wple_ajax_nonce
     };
     let jqxhr = jQuery.getJSON(
         ajaxurl,

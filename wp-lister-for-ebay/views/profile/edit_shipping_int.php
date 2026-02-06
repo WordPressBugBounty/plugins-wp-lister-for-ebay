@@ -154,8 +154,8 @@
 									<?php echo __( 'Packaging and handling costs', 'wp-lister-for-ebay' ); ?>:
 		                            <?php wplister_tooltip(__('Fees a seller might assess for the shipping of the item (in addition to whatever the shipping service might charge).', 'wp-lister-for-ebay')) ?>
 								</label>
-								<input type="text" name="wpl_e2e_InternationalPackagingHandlingCosts" 
-									value="<?php echo isset( $item_details['InternationalPackagingHandlingCosts'] ) && $item_details['InternationalPackagingHandlingCosts']; ?>"  class="text_input" />
+								<input type="text" name="wpl_e2e_InternationalPackagingHandlingCosts"
+									value="<?php echo isset( $item_details['InternationalPackagingHandlingCosts'] ) ? $item_details['InternationalPackagingHandlingCosts'] : ''; ?>"  class="text_input" />
 
 							</div>
 

@@ -244,9 +244,11 @@ class ListingsPage extends WPL_Page {
 	    if ( is_array( $id )) {
 		    foreach( $id as $single_id ) {
 			    ListingsModel::updateListing( $single_id, $data );
+			    ListingsModel::logArchiveAction( $single_id, 'bulk-action' );
 		    }
 	    } else {
 		    ListingsModel::updateListing( $id, $data );
+		    ListingsModel::logArchiveAction( $id, 'manual' );
 	    }
 
 	    wple_show_message( __( 'Selected items were archived.', 'wp-lister-for-ebay' ), 'info', ['persistent' => true] );

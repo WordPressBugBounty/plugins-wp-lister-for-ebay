@@ -355,8 +355,8 @@ class Listing {
 	 * Get the final Start Price for the listing
 	 * @return float
 	 */
-	public function getStartPrice() {
-		$start_price = \ProductWrapper::getPrice( $this->getProductId() );
+	public function getStartPrice($base_price = null) {
+		$start_price = $base_price ?? \ProductWrapper::getPrice( $this->getProductId() );
 
 		$profile_details = $this->getProfileDetails();
 
@@ -640,6 +640,11 @@ class Listing {
 		$profile_details    = $this->getProfileDetails();
 		$mapped_categories  = $this->getMappedCategories( $product_id, $this->getAccountId() );
 		$found_category     = 0;
+
+		// Check if secondary category is disabled in profile settings
+		if ( isset( $profile_details['enable_secondary_category'] ) && $profile_details['enable_secondary_category'] == 0 ) {
+			return 0;
+		}
 
 		if ( apply_filters( 'wple_map_secondary_category', true, $this ) && ( intval( $mapped_categories['secondary'] ) > 0 ) && ( $mapped_categories['secondary'] != $mapped_categories['primary'] ) ) {
 			$found_category = $mapped_categories['secondary'];

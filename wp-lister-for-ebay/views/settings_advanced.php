@@ -1249,6 +1249,18 @@
 								<?php echo __( 'Enabling template uploading could pose a security risk since it permits the uploading of PHP files to your web server. Keep this disabled if you do not utilize this feature.', 'wp-lister-for-ebay' ); ?>
                             </p>
 
+							<label for="wpl-auto_archive_listings" class="text_label">
+								<?php echo __( 'Automatically archive listings', 'wp-lister-for-ebay' ); ?>
+								<?php wplister_tooltip(__('When enabled, listings will be automatically archived when they are deleted on eBay (error code 17) or after 90 days of being ended/sold. When disabled, listings will only be archived when you manually archive them.', 'wp-lister-for-ebay')) ?>
+							</label>
+							<select id="wpl-auto_archive_listings" name="wpl_e2e_auto_archive_listings" class="required-entry select">
+								<option value="1" <?php if ( $wpl_auto_archive_listings != '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'Yes', 'wp-lister-for-ebay' ); ?> (<?php _e('default', 'wp-lister-for-ebay' ); ?>)</option>
+								<option value="0" <?php if ( $wpl_auto_archive_listings == '0' ): ?>selected="selected"<?php endif; ?>><?php echo __( 'No', 'wp-lister-for-ebay' ); ?></option>
+							</select>
+							<p class="desc" style="display: block;">
+								<?php echo __( 'Disable automatic archiving to have full control over when listings are archived. All user-initiated archive actions will be logged.', 'wp-lister-for-ebay' ); ?>
+							</p>
+
 							<label for="wpl-autofill_missing_gtin" class="text_label">
 								<?php echo __( 'Missing Product Identifiers', 'wp-lister-for-ebay' ); ?>
                                 <?php wplister_tooltip(__('eBay requires product identifiers (UPC/EAN) in selected categories starting 2015 - missing EANs/UPCs can cause the revise process to fail.<br><br>If your products do not have either UPCs or EANs, please use this option.', 'wp-lister-for-ebay')) ?>
