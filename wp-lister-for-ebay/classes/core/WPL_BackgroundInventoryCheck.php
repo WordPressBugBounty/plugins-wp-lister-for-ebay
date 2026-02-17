@@ -291,8 +291,8 @@ class WPL_BackgroundInventoryCheck extends WPL_InventoryCheck {
 
             // highlight changed values
             $changed_stock     =   intval( $item['qty']   )     ==   intval( $item['stock']     )     ? false : true;
-            $changed_price     = floatval( $item['price'] )     == floatval( $item['price_woo'] )     ? false : true;
-            $changed_price_max = floatval(@$item['price_max'] ) == floatval( $item['price_woo_max'] ) ? false : true;
+            $changed_price     = floatval( wc_format_decimal( $item['price'] ) )     == floatval( wc_format_decimal( $item['price_woo'] ) )     ? false : true;
+            $changed_price_max = floatval( wc_format_decimal( @$item['price_max'] ) ) == floatval( wc_format_decimal( $item['price_woo_max'] ) ) ? false : true;
             $stock_css         = $changed_stock                       ? 'color:darkred; font-weight:bold;' : '';
             $price_css         = $changed_price || $changed_price_max ? 'color:darkred;'                   : '';
             if ( ! $compare_prices ) $price_css = '';

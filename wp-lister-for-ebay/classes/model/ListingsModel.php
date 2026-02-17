@@ -940,15 +940,21 @@ class ListingsModel extends WPL_Model {
 				$this->initServiceProxy($session);
 
 				// regard custom eBay price for locked items as well
-                if ( get_option( 'wplister_enable_custom_product_prices', 1 ) ) {
-                    if ( $ebay_start_price = get_post_meta( $post_id, '_ebay_start_price', true ) ) {
-                        $listing_item['price'] = $ebay_start_price;
-                    }
-                }
+				if ( get_option( 'wplister_enable_custom_product_prices', 1 ) ) {
+					if ( $ebay_start_price = get_post_meta( $post_id, '_ebay_start_price', true ) ) {
+						if ( 0 == get_option( 'wplister_apply_profile_to_ebay_price', 0 ) ) {
+							// default behavior - always use the _ebay_start_price if present
+							$listing_item['price'] = wc_format_decimal( $ebay_start_price );
+						} else {
+							// Apply the profile pricing rule on the _ebay_start_price
+							$listing_item['price'] = self::applyProfilePrice( $ebay_start_price, $profile_details['start_price'] ?? '' );
+						}
+					}
+				}
 
 				// skip price when revising inventory during checkout - or when promotional sale is active
-                $skip_price_update = apply_filters_deprecated( 'wplister_revise_inventory_status_skip_price', array(false, $id, $listing_item), '2.8.4', 'wple_revise_inventory_status_skip_price' );
-                $skip_price_update = apply_filters( 'wple_revise_inventory_status_skip_price', $skip_price_update, $id, $listing_item );
+				$skip_price_update = apply_filters_deprecated( 'wplister_revise_inventory_status_skip_price', array(false, $id, $listing_item), '2.8.4', 'wple_revise_inventory_status_skip_price' );
+				$skip_price_update = apply_filters( 'wple_revise_inventory_status_skip_price', $skip_price_update, $id, $listing_item );
 				if ( ! $cart_item && ! self::thisListingHasPromotionalSale( $id ) && ! $skip_price_update ) {
 					$stat->setStartPrice( ItemBuilderModel::dbSafeFloatval( $listing_item['price'] ) );
 				}
@@ -2277,7 +2283,7 @@ class ListingsModel extends WPL_Model {
 		}
 
 		$product_price = apply_filters_deprecated( 'wplister_ebay_price', array($product_price), '2.8.4', 'wple_ebay_price' );
-		$product_price = apply_filters( 'wple_ebay_price', floatval( $product_price ) );
+		$product_price = apply_filters( 'wple_ebay_price', floatval( wc_format_decimal( $product_price ) ) );
 		return $product_price;
 	}
 
@@ -2290,7 +2296,7 @@ class ListingsModel extends WPL_Model {
 	 */
 	static function applyPriceFilters( $price ) {
 		$price = apply_filters_deprecated( 'wplister_ebay_price', array($price), '2.8.4', 'wple_ebay_price' );
-		$price = apply_filters( 'wple_ebay_price', floatval( $price ) );
+		$price = apply_filters( 'wple_ebay_price', floatval( wc_format_decimal( $price ) ) );
 		return $price;
 	}
 
@@ -2322,8 +2328,8 @@ class ListingsModel extends WPL_Model {
 
             if ( $product_price ) {
                 // Make sure these are floats #53125
-                $product_price = floatval( $product_price );
-                $value = floatval( $value );
+                $product_price = floatval( wc_format_decimal( $product_price ) );
+                $value = floatval( wc_format_decimal( $value ) );
 
                 if ($modifier == '+') {
                     $product_price = $product_price + ( $product_price * $value/100 );
@@ -2347,8 +2353,8 @@ class ListingsModel extends WPL_Model {
 			WPLE()->logger->debug('matches:' . print_r($matches,1) );
 
 			$modifier = $matches[1];
-			$value = floatval( $matches[2] );
-			$product_price = floatval( $product_price );
+			$value = floatval( wc_format_decimal( $matches[2] ) );
+			$product_price = floatval( wc_format_decimal( $product_price ) );
 
 			if ($modifier == '+') {
 				$product_price = $product_price + $value;

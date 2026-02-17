@@ -103,6 +103,14 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
+= 3.8.7 - 2026-02-17 =
+* Fix: REST API permission check allowing unauthenticated access
+* Fix: Refetch tracking data when using background task to complete sale on eBay
+* Fix: Currency format handling for European decimal separators
+* Tweak: Updated Max WP Version and WC tested up to values
+* Tweak: Removed legacy Add Account form
+* Dev: Replace deprecated wc_enqueue_js() with wp_add_inline_script()
+
 = 3.8.6 - 2026-01-28 =
 * New: Setting to disable the automatic archiving of listings
 * Fix: Profile Secondary Category form displays wrong value due to key mismatch

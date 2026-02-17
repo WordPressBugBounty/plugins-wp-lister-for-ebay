@@ -183,11 +183,11 @@ class WPL_InventoryCheck extends WPL_Model  {
 
 			// highlight changed values
 			$changed_stock     = ! ( intval( $item['qty'] ) == intval( $item['stock'] ) );
-			$changed_price     = ! ( floatval( $item['price'] ) == floatval( $item['price_woo'] ) );
+			$changed_price     = ! ( floatval( wc_format_decimal( $item['price'] ) ) == floatval( wc_format_decimal( $item['price_woo'] ) ) );
 			//$changed_price_max = ! ( floatval( @$item['price_max'] ) == floatval( $item['price_woo_max'] ) );
 
 			$changed_price_max = false;
-			if ( $product_type == 'variable' && isset( $item['price_max'] ) && floatval($item['price_max']) != floatval($item['price_woo_max']) ) {
+			if ( $product_type == 'variable' && isset( $item['price_max'] ) && floatval( wc_format_decimal( $item['price_max'] ) ) != floatval( wc_format_decimal( $item['price_woo_max'] ) ) ) {
 				$changed_price_max = true;
 			}
 
@@ -947,7 +947,7 @@ class WPL_InventoryCheck extends WPL_Model  {
                 if ( $profile_start_price ) {
                     $price_to_compare = ListingsModel::applyProfilePrice( $price, $profile_start_price );
                 }
-                if ( round( floatval($price_to_compare), 2 ) != round( floatval($item['price']), 2 ) )
+                if ( round( floatval( wc_format_decimal( $price_to_compare ) ), 2 ) != round( floatval( wc_format_decimal( $item['price'] ) ), 2 ) )
                     return false;
             } else {
                 // check max price

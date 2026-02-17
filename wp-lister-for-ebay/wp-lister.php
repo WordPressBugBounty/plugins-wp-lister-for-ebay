@@ -3,10 +3,10 @@
 Plugin Name: WP-Lister Lite for eBay
 Plugin URI: https://www.wplab.com/plugins/wp-lister/
 Description: List your products on eBay the easy way.
-Version: 3.8.6
+Version: 3.8.7
 Author: WP Lab
 Author URI: https://www.wplab.com/ 
-Max WP Version: 6.9
+Max WP Version: 6.9.1
 WC requires at least: 6.0.0
 WC tested up to: 10.4
 Text Domain: wp-lister-for-ebay
@@ -16,7 +16,7 @@ License: GPL2+
 
 if ( class_exists('WPL_WPLister') ) die(sprintf( 'WP-Lister for eBay %s is already installed and activated. Please deactivate any other version before you activate this one.', WPLE_PLUGIN_VERSION ));
 
-define('WPLE_PLUGIN_VERSION', '3.8.6' );
+define('WPLE_PLUGIN_VERSION', '3.8.7' );
 define('WPLE_PLUGIN_PATH', realpath( dirname(__FILE__) ) );
 define('WPLE_PLUGIN_URL', plugins_url() . '/' . basename(dirname(__FILE__)) . '/' );
 // backwards compatibility for add-ons - will be removed in next major release (3.3)
@@ -233,12 +233,13 @@ class WPL_WPLister extends WPL_BasePlugin {
 	public function modifyProductsBulkActionMenu() {	
 		if ( ! current_user_can( 'prepare_ebay_listings' ) ) return;
 
-		wc_enqueue_js('
-    	    jQuery(document).ready(function() {
-        	    jQuery("<option>").val("wple_prepare_auction").text("' . __( 'List on eBay', 'wp-lister-for-ebay' ) . '").appendTo("select[name=\'action\']");
-            	jQuery("<option>").val("wple_prepare_auction").text("' . __( 'List on eBay', 'wp-lister-for-ebay' ) . '").appendTo("select[name=\'action2\']");
-	        });
-		');
+		$inline_script = '
+			jQuery(function($) {
+				jQuery("<option>").val("wple_prepare_auction").text("' . esc_js( __( 'List on eBay', 'wp-lister-for-ebay' ) ) . '").appendTo("select[name=\'action\']");
+				jQuery("<option>").val("wple_prepare_auction").text("' . esc_js( __( 'List on eBay', 'wp-lister-for-ebay' ) ) . '").appendTo("select[name=\'action2\']");
+			});
+		';
+		wp_add_inline_script( 'jquery', $inline_script );
 
 	}
 
@@ -246,24 +247,24 @@ class WPL_WPLister extends WPL_BasePlugin {
 	public function modifyProductsBulkActionMenu2() {
 		if ( ! current_user_can( 'manage_ebay_listings' ) ) return;
 
-		wc_enqueue_js('
-    	    jQuery(document).ready(function() {
-        	    jQuery("<option>").val("wple_remove_from_ebay").text("' . __( 'End listings on eBay', 'wp-lister-for-ebay' ) . '").appendTo("select[name=\'action\']");
-            	jQuery("<option>").val("wple_remove_from_ebay").text("' . __( 'End listings on eBay', 'wp-lister-for-ebay' ) . '").appendTo("select[name=\'action2\']");
-	        });
+		$confirm_message = esc_js( __( 'Are you sure you want to do this?', 'wp-lister-for-ebay' ) . ' ' . __( 'Ending the listing also removes the sales history for the item. If you were to relist these listings later you would then start out with a lower sales rank.', 'wp-lister-for-ebay' ) );
+		$inline_script = '
+			jQuery(function($) {
+				jQuery("<option>").val("wple_remove_from_ebay").text("' . esc_js( __( 'End listings on eBay', 'wp-lister-for-ebay' ) ) . '").appendTo("select[name=\'action\']");
+				jQuery("<option>").val("wple_remove_from_ebay").text("' . esc_js( __( 'End listings on eBay', 'wp-lister-for-ebay' ) ) . '").appendTo("select[name=\'action2\']");
 
-		    jQuery(".tablenav .actions input[type=\'submit\'].action").on("click", function() {
+				jQuery(".tablenav .actions input[type=\'submit\'].action").on("click", function() {
+					if ( "doaction"  == this.id ) var selected_action = jQuery("select[name=\'action\']").first().val();
+					if ( "doaction2" == this.id ) var selected_action = jQuery("select[name=\'action2\']").first().val();
 
-		        if ( "doaction"  == this.id ) var selected_action = jQuery("select[name=\'action\']").first().val();
-		        if ( "doaction2" == this.id ) var selected_action = jQuery("select[name=\'action2\']").first().val();
-
-				if ( selected_action == "wple_remove_from_ebay" ) {
-					var confirmed = confirm("' . __( 'Are you sure you want to do this?', 'wp-lister-for-ebay' ) .' '.  __('Ending the listing also removes the sales history for the item. If you were to relist these listings later you would then start out with a lower sales rank.', 'wp-lister-for-ebay' ) . '");
-					if ( ! confirmed ) return false;
-				}
-
-		    });
-		');
+					if ( selected_action == "wple_remove_from_ebay" ) {
+						var confirmed = confirm("' . $confirm_message . '");
+						if ( ! confirmed ) return false;
+					}
+				});
+			});
+		';
+		wp_add_inline_script( 'jquery', $inline_script );
 
 	}
 

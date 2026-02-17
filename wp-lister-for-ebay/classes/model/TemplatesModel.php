@@ -786,7 +786,7 @@ class TemplatesModel extends WPL_Model {
 		$item_price = $item['price'];
 		if ( $ItemObj && $ItemObj->StartPrice ) $item_price = $ItemObj->StartPrice->value;
 		if ( $ItemObj && $ItemObj->Variations ) $item_price = $ItemObj->Variations->Variation[0]->StartPrice;
-		$tpl_html = str_replace( '[[product_price]]', number_format_i18n( floatval($item_price), 2 ), $tpl_html );
+		$tpl_html = str_replace( '[[product_price]]', number_format_i18n( floatval( wc_format_decimal( $item_price ) ), 2 ), $tpl_html );
 		$tpl_html = str_replace( '[[product_price_raw]]', $item_price, $tpl_html );
 
 		// product_category
@@ -1061,7 +1061,7 @@ class TemplatesModel extends WPL_Model {
                 $addons_html .= '<tr><td align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
                 $addons_html .= $addon->name;
                 $addons_html .= '</td><td align="right">';
-                $addons_html .= number_format_i18n( floatval($addon->price), 2 );
+                $addons_html .= number_format_i18n( floatval( wc_format_decimal( $addon->price ) ), 2 );
                 $addons_html .= '</td></tr>';
             }
 
@@ -1147,7 +1147,7 @@ class TemplatesModel extends WPL_Model {
                 $price = ListingsModel::applyProfilePrice( $start_price, $profile_details['start_price'] );
             }
 
-            $variations_html .= wc_price( floatval($price) );
+            $variations_html .= wc_price( floatval( wc_format_decimal( $price ) ) );
 
             $variations_html .= '</td></tr>';
 

@@ -43,7 +43,7 @@ class ProductWrapper {
 		if ( ! $_product ) return apply_filters( 'wple_product_get_price', get_post_meta( $post_id, '_price', true), $post_id );
 
 		$sale_price = $_product->get_sale_price('edit');
-		if ( floatval($sale_price) > 0 ) {
+		if ( floatval( wc_format_decimal( $sale_price ) ) > 0 ) {
 		    if ( is_callable( array( $_product, 'is_on_sale' ) ) ) {
 		        if ( $_product->is_on_sale() ) {
                     return apply_filters( 'wple_product_get_price', $sale_price, $post_id );
