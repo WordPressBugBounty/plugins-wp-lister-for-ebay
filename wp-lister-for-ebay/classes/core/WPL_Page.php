@@ -133,7 +133,7 @@ class WPL_Page extends WPL_Core {
 		// $plugin_name = WPLE_IS_LITE_VERSION ? $this->app_name : $this->app_name . ' Pro';  
 		$plugin_name = WPLE_IS_LITE_VERSION ? 'WP-Lister for eBay' : 'WP-Lister Pro for eBay';  
 	    echo '<span id="footer-thankyou">';
-	    echo sprintf( __( 'Thank you for listing with %s', 'wp-lister-for-ebay' ), '<a href="https://www.wplab.com/plugins/wp-lister/" target="_blank">'.$plugin_name.'</a>' );
+	    echo sprintf( __( 'Thank you for listing with %s', 'wp-lister-for-ebay' ), '<a href="https://www.wplister.com/plugins/wp-lister/" target="_blank">'.$plugin_name.'</a>' );
 	    echo '</span>';
 	}  
 	function change_admin_footer_version( $version ) {

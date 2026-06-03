@@ -616,7 +616,7 @@ function wple_display_lite_order_stats() {
 
 		<p><?php _e( 'WP-Lister Pro for eBay can help you save countless hours with automatic order syncing and easier listing management!', 'wp-lister-for-ebay' ); ?></p>
 
-		<p><a class="button primary" href="https://www.wplab.com/buy-wp-lister-pro-for-ebay-today/">Upgrade to WP-Lister Pro</a></p>
+		<p><a class="button primary" href="https://www.wplister.com/buy-wp-lister-pro-for-ebay-today/">Upgrade to WP-Lister Pro</a></p>
 	</div>
 	<?php
 }

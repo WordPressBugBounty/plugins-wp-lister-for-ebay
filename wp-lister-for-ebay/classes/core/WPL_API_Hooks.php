@@ -337,16 +337,27 @@ class WPL_API_Hooks extends WPL_Core {
                 // locked listing must be forcefully revised because triggering this product_has_changed action means
                 // that the product has been modified in some way #49448
 
-                // use right account_id for listing
-                $listing_id = $listing['id'];
-                $account_id = $listing['account_id'];
+                // When called from the WooCommerce REST API, defer the eBay revision via Action Scheduler
+                // to avoid blocking the REST response with a synchronous eBay API call
+                if ( apply_filters( 'wple_async_revisions_on_rest', wple_request_is_rest() ) ) {
+                    if ( WPLE()->isStagingSite() ) {
+                        WPLE()->logger->info( '[wplister_product_has_changed] staging site detected, skipping async revision for locked item: ' . $listing_id );
+                    } elseif ( as_next_scheduled_action( 'wple_revise_item', array( $listing_id ), 'WPLE' ) ) {
+                        WPLE()->logger->info( '[wplister_product_has_changed] revision already scheduled for locked item: ' . $listing_id );
+                    } else {
+                        wple_enqueue_async_action( 'wple_revise_item', array( $listing_id ), 'WPLE' );
+                        WPLE()->logger->info( '[wplister_product_has_changed] scheduled async revision for locked item: ' . $listing_id );
+                    }
+                } else {
+                    $account_id = $listing['account_id'];
 
-                // call EbayController
-                $this->initEC( $account_id );
-                $this->EC->reviseInventoryForListing( $listing_id, true );
-                $this->EC->closeEbay();
+                    // call EbayController
+                    $this->initEC( $account_id );
+                    $this->EC->reviseInventoryForListing( $listing_id, true );
+                    $this->EC->closeEbay();
 
-                WPLE()->logger->info('[wplister_product_has_changed] revised inventory status for item: ' . print_r($listing_id,1) . '');
+                    WPLE()->logger->info( '[wplister_product_has_changed] revised inventory status for item: ' . $listing_id );
+                }
             } else {
                 wple_async_revise_listing( $listing_id );
             }

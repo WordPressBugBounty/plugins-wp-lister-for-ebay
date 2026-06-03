@@ -173,7 +173,7 @@ class RedirectMiddleware
         }
 
         $modify['uri'] = $this->redirectUri($request, $response, $protocols);
-        Psr7\rewind_body($request);
+        Psr7\Message::rewindBody($request);
 
         // Add the Referer header if it is told to do so and only
         // add the header if we are not redirecting from https to http.
@@ -191,7 +191,7 @@ class RedirectMiddleware
             $modify['remove_headers'][] = 'Authorization';
         }
 
-        return Psr7\modify_request($request, $modify);
+        return Psr7\Utils::modifyRequest($request, $modify);
     }
 
     /**

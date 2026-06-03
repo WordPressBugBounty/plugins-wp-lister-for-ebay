@@ -419,6 +419,9 @@
                             </select>
 							<p class="desc" style="display: block;">
 								<?php echo __( 'Enable this to display the total number of products on eBay / not on eBay in WooCommerce.', 'wp-lister-for-ebay' ); ?>
+								<strong>
+									<?php echo __( 'Warning: Enabling this on stores with a large number of products may cause severe performance issues or timeouts on the WooCommerce Products page.', 'wp-lister-for-ebay' ); ?>
+								</strong>
 							</p>
 
                             <label for="wpl-option-enhanced_item_specifics_ui" class="text_label">

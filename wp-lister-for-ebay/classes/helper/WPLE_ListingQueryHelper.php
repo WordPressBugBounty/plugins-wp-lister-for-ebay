@@ -1096,12 +1096,14 @@ class WPLE_ListingQueryHelper {
 		$sku_sorting = get_option( 'wplister_listing_sku_sorting', 0 );
 
         $orderby  = (!empty($filters['orderby'])) ? esc_sql( $filters['orderby'] ) : 'id';
-        $order    = (!empty($filters['order']))   ? esc_sql( $filters['order']   ) : 'desc';
+        $order    = ( !empty( $filters['order'] ) && strtoupper( $filters['order'] ) === 'ASC' ) ? 'ASC' : 'DESC';
         $offset   = ( $current_page - 1 ) * $per_page;
         $per_page = esc_sql( $per_page );
 
+        $sort_by_quantity = false;
         if ( $orderby == 'quantity' ) {
             $orderby = 'qty';
+            $sort_by_quantity = true;
         }
 
         $join_sql  = '';
@@ -1185,11 +1187,27 @@ class WPLE_ListingQueryHelper {
             }
         }
 
+        // When sorting by quantity, join WooCommerce variation stocks so the sort key matches the displayed quantity.
+        // Mirrors the PHP fallback in calculate_quantity(): uses the variation _stock sum if > 0, otherwise falls
+        // back to l.quantity - l.quantity_sold (same as simple products and the fallback when all variation stocks are 0).
+        // Note: profile rules (max_quantity, fixed_quantity, out-of-stock threshold) and the wple_get_stock filter
+        // are not replicated here — the sort is a best-effort approximation for variable products.
+        if ( $sort_by_quantity ) {
+            $join_sql .= " LEFT JOIN (
+                SELECT p_var.post_parent, COALESCE(SUM(CAST(pm_var.meta_value AS SIGNED)), 0) AS variation_stock
+                FROM {$wpdb->posts} p_var
+                JOIN {$wpdb->postmeta} pm_var ON pm_var.post_id = p_var.ID AND pm_var.meta_key = '_stock'
+                WHERE p_var.post_type = 'product_variation'
+                GROUP BY p_var.post_parent
+            ) var_stock ON var_stock.post_parent = l.post_id";
+            $orderby = 'CASE WHEN COALESCE(var_stock.variation_stock, 0) > 0 THEN var_stock.variation_stock ELSE l.quantity - COALESCE(l.quantity_sold, 0) END';
+        }
+
         // get items
         if ( $sku_sorting ) {
-            $select = "SELECT SQL_CALC_FOUND_ROWS DISTINCT l.*, l.quantity - l.quantity_sold AS qty,  l.details as details, l.listing_duration as listing_duration, pm.meta_value AS sku";
+            $select = "SELECT SQL_CALC_FOUND_ROWS DISTINCT l.*, l.quantity - COALESCE(l.quantity_sold, 0) AS qty,  l.details as details, l.listing_duration as listing_duration, pm.meta_value AS sku";
         } else {
-            $select = "SELECT SQL_CALC_FOUND_ROWS DISTINCT l.*, l.quantity - l.quantity_sold AS qty, l.details as details, l.listing_duration as listing_duration";
+            $select = "SELECT SQL_CALC_FOUND_ROWS DISTINCT l.*, l.quantity - COALESCE(l.quantity_sold, 0) AS qty, l.details as details, l.listing_duration as listing_duration";
         }
 
 		$items = $wpdb->get_results("

@@ -1065,7 +1065,7 @@
 							</p>
 							<p>
 								For more information visit the 
-								<a href="https://www.wplab.com/plugins/wp-lister/faq/" target="_blank">FAQ</a>.
+								<a href="https://www.wplister.com/plugins/wp-lister/faq/" target="_blank">FAQ</a>.
 							</p>
 						</div>
 					</div>

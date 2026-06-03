@@ -69,7 +69,7 @@ class Client implements \WPLab\GuzzleHttp\ClientInterface
 
         // Convert the base_uri to a UriInterface
         if (isset($config['base_uri'])) {
-            $config['base_uri'] = Psr7\uri_for($config['base_uri']);
+            $config['base_uri'] = Psr7\Utils::uriFor($config['base_uri']);
         }
 
         $this->configureDefaults($config);
@@ -141,10 +141,10 @@ class Client implements \WPLab\GuzzleHttp\ClientInterface
     private function buildUri($uri, array $config)
     {
         // for BC we accept null which would otherwise fail in uri_for
-        $uri = Psr7\uri_for($uri === null ? '' : $uri);
+        $uri = Psr7\Utils::uriFor($uri === null ? '' : $uri);
 
         if (isset($config['base_uri'])) {
-            $uri = Psr7\UriResolver::resolve(Psr7\uri_for($config['base_uri']), $uri);
+            $uri = Psr7\UriResolver::resolve(Psr7\Utils::uriFor($config['base_uri']), $uri);
         }
 
         return $uri->getScheme() === '' && $uri->getHost() !== '' ? $uri->withScheme('http') : $uri;
@@ -274,9 +274,9 @@ class Client implements \WPLab\GuzzleHttp\ClientInterface
         $handler = $options['handler'];
 
         try {
-            return Promise\promise_for($handler($request, $options));
+            return Promise\Create::promiseFor($handler($request, $options));
         } catch (\Exception $e) {
-            return Promise\rejection_for($e);
+            return Promise\Create::rejectionFor($e);
         }
     }
 
@@ -335,7 +335,7 @@ class Client implements \WPLab\GuzzleHttp\ClientInterface
             if (is_array($options['body'])) {
                 $this->invalidBody();
             }
-            $modify['body'] = Psr7\stream_for($options['body']);
+            $modify['body'] = Psr7\Utils::streamFor($options['body']);
             unset($options['body']);
         }
 
@@ -375,7 +375,7 @@ class Client implements \WPLab\GuzzleHttp\ClientInterface
             }
         }
 
-        $request = Psr7\modify_request($request, $modify);
+        $request = Psr7\Utils::modifyRequest($request, $modify);
         if ($request->getBody() instanceof Psr7\MultipartStream) {
             // Use a multipart/form-data POST if a Content-Type is not set.
             $options['_conditional']['Content-Type'] = 'multipart/form-data; boundary='
@@ -391,7 +391,7 @@ class Client implements \WPLab\GuzzleHttp\ClientInterface
                     $modify['set_headers'][$k] = $v;
                 }
             }
-            $request = Psr7\modify_request($request, $modify);
+            $request = Psr7\Utils::modifyRequest($request, $modify);
             // Don't pass this internal value along to middleware/handlers.
             unset($options['_conditional']);
         }

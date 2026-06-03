@@ -125,4 +125,101 @@ class EbayTaxonomyModel extends WPL_Model {
 
     }
 
+    /**
+     * @param string $category_tree_id
+     * @return \Swagger\Client\Model\CategoryTree|false
+     */
+    public function getCategoryTree( $category_tree_id ) {
+        WPLE()->logger->info( 'getCategoryTree( '. $category_tree_id .')' );
+
+        $request_url = $this->api_url . '/category_tree/' . $category_tree_id;
+
+        try {
+            $api = new \Swagger\Client\Api\CategoryTreeApi(
+                new \WPLab\GuzzleHttp\Client(),
+                $this->api_config
+            );
+
+            $result = $api->getCategoryTree( $category_tree_id );
+
+            if ( get_option( 'wplister_log_to_db' ) == '1' ) {
+                $dblogger = new WPL_EbatNs_Logger( false, 'db', $this->wpl_account->id );
+                $dblogger->updateLog( [
+                    'callname'    => 'getCategoryTree',
+                    'request_url' => $request_url,
+                    'request'     => '',
+                    'response'    => $result ? 'version: ' . $result->getCategoryTreeVersion() : 'null',
+                    'success'     => 'Success',
+                ] );
+            }
+
+            return $result;
+
+        } catch ( Exception $e ) {
+            WPLE()->logger->error( 'getCategoryTree() failed: '. $e->getMessage() );
+
+            if ( get_option( 'wplister_log_to_db' ) == '1' ) {
+                $dblogger = new WPL_EbatNs_Logger( false, 'db', $this->wpl_account->id );
+                $dblogger->updateLog( [
+                    'callname'    => 'getCategoryTree',
+                    'request_url' => $request_url,
+                    'request'     => '',
+                    'response'    => $e->getMessage(),
+                    'success'     => 'Failure',
+                ] );
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * @param string $category_id
+     * @param string $category_tree_id
+     * @return \Swagger\Client\Model\CategorySubtree|false
+     */
+    public function getCategorySubtree( $category_id, $category_tree_id ) {
+        WPLE()->logger->info( 'getCategorySubtree( '. $category_id .', '. $category_tree_id .')' );
+
+        $request_url = $this->api_url . '/category_tree/' . $category_tree_id . '/get_category_subtree?category_id=' . $category_id;
+
+        try {
+            $api = new \Swagger\Client\Api\CategoryTreeApi(
+                new \WPLab\GuzzleHttp\Client(),
+                $this->api_config
+            );
+
+            $result = $api->getCategorySubtree( $category_id, $category_tree_id );
+
+            if ( get_option( 'wplister_log_to_db' ) == '1' ) {
+                $dblogger = new WPL_EbatNs_Logger( false, 'db', $this->wpl_account->id );
+                $dblogger->updateLog( [
+                    'callname'    => 'getCategorySubtree',
+                    'request_url' => $request_url,
+                    'request'     => '',
+                    'response'    => $result ? 'version: ' . $result->getCategoryTreeVersion() : 'null',
+                    'success'     => 'Success',
+                ] );
+            }
+
+            return $result;
+
+        } catch ( Exception $e ) {
+            WPLE()->logger->error( 'getCategorySubtree() failed: '. $e->getMessage() );
+
+            if ( get_option( 'wplister_log_to_db' ) == '1' ) {
+                $dblogger = new WPL_EbatNs_Logger( false, 'db', $this->wpl_account->id );
+                $dblogger->updateLog( [
+                    'callname'    => 'getCategorySubtree',
+                    'request_url' => $request_url,
+                    'request'     => '',
+                    'response'    => $e->getMessage(),
+                    'success'     => 'Failure',
+                ] );
+            }
+
+            return false;
+        }
+    }
+
 }

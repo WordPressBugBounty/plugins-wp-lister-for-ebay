@@ -2,7 +2,7 @@
 Contributors: wp-lab
 Tags: ebay, woocommerce, products, export
 Requires at least: 4.2
-Tested up to: 6.7.2
+Tested up to: 7.0
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -45,9 +45,9 @@ http://www.youtube.com/watch?feature=player_embedded&v=XvbHob8pfes
 
 = More information and Pro version =
 
-Visit <https://www.wplab.com/plugins/wp-lister/> to read more about WP-Lister including documentation, installation instructions and user reviews.
+Visit <https://www.wplister.com/plugins/wp-lister/> to read more about WP-Lister including documentation, installation instructions and user reviews.
 
-To find out more about the different versions have a look on our [feature comparison table](https://www.wplab.com/plugins/wp-lister/feature-comparison/).
+To find out more about the different versions have a look on our [feature comparison table](https://www.wplister.com/plugins/wp-lister/feature-comparison/).
 
 == Installation ==
 
@@ -74,7 +74,7 @@ To learn more about variations and allowed categories you should visit this page
 
 No, WP-Lister itself was created to let you manage your products in WordPress - and list them *from* WordPress *to* eBay. 
 
-But if you need to import all your items from eBay to WooCommerce first to be able to use WP-Lister, you can use the [importer add-on plugin](https://www.wplab.com/plugins/import-from-ebay-to-woocommerce/) we developed to get you started. Since importing from eBay is rather complex and support intensive this add-on plugin does have a price tag attached. 
+But if you need to import all your items from eBay to WooCommerce first to be able to use WP-Lister, you can use the [importer add-on plugin](https://www.wplister.com/plugins/import-from-ebay-to-woocommerce/) we developed to get you started. Since importing from eBay is rather complex and support intensive this add-on plugin does have a price tag attached. 
 
 = Does WP-Lister support windows servers? =
 
@@ -82,7 +82,7 @@ No, and there are no plans on adding support for IIS.
 
 = Are there any more FAQ? =
 
-Yes, there are! Please check out our growing knowledgebase at <https://www.wplab.com/plugins/wp-lister/faq/>.
+Yes, there are! Please check out our growing knowledgebase at <https://www.wplister.com/plugins/wp-lister/faq/>.
 
 = Is there a WP-Lister for Amazon? =
 
@@ -102,6 +102,21 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+= 3.8.8 - 2026-06-03 =
+* Fix: Defer eBay revisions for locked listings on REST API stock updates
+* Fix: Migrate category download from deprecated GetCategories Trading API to Taxonomy REST API
+* Fix: Quantity column sorting incorrect due to NULL quantity_sold and variable product mismatch
+* Fix: Cast product_id to int to prevent type mismatch
+* Fix: Unknown column 'listing_title' error in logArchiveAction
+* Fix: Grid editor price changes not saving or triggering revisions
+* Fix: Site details not saving when ebay_sites row is missing
+* Fix: Deprecated xml_set_object() function in PHP 8.4
+* Dev: Add filter hooks for the WooCommerce Multi Inventory plugin by welaunch
+* Dev: Add performance warning to "Show eBay product totals" setting
+* Dev: Domain changed to wplister.com
+
+= 3.8.7.1 - 2026-02-18 =
+* Fix: eBay Tracking metabox Javascript not executing
 
 = 3.8.7 - 2026-02-17 =
 * Fix: REST API permission check allowing unauthenticated access
@@ -757,4 +772,4 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * Fixed: Use the ebay.com domain instead of the old ebaymotors.com
 * Fixed: Possible is_ajax() is deprecated error
 
-View the full changelog at https://www.wplab.com/plugins/wp-lister-for-ebay/changelog/
+View the full changelog at https://www.wplister.com/plugins/wp-lister-for-ebay/changelog/

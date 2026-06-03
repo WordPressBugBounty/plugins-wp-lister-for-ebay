@@ -1826,7 +1826,7 @@ class ListingsModel extends WPL_Model {
 
 		// Get listing details
 		$listing = $wpdb->get_row( $wpdb->prepare(
-			"SELECT listing_title, status FROM {$table} WHERE id = %d",
+			"SELECT auction_title, status FROM {$table} WHERE id = %d",
 			$listing_id
 		), ARRAY_A );
 
@@ -1849,7 +1849,7 @@ class ListingsModel extends WPL_Model {
 			$user_login,
 			$user_id,
 			$listing_id,
-			$listing['listing_title'],
+			$listing['auction_title'],
 			$listing['status'],
 			$context,
 			$timestamp

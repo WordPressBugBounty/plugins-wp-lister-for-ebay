@@ -37,23 +37,58 @@ class WPLE_eBaySite extends WPL_Core {
 
 
 	function __construct( $id = null ) {
-		
+
 		$this->init();
 
 		if ( $id !== null ) {
-			$this->id = $id;
-			
 			$site = $this->getSite( $id );
-			if ( ! $site ) return false;
 
-			// load data into object		
-			foreach( $site AS $key => $value ){
+			// Create site row if it doesn't exist
+			if ( ! $site ) {
+				$this->createSiteIfNotExists( $id );
+				$site = $this->getSite( $id );
+			}
+
+			if ( ! $site ) {
+				return false;
+			}
+
+			$this->id = $id;
+
+			// load data into object
+			foreach ( $site as $key => $value ) {
 			    $this->$key = $value;
 			}
 
 			return $this;
 		}
 
+	}
+
+	/**
+	 * Create a site record if it doesn't exist.
+	 *
+	 * @param int $site_id The eBay site ID.
+	 */
+	private function createSiteIfNotExists( $site_id ) {
+		global $wpdb;
+		$table = $wpdb->prefix . self::TABLENAME;
+
+		// Get site info from the static list
+		$ebay_sites = EbayController::getEbaySites();
+		if ( ! isset( $ebay_sites[ $site_id ] ) ) {
+			return;
+		}
+
+		$data = array(
+			'id'         => $site_id,
+			'title'      => $ebay_sites[ $site_id ],
+			'url'        => EbayController::getDomainnameBySiteId( $site_id ),
+			'enabled'    => 1,
+			'sort_order' => 99,
+		);
+
+		$wpdb->insert( $table, $data );
 	}
 
 	function init()	{

@@ -32,38 +32,39 @@ class EbayCategoriesModel extends WPL_Model {
 	
 	function initCategoriesUpdate( $session, $site_id )
 	{
-		$this->initServiceProxy($session);
 		WPLE()->logger->info("initCategoriesUpdate( $site_id )");
 
-		// set handler to receive CategoryType items from result
-		$this->_cs->setHandler('CategoryType', array(& $this, 'storeCategory'));	
-		
-		// we will not know the version till the first call went through !
-		$this->_categoryVersion = -1;
-		$this->_siteid = $site_id;
-		
-		// truncate the db
 		global $wpdb;
-		// $wpdb->query('truncate '.$this->tablename);
 		$wpdb->query( $wpdb->prepare("DELETE FROM {$this->tablename} WHERE site_id = %s ", $site_id ) );
-		
-		// download the data of level 1 only !
-		$req = new GetCategoriesRequestType();
-		$req->CategorySiteID = $site_id;
-		$req->LevelLimit = 1;
-		$req->DetailLevel = 'ReturnAll';
-		
-		$res = $this->_cs->GetCategories($req);
-		$this->_categoryVersion = $res->CategoryVersion;
-		
-		// let's update the version information on the top-level entries
-		$data['version'] = $this->_categoryVersion;
-		$data['site_id'] = $this->_siteid;
-		$wpdb->update( $this->tablename, $data, array( 'parent_cat_id' => '0', 'site_id' => $site_id ) );
-        echo $wpdb->last_error;
 
-        // include the account ID in the tasks
-        $account_id = $session->wple_account_id;
+		$account_id = $session->wple_account_id;
+
+		$wpl_site         = WPLE_eBaySite::getSite( $site_id );
+		$category_tree_id = $wpl_site->default_category_tree_id;
+
+		WPLE_eBayAccount::maybeMintToken( $account_id );
+		$taxonomy = new EbayTaxonomyModel( $account_id );
+		$tree     = $taxonomy->getCategoryTree( $category_tree_id );
+
+		$this->_categoryVersion = $tree ? $tree->getCategoryTreeVersion() : '0';
+		$this->_siteid          = $site_id;
+
+		// Store level-1 categories from the root node's direct children
+		if ( $tree && $tree->getRootCategoryNode() ) {
+			$root_children = $tree->getRootCategoryNode()->getChildCategoryTreeNodes();
+			if ( is_array( $root_children ) ) {
+				foreach ( $root_children as $node ) {
+					$this->storeCategoryNode( $node, 0, $site_id, $this->_categoryVersion );
+				}
+			}
+		}
+
+		// Update version on all top-level entries
+		$wpdb->update(
+			$this->tablename,
+			[ 'version' => $this->_categoryVersion, 'site_id' => $site_id ],
+			[ 'parent_cat_id' => '0', 'site_id' => $site_id ]
+		);
 
 		// include other site specific update tasks
 		$tasks = array();
@@ -188,7 +189,6 @@ class EbayCategoriesModel extends WPL_Model {
 
 		// fetch the data back from the db and add a task for each top-level id
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT cat_id, cat_name, site_id FROM {$this->tablename} WHERE parent_cat_id = 0 AND site_id = %s ", $site_id ), ARRAY_A );
-        echo $wpdb->last_error;
 		foreach ($rows as $row)
 		{
 			WPLE()->logger->info('adding task for category #'.$row['cat_id'] . ' - '.$row['cat_name']);
@@ -208,27 +208,79 @@ class EbayCategoriesModel extends WPL_Model {
 	
 	function loadEbayCategoriesBranch( $cat_id, $session, $site_id )
 	{
-		$this->initServiceProxy($session);
 		WPLE()->logger->info("loadEbayCategoriesBranch() - cat_id: $cat_id, site_id: $site_id" );
 
-		// handle eBay Motors category (US only)
+		// Handle eBay Motors category (US only)
 		if ( $cat_id == 6000 && $site_id == 0 ) $site_id = 100;
-
-		// set handler to receive CategoryType items from result
-		$this->_cs->setHandler('CategoryType', array(& $this, 'storeCategory'));	
 		$this->_siteid = $site_id;
 
-		// call GetCategories()
-		$req = new GetCategoriesRequestType();
-		$req->CategorySiteID = $site_id;
-		$req->LevelLimit = 255;
-		$req->DetailLevel = 'ReturnAll';
-		$req->ViewAllNodes = true;
-		$req->CategoryParent = $cat_id;
-		$this->_cs->GetCategories($req);
+		$account_id = $session->wple_account_id;
 
+		$wpl_site         = WPLE_eBaySite::getSite( $site_id );
+		$category_tree_id = $wpl_site->default_category_tree_id;
+
+		WPLE_eBayAccount::maybeMintToken( $account_id );
+		$taxonomy = new EbayTaxonomyModel( $account_id );
+		$subtree  = $taxonomy->getCategorySubtree( $cat_id, $category_tree_id );
+
+		if ( $subtree && $subtree->getCategorySubtreeNode() ) {
+			$this->_categoryVersion = $subtree->getCategoryTreeVersion();
+			$this->storeCategoryNode( $subtree->getCategorySubtreeNode(), 0, $site_id, $this->_categoryVersion );
+		}
 	}	
 	
+	/**
+	 * Recursively store a CategoryTreeNode and all its children.
+	 * Skips the node if it was already stored (e.g. the branch root stored by initCategoriesUpdate).
+	 *
+	 * @param \Swagger\Client\Model\CategoryTreeNode $node
+	 * @param int    $parent_id
+	 * @param int    $site_id
+	 * @param string $version
+	 */
+	private function storeCategoryNode( $node, $parent_id, $site_id, $version ) {
+		global $wpdb;
+
+		$cat_id   = $node->getCategory()->getCategoryId();
+		$cat_name = $node->getCategory()->getCategoryName();
+		$level    = $node->getCategoryTreeNodeLevel();
+		$is_leaf  = $node->getLeafCategoryTreeNode() ? 1 : 0;
+
+		// Skip if already stored (branch root was inserted by initCategoriesUpdate)
+		if ( $parent_id === 0 && $this->getItem( $cat_id, $site_id ) ) {
+			if ( !$is_leaf && $node->getChildCategoryTreeNodes() ) {
+				foreach ( $node->getChildCategoryTreeNodes() as $child ) {
+					$this->storeCategoryNode( $child, $cat_id, $site_id, $version );
+				}
+			}
+			return;
+		}
+
+		$data = [
+			'cat_id'        => $cat_id,
+			'parent_cat_id' => $parent_id,
+			'cat_name'      => $cat_name,
+			'level'         => $level,
+			'leaf'          => $is_leaf,
+			'version'       => $version ?: 0,
+			'site_id'       => $site_id,
+		];
+
+		$wpdb->insert( $this->tablename, $data );
+		if ( $wpdb->last_error ) {
+			WPLE()->logger->error( 'failed to insert category '. $cat_id .' - '. $cat_name );
+			WPLE()->logger->error( 'mysql said: '. $wpdb->last_error );
+		} else {
+			WPLE()->logger->info( 'category inserted() '. $cat_id .' - '. $cat_name );
+		}
+
+		if ( !$is_leaf && $node->getChildCategoryTreeNodes() ) {
+			foreach ( $node->getChildCategoryTreeNodes() as $child ) {
+				$this->storeCategoryNode( $child, $cat_id, $site_id, $version );
+			}
+		}
+	}
+
 	function storeCategory( $type, $Category )
 	{
 		global $wpdb;

@@ -281,7 +281,7 @@ class WPL_Model {
 				$longMessage .= '</ol>';
 		        if ( ! defined('WPLISTER_RESELLER_VERSION') ) :
 					$longMessage .= 'More detailed information about item specifics in WP-Lister Pro can be found here: ';
-					$longMessage .= '<a href="https://www.wplab.com/list-your-products-with-item-specifics-recommended-by-ebay/" target="_blank">https://www.wplab.com/list-your-products-with-item-specifics-recommended-by-ebay/</a>';
+					$longMessage .= '<a href="https://www.wplister.com/list-your-products-with-item-specifics-recommended-by-ebay/" target="_blank">https://www.wplister.com/list-your-products-with-item-specifics-recommended-by-ebay/</a>';
 				endif;
 			}
 			

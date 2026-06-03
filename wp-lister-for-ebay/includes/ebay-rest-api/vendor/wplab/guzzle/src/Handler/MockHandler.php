@@ -79,7 +79,7 @@ class MockHandler implements \Countable
 
         $response = $response instanceof \Exception
             ? new RejectedPromise($response)
-            : \GuzzleHttp\Promise\promise_for($response);
+            : \GuzzleHttp\Promise\Create::promiseFor($response);
 
         return $response->then(
             function ($value) use ($request, $options) {

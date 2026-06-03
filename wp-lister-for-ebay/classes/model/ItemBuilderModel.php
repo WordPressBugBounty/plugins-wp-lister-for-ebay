@@ -65,7 +65,7 @@ class ItemBuilderModel extends WPL_Model {
 		// remember listing id and account id for checkItem() and buildPayment()
 		$this->listing      = $listing;
 		$this->listing_id   = $id;
-		$this->product_id   = $post_id;
+		$this->product_id   = (int) $post_id;
 		$this->account_id   = $listing->getAccountId();
 		$this->profile_details = $profile_details;
 		$this->session = $session;

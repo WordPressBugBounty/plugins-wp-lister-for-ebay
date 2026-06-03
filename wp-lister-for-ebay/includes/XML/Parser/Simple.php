@@ -163,22 +163,21 @@ class XML_Parser_Simple extends XML_Parser
         }
 
         if ($this->mode != 'func' && $this->mode != 'event') {
-            return $this->raiseError('Unsupported mode given', 
+            return $this->raiseError('Unsupported mode given',
                 XML_PARSER_ERROR_UNSUPPORTED_MODE);
         }
-        xml_set_object($this->parser, $this->_handlerObj);
 
-        xml_set_element_handler($this->parser, array(&$this, 'startHandler'), 
+        xml_set_element_handler($this->parser, array(&$this, 'startHandler'),
             array(&$this, 'endHandler'));
         xml_set_character_data_handler($this->parser, array(&$this, 'cdataHandler'));
-        
+
         /**
          * set additional handlers for character data, entities, etc.
          */
         foreach ($this->handler as $xml_func => $method) {
             if (method_exists($this->_handlerObj, $method)) {
                 $xml_func = 'xml_set_' . $xml_func;
-                $xml_func($this->parser, $method);
+                $xml_func($this->parser, array($this->_handlerObj, $method));
             }
         }
     }

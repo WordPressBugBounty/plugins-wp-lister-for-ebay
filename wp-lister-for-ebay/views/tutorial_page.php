@@ -44,11 +44,11 @@
 
 							<p><strong><?php echo __( 'Helpful links', 'wp-lister-for-ebay' ); ?></strong></p>
 							<p class="desc" style="display: block;">
-								<a href="https://www.wplab.com/plugins/wp-lister/faq/" target="_blank"><?php echo __( 'FAQ', 'wp-lister-for-ebay' ); ?></a> <br>
-								<a href="https://www.wplab.com/plugins/wp-lister/documentation/" target="_blank"><?php echo __( 'Documentation', 'wp-lister-for-ebay' ); ?></a> <br>
-								<a href="https://www.wplab.com/plugins/wp-lister/installing-wp-lister/" target="_blank"><?php echo __( 'Installing WP-Lister', 'wp-lister-for-ebay' ); ?></a> <br>
-								<a href="https://www.wplab.com/plugins/wp-lister/screencasts/" target="_blank"><?php echo __( 'Screencasts', 'wp-lister-for-ebay' ); ?></a> <br>
-								<a href="https://www.wplab.com/plugins/wp-lister/changelog/" target="_blank"><?php echo __( 'Changelog', 'wp-lister-for-ebay' ); ?></a> <br>
+								<a href="https://www.wplister.com/plugins/wp-lister/faq/" target="_blank"><?php echo __( 'FAQ', 'wp-lister-for-ebay' ); ?></a> <br>
+								<a href="https://www.wplister.com/plugins/wp-lister/documentation/" target="_blank"><?php echo __( 'Documentation', 'wp-lister-for-ebay' ); ?></a> <br>
+								<a href="https://www.wplister.com/plugins/wp-lister/installing-wp-lister/" target="_blank"><?php echo __( 'Installing WP-Lister', 'wp-lister-for-ebay' ); ?></a> <br>
+								<a href="https://www.wplister.com/plugins/wp-lister/screencasts/" target="_blank"><?php echo __( 'Screencasts', 'wp-lister-for-ebay' ); ?></a> <br>
+								<a href="https://www.wplister.com/plugins/wp-lister/changelog/" target="_blank"><?php echo __( 'Changelog', 'wp-lister-for-ebay' ); ?></a> <br>
 							</p>
 							<br class="clear" />
 

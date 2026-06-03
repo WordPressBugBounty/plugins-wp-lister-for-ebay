@@ -1379,12 +1379,12 @@ class ToolsPage extends WPL_Page {
 		// }
 
 		// try update.wplab.com
-		$url = 'http://update.wplab.de/api/';
+		$url = 'http://update.wplister.com/api/';
 		$this->results->successWplabApi = $this->checkUrl( $url, 'WP Lab update server' );
 
-		// try wplab.com
+		// try wplister.com
 		if ( ! $this->results->successWplabApi ) {
-			$url = 'https://www.wplab.com/';
+			$url = 'https://www.wplister.com/';
 			$this->results->successWplabWeb = $this->checkUrl( $url, 'WP Lab web server' );
 		}
 

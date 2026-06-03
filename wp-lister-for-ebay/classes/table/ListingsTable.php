@@ -370,7 +370,7 @@ class ListingsTable extends WP_List_Table {
                 $variations_html .= '<b style="color:darkred">No variations found.</b><br>';
                 $variations_html .= '<div id="pvars_'.$item['id'].'" class="variations_list" style="display:none;margin-bottom:10px;">';
                 if ( ! defined('WPLISTER_RESELLER_VERSION') ) {
-                    $variations_html .= 'Please read the <a href="https://www.wplab.com/plugins/wp-lister/faq/#Variations" target="_blank">FAQ</a> or contact support.';
+                    $variations_html .= 'Please read the <a href="https://www.wplister.com/plugins/wp-lister/faq/#Variations" target="_blank">FAQ</a> or contact support.';
                 }
                 $variations_html .= '</div>';
                 return $variations_html;

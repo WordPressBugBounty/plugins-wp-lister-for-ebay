@@ -612,7 +612,7 @@ class WPL_Setup extends WPL_Core {
         if ( $download ) {
             update_option( 'wple_last_announcement_check', $now );
 
-            $endpoint = 'http://update.wplab.de/beta/wple-announcements.php';
+            $endpoint = 'http://update.wplister.com/beta/wple-announcements.php';
             //$endpoint = 'https://lab.devel/wpla-announcements.php';
             $data = array(
                 'wc'    => defined( 'WC_VERSION' ) ? WC_VERSION : '',

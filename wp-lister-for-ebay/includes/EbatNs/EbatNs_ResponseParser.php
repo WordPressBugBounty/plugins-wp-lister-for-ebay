@@ -170,9 +170,8 @@ class EbatNs_ResponseParser
         
         $parser = xml_parser_create($encoding);
         xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
-        xml_set_object($parser, $this);
-        xml_set_element_handler($parser, '_startElement', '_endElement');
-        xml_set_character_data_handler($parser, '_cData');
+        xml_set_element_handler($parser, [$this, '_startElement'], [$this, '_endElement']);
+        xml_set_character_data_handler($parser, [$this, '_cData']);
         
         // ***** BEGIN EBATNS PATCH *****
         // try to fix XML if it includes HTTP headers for some reason... (LiteSpeed?)
