@@ -1095,10 +1095,21 @@ class WPLE_ListingQueryHelper {
 
 		$sku_sorting = get_option( 'wplister_listing_sku_sorting', 0 );
 
-        $orderby  = (!empty($filters['orderby'])) ? esc_sql( $filters['orderby'] ) : 'id';
-        $order    = ( !empty( $filters['order'] ) && strtoupper( $filters['order'] ) === 'ASC' ) ? 'ASC' : 'DESC';
-        $offset   = ( $current_page - 1 ) * $per_page;
-        $per_page = esc_sql( $per_page );
+        // CVE-2026-11973: whitelist orderby/order - esc_sql() does not sanitize SQL
+        // identifiers and must never be used to build an ORDER BY clause from user input.
+        // This is the main eBay Listings admin page (page=wplister) - allow-list matches
+        // ListingsTable::get_sortable_columns() (the clickable UI columns), plus 'id' (the
+        // function's own default/fallback). 'sku' is only allowed when SKU sorting is
+        // enabled, mirroring the same wplister_listing_sku_sorting option check used to
+        // decide whether the UI even renders a clickable SKU column.
+        $allowed_orderby = array( 'id', 'date_published', 'end_date', 'quantity_sold', 'auction_title', 'price', 'quantity', 'status' );
+        if ( $sku_sorting ) {
+            $allowed_orderby[] = 'sku';
+        }
+        $orderby  = wple_sanitize_orderby( isset($filters['orderby']) ? $filters['orderby'] : '', $allowed_orderby, 'id' );
+        $order    = wple_sanitize_order( isset($filters['order']) ? $filters['order'] : '', 'DESC' );
+        $offset   = absint( ( $current_page - 1 ) * $per_page );
+        $per_page = absint( $per_page );
 
         $sort_by_quantity = false;
         if ( $orderby == 'quantity' ) {

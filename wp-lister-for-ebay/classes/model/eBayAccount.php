@@ -363,10 +363,13 @@ class WPLE_eBayAccount extends WPL_Core {
 		global $wpdb;
 		$table = $wpdb->prefix . self::TABLENAME;
 
-        $orderby  = (!empty($_REQUEST['orderby'])) ? esc_sql( $_REQUEST['orderby'] ) : 'title';
-        $order    = (!empty($_REQUEST['order']))   ? esc_sql( $_REQUEST['order']   ) : 'asc';
-        $offset   = ( $current_page - 1 ) * $per_page;
-        $per_page = esc_sql( $per_page );
+        // CVE-2026-11973: whitelist orderby/order - esc_sql() does not sanitize SQL
+        // identifiers and must never be used to build an ORDER BY clause from user input
+        $allowed_orderby = array( 'title', 'user_name', 'site_id', 'valid_until', 'active' );
+        $orderby  = wple_sanitize_orderby( isset($_REQUEST['orderby']) ? $_REQUEST['orderby'] : '', $allowed_orderby, 'title' );
+        $order    = wple_sanitize_order( isset($_REQUEST['order']) ? $_REQUEST['order'] : '', 'ASC' );
+        $offset   = absint( ( $current_page - 1 ) * $per_page );
+        $per_page = absint( $per_page );
 
         // get items
 		$items = $wpdb->get_results("

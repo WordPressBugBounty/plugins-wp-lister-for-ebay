@@ -274,10 +274,13 @@ class WPLE_StocksLogTable extends WP_List_Table {
 
         $table = $wpdb->prefix . self::TABLENAME;
 
-        $orderby  = (!empty($_REQUEST['orderby'])) ? esc_sql( wple_clean($_REQUEST['orderby']) ) : 'id';
-        $order    = (!empty($_REQUEST['order']))   ? esc_sql( wple_clean($_REQUEST['order'])   ) : 'desc';
-        $offset   = ( $current_page - 1 ) * $per_page;
-        $per_page = esc_sql( $per_page );
+        // CVE-2026-11973: whitelist orderby/order - esc_sql() does not sanitize SQL
+        // identifiers and must never be used to build an ORDER BY clause from user input
+        $allowed_orderby = array( 'id', 'timestamp', 'product_id', 'sku', 'old_stock', 'new_stock', 'caller', 'method', 'user_id' );
+        $orderby  = wple_sanitize_orderby( isset($_REQUEST['orderby']) ? wple_clean($_REQUEST['orderby']) : '', $allowed_orderby, 'id' );
+        $order    = wple_sanitize_order( isset($_REQUEST['order']) ? wple_clean($_REQUEST['order']) : '', 'DESC' );
+        $offset   = absint( ( $current_page - 1 ) * $per_page );
+        $per_page = absint( $per_page );
 
         // handle filters
         $where_sql = ' WHERE 1 = 1 ';

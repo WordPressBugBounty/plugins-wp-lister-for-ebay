@@ -230,6 +230,49 @@ function wple_clean( $var ) {
 }
 
 
+/**
+ * CVE-2026-11973: Whitelist-validate a requested ORDER BY column name.
+ *
+ * esc_sql() only escapes string-literal contexts (e.g. values inside quotes).
+ * It does NOT neutralise commas, parentheses or subqueries, so it must never
+ * be used to sanitize a SQL identifier such as an ORDER BY column name - doing
+ * so allows authenticated SQL injection via the orderby/order query params.
+ *
+ * This validates the requested column against a fixed list of known-safe
+ * column names for the query in question, and falls back to $default for
+ * anything that isn't an exact, case-sensitive match.
+ *
+ * @param  mixed  $requested Raw value, usually from $_REQUEST['orderby'].
+ * @param  array  $allowed   Whitelist of valid column names for this query.
+ * @param  string $default   Column to use if $requested is missing/invalid.
+ * @return string            A safe column name (always a member of $allowed).
+ */
+function wple_sanitize_orderby( $requested, array $allowed, $default ) {
+    $requested = is_scalar( $requested ) ? (string) $requested : '';
+
+    if ( $requested !== '' && in_array( $requested, $allowed, true ) ) {
+        return $requested;
+    }
+
+    return $default;
+}
+
+
+/**
+ * CVE-2026-11973: Sanitize a requested ORDER direction to strictly ASC/DESC.
+ *
+ * @param  mixed  $requested Raw value, usually from $_REQUEST['order'].
+ * @param  string $default   'ASC' or 'DESC' to use if $requested is invalid.
+ * @return string            Either 'ASC' or 'DESC' - never anything else.
+ */
+function wple_sanitize_order( $requested, $default = 'ASC' ) {
+    $default   = ( strtoupper( (string) $default ) === 'DESC' ) ? 'DESC' : 'ASC';
+    $requested = is_scalar( $requested ) ? strtoupper( (string) $requested ) : '';
+
+    return ( $requested === 'ASC' || $requested === 'DESC' ) ? $requested : $default;
+}
+
+
 //
 // Template API functions
 //

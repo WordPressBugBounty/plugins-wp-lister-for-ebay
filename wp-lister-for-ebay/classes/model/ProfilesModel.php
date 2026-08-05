@@ -275,12 +275,15 @@ class ProfilesModel extends WPL_Model {
 	function getPageItems( $current_page, $per_page ) {
 		global $wpdb;
 
-        $orderby  = (!empty($_REQUEST['orderby'])) ? esc_sql( $_REQUEST['orderby'] ) : 'profile_name';
-        $order    = (!empty($_REQUEST['order']))   ? esc_sql( $_REQUEST['order']   ) : 'asc';
-        $offset   = ( $current_page - 1 ) * $per_page;
-        $per_page = esc_sql( $per_page );
+        // CVE-2026-11973: whitelist orderby/order - esc_sql() does not sanitize SQL
+        // identifiers and must never be used to build an ORDER BY clause from user input
+        $allowed_orderby = array( 'profile_name', 'listing_duration', 'type' );
+        $orderby  = wple_sanitize_orderby( isset($_REQUEST['orderby']) ? $_REQUEST['orderby'] : '', $allowed_orderby, 'profile_name' );
+        $order    = wple_sanitize_order( isset($_REQUEST['order']) ? $_REQUEST['order'] : '', 'ASC' );
+        $offset   = absint( ( $current_page - 1 ) * $per_page );
+        $per_page = absint( $per_page );
 
-        // regard sort order if sorted by profile name
+        // regard sort order if sorted by profile name (built from validated pieces only)
         if ( $orderby == 'profile_name' ) $orderby = 'sort_order '.$order.', profile_name';
 
         $join_sql  = '';

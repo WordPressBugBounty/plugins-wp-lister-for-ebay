@@ -36,7 +36,6 @@ class ToolsPage extends WPL_Page {
 		    check_admin_referer( 'wplister_force_update_check' );
 
             // global $wpdb;
-            // $wpdb->query("update wp_options set option_value='' where option_name='_site_transient_update_plugins'");
             // set_site_transient('update_plugins', null);
             delete_site_transient('update_plugins');
 

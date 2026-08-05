@@ -642,10 +642,13 @@ class LogTable extends WP_List_Table {
         // $this->tablename = $wpdb->prefix . 'ebay_log';
         $table = $wpdb->prefix . self::TABLENAME;
 
-        $orderby  = (!empty($_REQUEST['orderby'])) ? esc_sql( $_REQUEST['orderby'] ) : 'id';
-        $order    = (!empty($_REQUEST['order']))   ? esc_sql( $_REQUEST['order']   ) : 'desc';
-        $offset   = ( $current_page - 1 ) * $per_page;
-        $per_page = esc_sql( $per_page );
+        // CVE-2026-11973: whitelist orderby/order - esc_sql() does not sanitize SQL
+        // identifiers and must never be used to build an ORDER BY clause from user input
+        $allowed_orderby = array( 'id', 'timestamp', 'callname', 'success', 'ebay_id', 'user_id' );
+        $orderby  = wple_sanitize_orderby( isset($_REQUEST['orderby']) ? $_REQUEST['orderby'] : '', $allowed_orderby, 'id' );
+        $order    = wple_sanitize_order( isset($_REQUEST['order']) ? $_REQUEST['order'] : '', 'DESC' );
+        $offset   = absint( ( $current_page - 1 ) * $per_page );
+        $per_page = absint( $per_page );
 
         // handle filters
         // $where_sql = ' WHERE 1 = 1 ';
