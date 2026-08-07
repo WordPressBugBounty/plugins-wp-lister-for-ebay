@@ -76,9 +76,9 @@ class LogTable extends WP_List_Table {
             case 'callname':
             case 'ebay_id':
             case 'success':
-                return $item[$column_name];
+                return esc_html( $item[$column_name] );
             case 'user':
-                return $item['user_id'];
+                return esc_html( $item['user_id'] );
             default:
                 return print_r($item,true); //Show the whole array for troubleshooting purposes
         }
@@ -99,7 +99,7 @@ class LogTable extends WP_List_Table {
             $details = '';
             if ( preg_match("/cURL error:(.*)/", $item['response'], $matches) ) {
                 $LongMessage = $matches[1];
-                $details .= ': <span style="color:#555">'.$LongMessage.' (cURL)</span>';
+                $details .= ': <span style="color:#555">'. esc_html( $LongMessage ) .' (cURL)</span>';
             }
 
             return '<span style="color:#B00">Failed</span>'.$details;
@@ -110,13 +110,13 @@ class LogTable extends WP_List_Table {
             $details = '';
             if ( preg_match("/<LongMessage>(.*)<\/LongMessage>/", $item['response'], $matches) ) {
                 $LongMessage = $matches[1];
-                $details .= ': <span style="color:#555">'.$LongMessage.'</span>';
+                $details .= ': <span style="color:#555">'. esc_html( $LongMessage ) .'</span>';
             }
 
             return '<span style="color:#B00">Partial Failure</span>'.$details;
         }
 
-        return $item['success'];
+        return esc_html( $item['success'] );
     }    
 
     function column_user($item){
@@ -146,7 +146,7 @@ class LogTable extends WP_List_Table {
 
         //Build row action
         $nonce = wp_create_nonce( 'wplister_display_log_entry' );
-        $link = sprintf('<a href="?page=%s&action=%s&log_id=%s&_wpnonce=%s&width=820&height=550" class="thickbox">%s</a>', $page, 'wple_display_log_entry', $item['id'], $nonce, $item['callname']);
+        $link = sprintf('<a href="?page=%s&action=%s&log_id=%s&_wpnonce=%s&width=820&height=550" class="thickbox">%s</a>', $page, 'wple_display_log_entry', absint( $item['id'] ), $nonce, esc_html( $item['callname'] ));
 
         if ( 'GeteBayDetails' == $item['callname'] ) {
             if ( preg_match("/<DetailName>(.*)<\/DetailName>/", $item['request'], $matches) ) {
@@ -289,9 +289,9 @@ class LogTable extends WP_List_Table {
             if ( $err->SeverityCode == 'Error' ) $color_code = '#B00'; // errors are red
 
             $html .= '<div class="error_details" style="margin-top:.5em">';
-            $html .= '<b style="color:'.$color_code.'">'.$err->SeverityCode.':</b> ';
-            $html .= $err->ShortMessage . ' <br>';
-            $html .= '<small>'.$err->LongMessage.' ('.$err->ErrorCode.')</small>';
+            $html .= '<b style="color:'.$color_code.'">'. esc_html( $err->SeverityCode ) .':</b> ';
+            $html .= esc_html( $err->ShortMessage ) . ' <br>';
+            $html .= '<small>'. esc_html( $err->LongMessage ) .' ('. esc_html( $err->ErrorCode ) .')</small>';
             $html .= '</div>';
             
         }
@@ -306,7 +306,7 @@ class LogTable extends WP_List_Table {
         if ( preg_match("/<Message>(.*)<\/Message>/Usm", $item['response'] ?? '', $matches_msg) ) {
             $message = strip_tags( html_entity_decode( $matches_msg[1] ) );
             if ( strlen( $message ) > 100 ) {
-                $message = html_entity_decode( $matches_msg[1] );
+                $message = wp_kses_post( html_entity_decode( $matches_msg[1] ) );
             }
 
             $color_code = '';
@@ -322,13 +322,15 @@ class LogTable extends WP_List_Table {
     function column_ebay_id($item) {
 
         // use ebay_id column if set
-        if ( $item['ebay_id'] ) return $item['ebay_id'];
+        if ( $item['ebay_id'] ) return esc_html( $item['ebay_id'] );
 
         // check for ItemID in request
+        // NOTE: the request column can hold unauthenticated input (external cron
+        // endpoint), so anything lifted out of it must be escaped before output
         if ( preg_match("/<ItemID>(.*)<\/ItemID>/", $item['request'], $matches) ) {
             $match = str_replace('<![CDATA[', '', $matches[1] );
             $match = str_replace(']]>', '', $match );
-            return $match;
+            return esc_html( $match );
         }
 
     }

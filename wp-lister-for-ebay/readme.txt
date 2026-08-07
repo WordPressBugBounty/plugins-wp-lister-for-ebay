@@ -102,6 +102,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+= 3.8.10 - 2026-08-07 =
+* Security: fixed a stored cross-site scripting vulnerability that could be triggered without an account. The AJAX endpoint used by external cron services accepted arbitrary request parameters and wrote them into the eBay log table, where the listings log screen rendered parts of them unescaped back to an administrator. Request payloads are now sanitised - parameter names as well as values - before they are stored, and every value the log table lifts back out of a stored row is escaped on output. Only sites with "Log to database" enabled were affected. Reported responsibly via Wordfence; our thanks to the reporter and to the Wordfence team.
+
 = 3.8.9 - 2026-07-30 =
 * Security: fixed a SQL injection via the `orderby` and `order` request parameters on admin list screens, exploitable by users with the `manage_ebay_listings` capability (by default Administrator and Shop Manager) (CVE-2026-11973). Sort parameters are now validated against a strict allow-list of real sortable columns instead of being escaped, and pagination values are cast to integers. Reported responsibly by Yousof Nahya and Hamza Nour via Wordfence; our thanks to them and to the Wordfence team.
 
@@ -778,6 +781,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 View the full changelog at https://www.wplister.com/plugins/wp-lister-for-ebay/changelog/
 
 == Upgrade Notice ==
+
+= 3.8.10 =
+Security release. Fixes a stored cross-site scripting vulnerability that could be triggered without an account. Update is recommended for all users.
 
 = 3.8.9 =
 Security release. Fixes an authenticated SQL injection on admin list screens (CVE-2026-11973). Update is recommended for all users.

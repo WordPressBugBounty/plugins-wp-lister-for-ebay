@@ -229,6 +229,34 @@ function wple_clean( $var ) {
     }
 }
 
+/**
+ * Sanitize an untrusted request payload - keys AND values - before it is
+ * persisted to the log table.
+ *
+ * The external cron endpoint is registered for wp_ajax_nopriv_*, so the whole
+ * of $_REQUEST is attacker controlled on any site, and the serialized result
+ * is later rendered back into the admin Logs screen. wple_clean() alone is not
+ * enough here: it sanitizes values but leaves array keys untouched, and PHP
+ * keeps characters such as < > and / in query-string parameter names. A key
+ * like "<ItemID><svg/onload=...></ItemID>" would therefore survive into the
+ * stored string. sanitize_key() reduces keys to [a-z0-9_-], which removes the
+ * markup entirely.
+ *
+ * @param  mixed $data
+ * @return mixed
+ */
+function wple_clean_log_payload( $data ) {
+    if ( is_array( $data ) ) {
+        $clean = array();
+        foreach ( $data as $key => $value ) {
+            $clean[ sanitize_key( $key ) ] = wple_clean_log_payload( $value );
+        }
+        return $clean;
+    }
+
+    return is_scalar( $data ) ? sanitize_text_field( (string) $data ) : '';
+}
+
 
 /**
  * CVE-2026-11973: Whitelist-validate a requested ORDER BY column name.

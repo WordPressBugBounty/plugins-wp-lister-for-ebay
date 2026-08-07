@@ -66,7 +66,9 @@ class WPL_CronActions extends WPL_Core {
 	        $dblogger->updateLog( array(
 				'callname'    => 'cron_job_triggered',
 				'request_url' => 'internal action hook',
-				'request'     => maybe_serialize( $_REQUEST ),
+				// this handler is reachable via wp_ajax_nopriv_*, so $_REQUEST is
+				// untrusted input that ends up rendered in the admin Logs screen
+				'request'     => maybe_serialize( wple_clean_log_payload( $_REQUEST ) ),
 				'response'    => 'last run: '.human_time_diff( get_option('wplister_cron_last_run') ).' ago',
 				'success'     => 'Success'
 	        ));
