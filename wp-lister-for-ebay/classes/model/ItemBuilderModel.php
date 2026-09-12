@@ -3231,6 +3231,67 @@ class ItemBuilderModel extends WPL_Model {
 			wple_show_message( '<b>Note:</b> The item specifics <b>'.$req_spec->Name.'</b> has '.$number_of_values.' values, but eBay allows only '.$req_spec->MaxValues.' value(s).<br>In order to prevent listing errors, additional values will be omitted.', 'warn' );
 		}
 
+		// eBay's size-standardisation enforcement (Apparel/Footwear; FR/IT/ES since 2026-08-31,
+		// DE/UK/CA since 2026-09-08, AU 2026-09-15, US 2026-09-22) rejects values that are not on
+		// its own recommended-values list for size-family aspects - even though the aspect itself
+		// reports SelectionMode=FREE_TEXT (measured live for UK Shoe Size / DE Groesse, #77327,
+		// #77400: eBay validates submitted values against its recommended list independently of
+		// aspectMode). So this has to be a value denylist, not an aspectMode check - and it has to
+		// run here, AFTER buildItemSpecifics()/buildVariations() and AFTER the required-item-specifics
+		// filler above, because that filler would otherwise stamp a doomed "Does not apply" into a
+		// size aspect that has no such value on eBay's list (the exact trap that produced #77327:
+		// a self-typed Tagify tag survives because enforceWhitelist is disabled by design).
+		// Runs for both AddItem and ReviseItem (checkItem() is called from both in ListingsModel),
+		// which also covers the automatic background revise queued by queueChangedListings() /
+		// wple_do_background_revise_items() whenever a sale marks a listing "changed" - not just
+		// the manual Revise button or the profile editor.
+		$bad_size_aspects = array();
+		$invalid_size_values = self::getSizeAspectInvalidValues();
+
+		$scan_for_bad_size_values = function ( $name_value_list ) use ( &$bad_size_aspects, $invalid_size_values ) {
+			if ( ! is_array( $name_value_list ) ) return;
+			foreach ( $name_value_list as $nvl ) {
+				if ( ! self::isSizeFamilyAspectName( $nvl->Name ) ) continue;
+				$values = is_array( $nvl->Value ) ? $nvl->Value : array( $nvl->Value );
+				foreach ( $values as $value ) {
+					if ( in_array( strtolower( trim( (string) $value ) ), $invalid_size_values, true ) ) {
+						$bad_size_aspects[ $nvl->Name ] = $value;
+					}
+				}
+			}
+		};
+
+		if ( $item->ItemSpecifics ) {
+			$scan_for_bad_size_values( $item->ItemSpecifics->NameValueList );
+		}
+
+		if ( is_object( $item->Variations ) ) {
+			$VariationSpecificsSet = $item->Variations->getVariationSpecificsSet();
+			if ( is_object( $VariationSpecificsSet ) ) {
+				$scan_for_bad_size_values( $VariationSpecificsSet->NameValueList );
+			}
+			foreach ( (array) $item->Variations->Variation as $var ) {
+				if ( is_object( $var->VariationSpecifics ) ) {
+					$scan_for_bad_size_values( $var->VariationSpecifics->NameValueList );
+				}
+			}
+		}
+
+		if ( ! empty( $bad_size_aspects ) ) {
+			$bad_pairs = array();
+			foreach ( $bad_size_aspects as $aspect_name => $bad_value ) {
+				$bad_pairs[] = '<b>' . $aspect_name . '</b> = "' . $bad_value . '"';
+			}
+
+			$longMessage  = __( 'eBay will reject this listing because of a placeholder size value.', 'wp-lister-for-ebay' );
+			$longMessage .= '<br>' . sprintf(
+				__( 'This item specific is set to a placeholder instead of a real size: %s.', 'wp-lister-for-ebay' ),
+				implode( ', ', $bad_pairs )
+			);
+			$longMessage .= '<br>' . __( 'eBay is now enforcing standardised size values for Apparel/Footwear listings and blocks anything not on its recommended list. Edit the Item Specifics on the profile or product and replace the placeholder with an actual size.', 'wp-lister-for-ebay' );
+			$success = false;
+		}
+
 
 		// ItemSpecifics values can't be longer than 65 characters
 		if ( $item->ItemSpecifics ) foreach ( $item->ItemSpecifics->NameValueList as $spec ) {
@@ -3302,6 +3363,64 @@ class ItemBuilderModel extends WPL_Model {
 		return $success;
 
 	} /* end of checkItem() */
+
+	/**
+	 * Whether an item specific / aspect name belongs to eBay's size-standardisation family
+	 * (Size, UK/US/EU/AU Shoe Size, Groesse, Taille, Pointure, Talla, Taglia, ...). A substring
+	 * match rather than an exact name list, so category-specific variants (e.g. "Ring Size",
+	 * "Shoe Size (UK)") are covered without needing every marketplace's literal aspect name.
+	 * #77327 / eBay size-standardisation enforcement (FR/IT/ES 2026-08-31, DE/UK/CA 2026-09-08,
+	 * AU 2026-09-15, US 2026-09-22).
+	 *
+	 * @param string $name
+	 * @return bool
+	 */
+	static public function isSizeFamilyAspectName( $name ) {
+		$name = strtolower( (string) $name );
+		if ( $name === '' ) return false;
+
+		$needles = apply_filters( 'wple_size_aspect_name_needles', array(
+			'size', 'größe', 'grösse', 'taille', 'pointure', 'talla', 'taglia',
+		) );
+
+		foreach ( (array) $needles as $needle ) {
+			$needle = strtolower( (string) $needle );
+			if ( $needle !== '' && false !== strpos( $name, $needle ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Known-bad literal values that are never real size values but can end up in a size
+	 * aspect - either typed by the seller (Tagify's enforceWhitelist is deliberately disabled,
+	 * see views/profile/edit_item_specifics.php:335/352) or stamped in by our own
+	 * required-item-specifics filler in checkItem() above, which has no way to know a size
+	 * aspect's "FREE_TEXT" SelectionMode is validated against a recommended-values list on
+	 * eBay's side regardless. "Multiple sizes" is confirmed live (HelpScout #77327, eBay error
+	 * 21920468 "Enter a valid value for UK Shoe Size"); the rest are the same
+	 * no-real-answer family and are here defensively.
+	 *
+	 * @return string[] lowercased
+	 */
+	static public function getSizeAspectInvalidValues() {
+		return array_map( 'strtolower', apply_filters( 'wple_size_aspect_invalid_values', array(
+			'multiple sizes',
+			'multiple size',
+			'various sizes',
+			'various',
+			'assorted',
+			'assorted sizes',
+			'mixed sizes',
+			'does not apply',
+			'n/a',
+			'not applicable',
+			'see description',
+			'tbd',
+		) ) );
+	}
 
 
 	static public function thisNameExistsInNameValueList( $name, $NameValueList ) {

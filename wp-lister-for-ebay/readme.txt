@@ -102,6 +102,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+= 3.8.13 - 2026-09-12 =
+* Fix: A size item specific set to a placeholder value (such as "Multiple sizes") is now caught before a listing is sent to eBay, instead of failing with eBay's own size-standardisation error. Applies to both a manual Revise and an automatic revise triggered by a sale.
+
 = 3.8.12 - 2026-09-11 =
 * Security: The log, order and archive retention settings (Settings > Developer options) are now cast to integers before they reach the SQL used to clean up old rows, and on the way into the option store. Previously a crafted value in these settings could inject SQL into the cleanup queries; this required Shop Manager access or higher. Reported responsibly by Ananda Dhakal via Patchstack.
 
@@ -790,6 +793,9 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 View the full changelog at https://www.wplister.com/plugins/wp-lister-for-ebay/changelog/
 
 == Upgrade Notice ==
+
+= 3.8.13 =
+eBay is now enforcing standardised size values for Apparel/Footwear listings (Australia 2026-09-15, United States 2026-09-22). This release stops a listing with a placeholder size value from being sent and rejected, and tells you which item specific to fix instead. Update is recommended for anyone listing sized items.
 
 = 3.8.12 =
 Security release. Fixes a SQL injection vulnerability in the log/order/archive retention settings that required Shop Manager access or higher. Update is recommended for all users.
