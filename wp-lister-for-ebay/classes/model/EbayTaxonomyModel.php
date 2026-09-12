@@ -71,13 +71,26 @@ class EbayTaxonomyModel extends WPL_Model {
                     'timeout'   => 600
                 ]
             );
-            $body = wp_remote_retrieve_body( $response );
+            $response_code = (int) wp_remote_retrieve_response_code( $response );
+            $body    = wp_remote_retrieve_body( $response );
             $aspects = '';
 
-            if ( $body ) {
+            // #74289 - tell a failed lookup apart from a category that genuinely has no
+            // item specifics. Both used to end up as `false` here, and the caller then
+            // wrote an empty specifics list over whatever was stored. The endpoint
+            // answers HTTP 200 with a plain error string when its own upstream fails, so
+            // the status code alone is not enough: a usable response is 200 AND decodes
+            // to a payload that carries an 'aspects' key. A WP_Error also lands here,
+            // with an empty response code.
+            $response_is_usable = false;
+
+            if ( 200 === $response_code && $body ) {
                 $body = json_decode( $body, true );
-                if ( !empty( $body['aspects'] ) ) {
-                    $aspects = json_decode( $body['aspects'] );
+                if ( is_array( $body ) && array_key_exists( 'aspects', $body ) ) {
+                    $response_is_usable = true;
+                    if ( !empty( $body['aspects'] ) ) {
+                        $aspects = json_decode( $body['aspects'] );
+                    }
                 }
             }
 
@@ -89,7 +102,7 @@ class EbayTaxonomyModel extends WPL_Model {
                     'request_url' => $aspects_url,
                     'request'     => '',
                     'response'    => print_r($aspects,1),
-                    'success'     => 'Success'
+                    'success'     => $aspects ? 'Success' : ( $response_is_usable ? 'Empty' : 'Failure' )
                 ));
             }
 
@@ -98,11 +111,25 @@ class EbayTaxonomyModel extends WPL_Model {
                 //WPLE()->logger->debug( 'Received aspects from the API: '. print_r( $aspects, 1 ) );
                 set_transient( $cache_key, $aspects, 86400 );
                 return $aspects;
-            } else {
-                //WPLE()->logger->error('Error: Failed getting Category Aspects. WP-Lister could not connect to the API.');
-                wple_show_message( __('Error: Failed getting Category Aspects. WP-Lister could not connect to the API.' ) );
+            }
+
+            // #74289 - the lookup FAILED. Returning false tells the caller to keep the
+            // item specifics it already has instead of storing an empty list.
+            if ( ! $response_is_usable ) {
+                $error_message = sprintf(
+                    __('Could not load item specifics for category %1$s (HTTP %2$s). Any item specifics already stored for this category were left unchanged - please try again later.', 'wp-lister-for-ebay'),
+                    $category_id,
+                    $response_code ? $response_code : '-'
+                );
+                WPLE()->logger->error( $error_message );
+                wple_show_message( $error_message, 'error' );
                 return false;
             }
+
+            // the API answered correctly and this category has no item specifics - this
+            // is not an error, and an empty array (not false) is stored as before.
+            WPLE()->logger->info( 'No item specifics are defined for category '. $category_id );
+            return array();
 
 
         } catch ( Exception $e ) {

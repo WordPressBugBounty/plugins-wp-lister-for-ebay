@@ -35,28 +35,46 @@ class EbayCategoriesModel extends WPL_Model {
 		WPLE()->logger->info("initCategoriesUpdate( $site_id )");
 
 		global $wpdb;
-		$wpdb->query( $wpdb->prepare("DELETE FROM {$this->tablename} WHERE site_id = %s ", $site_id ) );
 
 		$account_id = $session->wple_account_id;
 
 		$wpl_site         = WPLE_eBaySite::getSite( $site_id );
 		$category_tree_id = $wpl_site->default_category_tree_id;
 
+		// Fetch BEFORE deleting anything. This used to delete first and fetch
+		// second, so any failed call left the customer with an empty category
+		// table and no way to recover by retrying. See #74289.
 		WPLE_eBayAccount::maybeMintToken( $account_id );
 		$taxonomy = new EbayTaxonomyModel( $account_id );
 		$tree     = $taxonomy->getCategoryTree( $category_tree_id );
 
-		$this->_categoryVersion = $tree ? $tree->getCategoryTreeVersion() : '0';
+		$root_children = ( $tree && $tree->getRootCategoryNode() )
+			? $tree->getRootCategoryNode()->getChildCategoryTreeNodes()
+			: null;
+
+		if ( ! is_array( $root_children ) || empty( $root_children ) ) {
+			// Keep the existing categories - a failed download is not a reason
+			// to throw away a working mapping.
+			$msg = sprintf(
+				__( 'eBay did not return any categories for site %1$s (category tree %2$s). Your existing category mappings have been left untouched - please try again later.', 'wp-lister-for-ebay' ),
+				$site_id,
+				$category_tree_id
+			);
+			WPLE()->logger->error( 'initCategoriesUpdate() aborted - empty category tree for site ' . $site_id . ' (tree id ' . $category_tree_id . '); existing categories preserved' );
+			$this->showMessage( $msg, true );
+
+			return array();
+		}
+
+		$this->_categoryVersion = $tree->getCategoryTreeVersion();
 		$this->_siteid          = $site_id;
 
+		// Safe to swap now: we have level-1 categories to put back.
+		$wpdb->query( $wpdb->prepare("DELETE FROM {$this->tablename} WHERE site_id = %s ", $site_id ) );
+
 		// Store level-1 categories from the root node's direct children
-		if ( $tree && $tree->getRootCategoryNode() ) {
-			$root_children = $tree->getRootCategoryNode()->getChildCategoryTreeNodes();
-			if ( is_array( $root_children ) ) {
-				foreach ( $root_children as $node ) {
-					$this->storeCategoryNode( $node, 0, $site_id, $this->_categoryVersion );
-				}
-			}
+		foreach ( $root_children as $node ) {
+			$this->storeCategoryNode( $node, 0, $site_id, $this->_categoryVersion );
 		}
 
 		// Update version on all top-level entries
@@ -226,6 +244,10 @@ class EbayCategoriesModel extends WPL_Model {
 		if ( $subtree && $subtree->getCategorySubtreeNode() ) {
 			$this->_categoryVersion = $subtree->getCategoryTreeVersion();
 			$this->storeCategoryNode( $subtree->getCategorySubtreeNode(), 0, $site_id, $this->_categoryVersion );
+		} else {
+			// Do not fail silently - a skipped branch means a whole section of
+			// the category tree is missing and the customer gets no clue why.
+			WPLE()->logger->error( 'loadEbayCategoriesBranch() - no subtree returned for cat_id ' . $cat_id . ' on site ' . $site_id . ' (tree id ' . $category_tree_id . '); this branch will be missing from the category list' );
 		}
 	}	
 	
@@ -403,6 +425,23 @@ class EbayCategoriesModel extends WPL_Model {
 		
 		$res = $this->_cs->GetCategoryFeatures($req);
 		WPLE()->logger->info('fetchCategoryConditions() for category ID '.$category_id);
+		// #74289 / #74564 - a failed call must never overwrite what is already stored.
+		// GetCategoryFeatures is decommissioned and answers HTTP 410 with an empty body,
+		// which arrives here as $res === null. Everything below then builds an EMPTY
+		// features object from it, and the update at the end of this function writes
+		// that over a perfectly good condition list. Because last_updated is
+		// deliberately not touched, a never-stamped or stale row repeats the wipe on
+		// every single page load. Bail out and keep what we have.
+		if ( ! is_object( $res ) || ! is_array( $res->Category ) || empty( $res->Category ) ) {
+			WPLE()->logger->error( 'fetchCategoryConditions() got no usable response for category ' . $category_id . ' (site ' . $session->getSiteId() . ') - existing category features left untouched' );
+
+			$existing   = self::getItem( $category_id, $session->getSiteId() );
+			$features   = $existing ? maybe_unserialize( $existing['features'] ) : false;
+			$conditions = ( is_object( $features ) && is_array( $features->conditions ) ) ? $features->conditions : array();
+
+			return array( $category_id => $conditions );
+		}
+
 		// WPLE()->logger->info('fetchCategoryConditions: '.print_r($res,1));
 
 		// build $conditions array
@@ -436,6 +475,14 @@ class EbayCategoriesModel extends WPL_Model {
 		$features->BrandMPNIdentifierEnabled = !is_array($res->Category) ? null : $res->Category[0]->getBrandMPNIdentifierEnabled();
 		$features->ItemCompatibilityEnabled  = !is_array($res->Category) ? null : $res->Category[0]->getItemCompatibilityEnabled();
 		$features->VariationsEnabled         = !is_array($res->Category) ? null : $res->Category[0]->getVariationsEnabled();
+
+		// #77127 - stamp the conditions blob itself. The row's last_updated column is
+		// written by the item specifics path only (fetchCategorySpecifics), so it says
+		// nothing about whether the conditions below came from a real answer. Without a
+		// stamp of its own an empty list is indistinguishable from a failed lookup and
+		// getConditionsForCategory() has to guess. Set on the success path only - the
+		// guard above returns before this point when the call did not answer usably.
+		$features->conditions_updated = date('Y-m-d H:i:s');
 
 		// store result in ebay_categories table
 		global $wpdb;
@@ -482,6 +529,22 @@ class EbayCategoriesModel extends WPL_Model {
             $wpl_site = WPLE_eBaySite::getSite( $site_id );
             $category_tree_id = $wpl_site->default_category_tree_id;
             $aspects = $taxonomy_mdl->getItemAspectsForCategory( $category_id, $category_tree_id );
+
+            // #74289 - a failed lookup must never overwrite stored item specifics.
+            // getItemAspectsForCategory() returns false only when the taxonomy endpoint
+            // could not be reached or answered something unusable; a category that
+            // genuinely has no item specifics returns an empty array and is stored as
+            // before. Without this the loop below is skipped, an empty specifics blob is
+            // written AND last_updated is stamped fresh - so the empty result is then
+            // served from cache for a month while the row looks perfectly healthy.
+            if ( false === $aspects ) {
+                WPLE()->logger->error( 'fetchCategorySpecifics() got no usable response for category ' . $category_id . ' (site ' . $site_id . ') - existing item specifics left untouched' );
+
+                $existing  = self::getItem( $category_id, $site_id );
+                $specifics = $existing ? maybe_unserialize( $existing['specifics'] ) : array();
+
+                return is_array( $specifics ) ? $specifics : array();
+            }
 
             $specifics = [];
 
@@ -544,6 +607,17 @@ class EbayCategoriesModel extends WPL_Model {
 		
 		$res = $this->_cs->GetCategorySpecifics($req);
 		WPLE()->logger->info('fetchCategorySpecifics() for category ID '.$category_id);
+		// #74289 - same guard for the legacy Trading call. A gated or failed call arrives
+		// here as $res === null, which builds an empty $specifics array and writes it -
+		// with a fresh last_updated - over the stored item specifics.
+		if ( ! is_object( $res ) ) {
+			WPLE()->logger->error( 'fetchCategorySpecifics() got no usable GetCategorySpecifics response for category ' . $category_id . ' (site ' . $site_id . ') - existing item specifics left untouched' );
+
+			$existing  = self::getItem( $category_id, $site_id );
+			$specifics = $existing ? maybe_unserialize( $existing['specifics'] ) : array();
+
+			return array( $category_id => ( is_array( $specifics ) ? $specifics : array() ) );
+		}
 
 		// build $specifics array
 		$specifics = array();
@@ -674,15 +748,40 @@ class EbayCategoriesModel extends WPL_Model {
         if ( ! $category    ) return apply_filters( 'wple_get_conditions_for_category', array(), $category_id, $site_id, $account_id );
 
         // if timestamp is recent, return category conditions
-		if ( !is_null($category['last_updated']) && strtotime( $category['last_updated']  ) > strtotime('-1 month') && get_option( 'wplister_log_level', 0 ) < 7 ) {
-			// WPLE()->logger->info('found recent category conditions from '.$category['last_updated'] );
-			$features = maybe_unserialize( $category['features'] );
-			if ( is_object($features) )
-				//return $features->conditions;
-                return apply_filters( 'wple_get_conditions_for_category', $features->conditions, $category_id, $site_id, $account_id );
-        }
-		WPLE()->logger->info('updating outdated category conditions - last update: '.$category['last_updated'] );
+        // #77127 - this used to read $category['last_updated'], which is written by the
+        // ITEM SPECIFICS path only (fetchCategorySpecifics stamps it, fetchCategoryConditions
+        // deliberately does not). Any page load that refreshed specifics after a failed
+        // conditions lookup therefore left a freshly stamped row holding an EMPTY list, and
+        // this branch served that empty list for a month without ever retrying - to a seller
+        // who had never had working data in the first place. Gate on a stamp that belongs to
+        // the conditions blob instead. Rows written before this fix carry no such stamp and
+        // fall through to a refresh, so no database migration is needed.
+        $features         = maybe_unserialize( $category['features'] );
+        $conditions_stamp = ( is_object( $features ) && ! empty( $features->conditions_updated ) )
+            ? $features->conditions_updated
+            : null;
 
+        if ( $conditions_stamp && strtotime( $conditions_stamp ) > strtotime('-1 month') && get_option( 'wplister_log_level', 0 ) < 7 ) {
+            // an empty list IS a valid answer here - plenty of categories genuinely offer no
+            // condition choice. It is only trustworthy because the stamp is set on success only.
+            $cached = isset( $features->conditions ) ? $features->conditions : array();
+            return apply_filters( 'wple_get_conditions_for_category', $cached, $category_id, $site_id, $account_id );
+        }
+		WPLE()->logger->info('updating outdated category conditions - conditions last updated: '. ( $conditions_stamp ? $conditions_stamp : 'never' ) );
+
+        // #77127 - refresh from the Sell Metadata API first. GetCategoryFeatures, which the
+        // Trading call below depends on, is decommissioned and answers HTTP 410 with an empty
+        // body (measured 2026-08-06, endpoint-wide, both DE and US), so that path can no longer
+        // put a condition list back - it can only confirm that there is none. The REST endpoint
+        // answers 200 and returns the whole marketplace in one call.
+        if ( self::refreshConditionsFromMarketplaceApi( $site_id, $account_id ) ) {
+            $category = self::getItem( $category_id, $site_id );
+            $features = $category ? maybe_unserialize( $category['features'] ) : false;
+            if ( is_object( $features ) && ! empty( $features->conditions_updated ) ) {
+                $conditions = isset( $features->conditions ) ? $features->conditions : array();
+                return apply_filters( 'wple_get_conditions_for_category', $conditions, $category_id, $site_id, $account_id );
+            }
+        }
 
         // fetch info from eBay
         WPLE()->initEC( $account_id );
@@ -692,9 +791,182 @@ class EbayCategoriesModel extends WPL_Model {
 		// always return an array
 		//return is_array($result) ? reset($result) : array();
         $conditions = is_array($result) ? reset($result) : array();
+
+        // Neither refresh produced anything - fall back to whatever is stored.
+        //
+        // The stamp gate above deliberately distrusts a row that carries no
+        // conditions stamp, because such a row may hold the empty list that
+        // #77127 wrote. But distrusting it is only safe as long as SOMETHING
+        // can put a list back. On an install that still runs on a legacy
+        // Auth'n'Auth token the REST refresh cannot run (no OAuth token) and
+        // GetCategoryFeatures is decommissioned, so both refreshes come back
+        // empty and a seller whose stored list was perfectly good would lose
+        // the condition dropdown he had before the update. Measured against
+        // 3.8.8 on a token-less install: 3.8.8 served the stored list, this
+        // method returned an empty one.
+        //
+        // A stored NON-EMPTY list is strictly better than nothing here. An
+        // empty stored list is still not trusted - that is the #77127 case
+        // and it must keep falling through to a retry.
+        if ( empty( $conditions ) ) {
+            $stored = ( isset( $features ) && is_object( $features ) && ! empty( $features->conditions ) )
+                ? $features->conditions
+                : array();
+            if ( ! empty( $stored ) ) {
+                WPLE()->logger->info( 'getConditionsForCategory(): no refresh available, serving the stored condition list for category '. $category_id );
+                $conditions = $stored;
+            }
+        }
+
         return apply_filters( 'wple_get_conditions_for_category', $conditions, $category_id, $site_id, $account_id );
 
     } // getConditionsForCategory()
+
+	/**
+	 * Refresh the stored condition lists for one site from the Sell Metadata API.
+	 *
+	 * #74289 / #77127 - the live replacement for the decommissioned GetCategoryFeatures
+	 * ConditionValues. One request returns the condition policies for the entire
+	 * marketplace, so this refreshes a whole site at a time and caches the parsed map;
+	 * individual category rows are then written lazily, one UPDATE per page load at most.
+	 *
+	 * @param int       $site_id
+	 * @param int|false $account_id
+	 * @return bool  true when a usable map is available for this site
+	 */
+	static function refreshConditionsFromMarketplaceApi( $site_id, $account_id = false ) {
+		global $wpdb;
+
+		if ( ! function_exists( 'wp_remote_get' ) ) return false;
+
+		$map = self::getConditionsMapForSite( $site_id, $account_id );
+		if ( ! is_array( $map ) || empty( $map ) ) return false;
+
+		$now  = date('Y-m-d H:i:s');
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT cat_id, features FROM {$wpdb->prefix}" . self::table . " WHERE site_id = %s",
+			$site_id
+		), ARRAY_A );
+
+		$updated = 0;
+		foreach ( (array) $rows as $row ) {
+			if ( ! array_key_exists( $row['cat_id'], $map ) ) continue;
+
+			$features = maybe_unserialize( $row['features'] );
+			if ( ! is_object( $features ) ) $features = new stdClass();
+
+			$features->conditions         = $map[ $row['cat_id'] ];
+			$features->conditions_updated = $now;
+
+			$wpdb->update(
+				$wpdb->prefix . self::table,
+				array( 'features' => serialize( $features ) ),
+				array( 'cat_id' => $row['cat_id'], 'site_id' => $site_id )
+			);
+			$updated++;
+		}
+
+		WPLE()->logger->info( 'refreshConditionsFromMarketplaceApi(): updated '. $updated .' of '. count( (array) $rows ) .' stored categories for site '. $site_id );
+
+		return $updated > 0;
+	} // refreshConditionsFromMarketplaceApi()
+
+	/**
+	 * The parsed marketplace condition map, cached in a transient.
+	 *
+	 * A failed lookup caches a short negative result so a dead or throttled endpoint is
+	 * not called again on every single page load - the defect this whole fix is about.
+	 *
+	 * @return array|false  array( cat_id => array( condition_id => label ) )
+	 */
+	static function getConditionsMapForSite( $site_id, $account_id = false ) {
+		$transient = 'wple_conditions_map_' . (int) $site_id;
+		$cached    = get_transient( $transient );
+		if ( 'none' === $cached ) return false;          // recent failure, do not hammer
+		if ( is_array( $cached ) )  return $cached;
+
+		$site        = WPLE_eBaySite::getSite( $site_id );
+		$marketplace = ( $site && ! empty( $site->code ) ) ? $site->code : false;
+		if ( ! $marketplace ) {
+			WPLE()->logger->error( 'getConditionsMapForSite(): no marketplace code stored for site '. $site_id );
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		// an account on this site - the call needs a user access token
+		if ( ! $account_id || ! isset( WPLE()->accounts[ $account_id ] ) ) {
+			$account_id = false;
+			foreach ( (array) WPLE()->accounts as $acc ) {
+				if ( $acc->site_id == $site_id ) { $account_id = $acc->id; break; }
+			}
+		}
+		if ( ! $account_id ) {
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		// re-read the account after minting - WPLE()->accounts can still hold the old token
+		WPLE_eBayAccount::maybeMintToken( $account_id );
+		$account = WPLE_eBayAccount::getAccount( $account_id );
+		$token   = $account ? $account->oauth_token : '';
+		if ( empty( $token ) ) {
+			WPLE()->logger->error( 'getConditionsMapForSite(): no access token for account '. $account_id );
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		$host = $account->sandbox_mode ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
+		$url  = $host . '/sell/metadata/v1/marketplace/' . rawurlencode( $marketplace ) . '/get_item_condition_policies';
+
+		$response = wp_remote_get( $url, array(
+			'timeout' => 60,
+			'headers' => array(
+				'Authorization' => 'Bearer ' . $token,
+				'Accept'        => 'application/json',
+			),
+		) );
+
+		if ( is_wp_error( $response ) ) {
+			WPLE()->logger->error( 'getConditionsMapForSite(): '. $response->get_error_message() );
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		$status = wp_remote_retrieve_response_code( $response );
+		if ( 200 != $status ) {
+			WPLE()->logger->error( 'getConditionsMapForSite(): '. $marketplace .' answered HTTP '. $status );
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( empty( $data['itemConditionPolicies'] ) || ! is_array( $data['itemConditionPolicies'] ) ) {
+			WPLE()->logger->error( 'getConditionsMapForSite(): no itemConditionPolicies in the response for '. $marketplace );
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		$map = array();
+		foreach ( $data['itemConditionPolicies'] as $policy ) {
+			if ( empty( $policy['categoryId'] ) ) continue;
+			$conditions = array();
+			if ( ! empty( $policy['itemConditions'] ) && is_array( $policy['itemConditions'] ) ) {
+				foreach ( $policy['itemConditions'] as $item_condition ) {
+					if ( ! isset( $item_condition['conditionId'] ) ) continue;
+					$conditions[ (string) $item_condition['conditionId'] ] = isset( $item_condition['conditionDescription'] )
+						? $item_condition['conditionDescription']
+						: (string) $item_condition['conditionId'];
+				}
+			}
+			// an empty list is stored as such - many categories genuinely offer no choice
+			$map[ (string) $policy['categoryId'] ] = $conditions;
+		}
+
+		WPLE()->logger->info( 'getConditionsMapForSite(): '. $marketplace .' returned condition policies for '. count( $map ) .' categories' );
+		set_transient( $transient, $map, WEEK_IN_SECONDS );
+
+		return $map;
+	} // getConditionsMapForSite()
 
 	
 	static function getUPCEnabledForCategory( $category_id, $site_id = false, $account_id = false ) {

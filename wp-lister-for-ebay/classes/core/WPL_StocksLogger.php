@@ -34,7 +34,11 @@ if ( ! class_exists( 'WPL_StocksLogger' ) ) :
             global $wpdb;
             $table = $wpdb->prefix.'ebay_stocks_log';
 
-            $days_to_keep = get_option( 'wplister_log_days_limit', 30 );
+            // #77381: this option is interpolated into the INTERVAL ... DAY clauses
+            // below, so it has to be a number before it reaches SQL. Falling back to
+            // the default instead of 0 - INTERVAL 0 DAY would expire every row.
+            $days_to_keep = absint( get_option( 'wplister_log_days_limit', 30 ) );
+            if ( $days_to_keep < 1 ) $days_to_keep = 30;
             $delete_count = $wpdb->get_var('SELECT count(id) FROM '.$table.' WHERE timestamp < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
 
             // clean stock log table

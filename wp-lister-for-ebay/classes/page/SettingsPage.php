@@ -720,9 +720,14 @@ class SettingsPage extends WPL_Page {
 		self::updateOption( 'log_include_authinfo',			$this->getValueFromPost( 'log_include_authinfo' ) );
 		self::updateOption( 'enable_item_edit_link',		$this->getValueFromPost( 'enable_item_edit_link' ) );
 		self::updateOption( 'log_record_limit',				$this->getValueFromPost( 'log_record_limit' ) );
-		self::updateOption( 'log_days_limit',				$this->getValueFromPost( 'log_days_limit' ) );
-		self::updateOption( 'orders_days_limit',			$this->getValueFromPost( 'orders_days_limit' ) );
-		self::updateOption( 'archive_days_limit',			$this->getValueFromPost( 'archive_days_limit' ) );
+		// #77381: these three feed INTERVAL ... DAY clauses. wple_clean() is a text
+		// cleaner, not a numeric cast, so cast here as well - a stored SQL expression
+		// should never exist in the first place. '' on orders_days_limit means
+		// "keep forever" and is preserved.
+		$wple_orders_days_limit = $this->getValueFromPost( 'orders_days_limit' );
+		self::updateOption( 'log_days_limit',				absint( $this->getValueFromPost( 'log_days_limit' ) ) );
+		self::updateOption( 'orders_days_limit',			'' === trim( (string) $wple_orders_days_limit ) ? '' : absint( $wple_orders_days_limit ) );
+		self::updateOption( 'archive_days_limit',			absint( $this->getValueFromPost( 'archive_days_limit' ) ) );
 		self::updateOption( 'xml_formatter',				$this->getValueFromPost( 'xml_formatter' ) );
 		self::updateOption( 'eps_xfer_mode',				$this->getValueFromPost( 'eps_xfer_mode' ) );
 		self::updateOption( 'force_table_items_limit',		$this->getValueFromPost( 'force_table_items_limit' ) );

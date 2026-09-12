@@ -194,7 +194,10 @@ class WPL_CronActions extends WPL_Core {
 		global $wpdb;
 
 		// clean orders table (date_created)
-		$days_to_keep = get_option( 'wplister_orders_days_limit', '' );
+		// #77381 (same flaw class, not part of the report): interpolated raw into the
+		// INTERVAL ... DAY clauses below. '' means "forever"; absint() maps that to 0
+		// and the guard below skips the cleanup, so behaviour is unchanged.
+		$days_to_keep = absint( get_option( 'wplister_orders_days_limit', '' ) );
 		if ( $days_to_keep ) {
 			$rows = $wpdb->query('DELETE FROM '.$wpdb->prefix.'ebay_orders WHERE date_created < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
 			WPLE()->logger->info('Cleaned table ebay_orders - affected rows: ' . $rows);

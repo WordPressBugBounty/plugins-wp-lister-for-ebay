@@ -2,7 +2,7 @@
 Contributors: wp-lab
 Tags: ebay, woocommerce, products, export
 Requires at least: 4.2
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -102,8 +102,17 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+= 3.8.12 - 2026-09-11 =
+* Security: The log, order and archive retention settings (Settings > Developer options) are now cast to integers before they reach the SQL used to clean up old rows, and on the way into the option store. Previously a crafted value in these settings could inject SQL into the cleanup queries; this required Shop Manager access or higher. Reported responsibly by Ananda Dhakal via Patchstack.
+
+= 3.8.11 - 2026-08-08 =
+* Fix: Never wipe stored category mappings when a category download fails
+* Fix: Never wipe stored category features when a category feature lookup fails
+* Fix: Never wipe stored item specifics when an eBay aspects lookup fails
+* Fix: Category conditions are tracked by a timestamp of their own and are refilled from the eBay Metadata REST API, so a category whose conditions were emptied by a failed lookup fills itself back in
+
 = 3.8.10 - 2026-08-07 =
-* Security: fixed a stored cross-site scripting vulnerability that could be triggered without an account. The AJAX endpoint used by external cron services accepted arbitrary request parameters and wrote them into the eBay log table, where the listings log screen rendered parts of them unescaped back to an administrator. Request payloads are now sanitised - parameter names as well as values - before they are stored, and every value the log table lifts back out of a stored row is escaped on output. Only sites with "Log to database" enabled were affected. Reported responsibly via Wordfence; our thanks to the reporter and to the Wordfence team.
+* Security: fixed a stored cross-site scripting vulnerability that could be triggered without an account. The AJAX endpoint used by external cron services accepted arbitrary request parameters and wrote them into the eBay log table, where the listings log screen rendered parts of them unescaped back to an administrator. Request payloads are now sanitised - parameter names as well as values - before they are stored, and every value the log table lifts back out of a stored row is escaped on output. Only sites with "Log to database" enabled were affected. Reported responsibly by thevietronin (GalaxyOne) via Wordfence; our thanks to them and to the Wordfence team.
 
 = 3.8.9 - 2026-07-30 =
 * Security: fixed a SQL injection via the `orderby` and `order` request parameters on admin list screens, exploitable by users with the `manage_ebay_listings` capability (by default Administrator and Shop Manager) (CVE-2026-11973). Sort parameters are now validated against a strict allow-list of real sortable columns instead of being escaped, and pagination values are cast to integers. Reported responsibly by Yousof Nahya and Hamza Nour via Wordfence; our thanks to them and to the Wordfence team.
@@ -781,6 +790,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 View the full changelog at https://www.wplister.com/plugins/wp-lister-for-ebay/changelog/
 
 == Upgrade Notice ==
+
+= 3.8.12 =
+Security release. Fixes a SQL injection vulnerability in the log/order/archive retention settings that required Shop Manager access or higher. Update is recommended for all users.
+
+= 3.8.11 =
+Fixes data loss: a failed eBay lookup could empty stored category mappings, category features, item specifics or category conditions. Emptied conditions are refilled automatically from eBay. Update is recommended for all users.
 
 = 3.8.10 =
 Security release. Fixes a stored cross-site scripting vulnerability that could be triggered without an account. Update is recommended for all users.
