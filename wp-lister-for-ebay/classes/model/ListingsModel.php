@@ -1790,8 +1790,8 @@ class ListingsModel extends WPL_Model {
 		// handle NULL values
 		foreach ($data as $key => $value) {
 			if ( NULL === $value ) {
-				$key = esc_sql( $key );
-				$wpdb->query( $wpdb->prepare("UPDATE {$table} SET $key = NULL WHERE id = %s ", $id ) );
+				if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $key ) ) { unset( $data[ $key ] ); continue; } // column names only
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET %i = NULL WHERE id = %s', $table, $key, $id ) );
 				WPLE()->logger->info('SQL to set NULL value: '.$wpdb->last_query );
 				WPLE()->logger->info( $wpdb->last_error );
 				unset( $data[$key] );

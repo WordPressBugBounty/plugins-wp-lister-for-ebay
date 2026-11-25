@@ -72,6 +72,7 @@
 							<p class="desc" style="display: block;">
 								<?php echo __( 'Enable to completely remove listings, transactions and settings when deactivating the plugin.', 'wp-lister-for-ebay' ); ?><br><br>
 								<?php echo __( 'To remove your listing templates as well, please delete the folder <code>wp-content/uploads/wp-lister/templates/</code>.', 'wp-lister-for-ebay' ); ?>
+								<!---->
 							</p>
 
 						</div>

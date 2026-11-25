@@ -72,9 +72,14 @@ class EbayCategoriesModel extends WPL_Model {
 		// Safe to swap now: we have level-1 categories to put back.
 		$wpdb->query( $wpdb->prepare("DELETE FROM {$this->tablename} WHERE site_id = %s ", $site_id ) );
 
-		// Store level-1 categories from the root node's direct children
+		// Store level-1 categories from the root node's direct children - LEVEL 1 ONLY.
+		// The depth below each of them is fetched by the loadEbayCategoriesBranch() task
+		// queued per top-level category further down, one AJAX request each. Writing the
+		// whole tree here put ~13k-17k single-row inserts into this single request, which
+		// runs into max_execution_time on shared hosting - and the DELETE above has already
+		// happened by then, so the customer is left with a half-filled table. See #74556.
 		foreach ( $root_children as $node ) {
-			$this->storeCategoryNode( $node, 0, $site_id, $this->_categoryVersion );
+			$this->storeCategoryNode( $node, 0, $site_id, $this->_categoryVersion, false );
 		}
 
 		// Update version on all top-level entries
@@ -259,8 +264,10 @@ class EbayCategoriesModel extends WPL_Model {
 	 * @param int    $parent_id
 	 * @param int    $site_id
 	 * @param string $version
+	 * @param bool   $recurse  Pass false to store this node only and leave its children
+	 *                         to the per-branch loadEbayCategoriesBranch() tasks. See #74556.
 	 */
-	private function storeCategoryNode( $node, $parent_id, $site_id, $version ) {
+	private function storeCategoryNode( $node, $parent_id, $site_id, $version, $recurse = true ) {
 		global $wpdb;
 
 		$cat_id   = $node->getCategory()->getCategoryId();
@@ -270,7 +277,7 @@ class EbayCategoriesModel extends WPL_Model {
 
 		// Skip if already stored (branch root was inserted by initCategoriesUpdate)
 		if ( $parent_id === 0 && $this->getItem( $cat_id, $site_id ) ) {
-			if ( !$is_leaf && $node->getChildCategoryTreeNodes() ) {
+			if ( $recurse && !$is_leaf && $node->getChildCategoryTreeNodes() ) {
 				foreach ( $node->getChildCategoryTreeNodes() as $child ) {
 					$this->storeCategoryNode( $child, $cat_id, $site_id, $version );
 				}
@@ -296,7 +303,7 @@ class EbayCategoriesModel extends WPL_Model {
 			WPLE()->logger->info( 'category inserted() '. $cat_id .' - '. $cat_name );
 		}
 
-		if ( !$is_leaf && $node->getChildCategoryTreeNodes() ) {
+		if ( $recurse && !$is_leaf && $node->getChildCategoryTreeNodes() ) {
 			foreach ( $node->getChildCategoryTreeNodes() as $child ) {
 				$this->storeCategoryNode( $child, $cat_id, $site_id, $version );
 			}
@@ -774,7 +781,13 @@ class EbayCategoriesModel extends WPL_Model {
         // body (measured 2026-08-06, endpoint-wide, both DE and US), so that path can no longer
         // put a condition list back - it can only confirm that there is none. The REST endpoint
         // answers 200 and returns the whole marketplace in one call.
-        if ( self::refreshConditionsFromMarketplaceApi( $site_id, $account_id ) ) {
+        // #77166 - ALWAYS scoped to the category we were asked about. An unscoped call returns
+        // the condition policies for the entire marketplace; on a large site (EBAY_US) that body
+        // is big enough to exhaust a 256M memory_limit inside json_decode(), and because the
+        // fatal happens before the negative transient is written it repeats on EVERY page load.
+        // The product edit metabox reaches this method, so an unscoped refresh here takes out
+        // every product edit screen on the shop. See getConditionsMapForSite().
+        if ( self::refreshConditionsFromMarketplaceApi( $site_id, $account_id, array( $category_id ) ) ) {
             $category = self::getItem( $category_id, $site_id );
             $features = $category ? maybe_unserialize( $category['features'] ) : false;
             if ( is_object( $features ) && ! empty( $features->conditions_updated ) ) {
@@ -826,47 +839,144 @@ class EbayCategoriesModel extends WPL_Model {
 	 * Refresh the stored condition lists for one site from the Sell Metadata API.
 	 *
 	 * #74289 / #77127 - the live replacement for the decommissioned GetCategoryFeatures
-	 * ConditionValues. One request returns the condition policies for the entire
-	 * marketplace, so this refreshes a whole site at a time and caches the parsed map;
-	 * individual category rows are then written lazily, one UPDATE per page load at most.
+	 * ConditionValues. Category rows are written lazily from the parsed map, one UPDATE per
+	 * matching row.
+	 *
+	 * #77166 - $category_ids is what keeps the request small. eBay's filter returns the
+	 * policies for the given node plus every leaf below it, so a leaf category costs one
+	 * small response. Passing an empty list asks for the WHOLE marketplace and can produce a
+	 * body that no longer fits in memory - never do that from a page load.
 	 *
 	 * @param int       $site_id
 	 * @param int|false $account_id
-	 * @return bool  true when a usable map is available for this site
+	 * #77918 - the request is grouped by the site_id the STORED category row carries, not by
+	 * the account's site: a US tree keeps every eBay Motors category under site_id 100 and only
+	 * EBAY_MOTORS_US answers for those leaves.
+	 *
+	 * @param array     $category_ids  eBay category IDs to scope the request to (max 50)
+	 * @return bool  true when a usable map is available
 	 */
-	static function refreshConditionsFromMarketplaceApi( $site_id, $account_id = false ) {
+	static function refreshConditionsFromMarketplaceApi( $site_id, $account_id = false, $category_ids = array() ) {
 		global $wpdb;
 
 		if ( ! function_exists( 'wp_remote_get' ) ) return false;
 
-		$map = self::getConditionsMapForSite( $site_id, $account_id );
-		if ( ! is_array( $map ) || empty( $map ) ) return false;
+		$now = date('Y-m-d H:i:s');
 
-		$now  = date('Y-m-d H:i:s');
-		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT cat_id, features FROM {$wpdb->prefix}" . self::table . " WHERE site_id = %s",
-			$site_id
-		), ARRAY_A );
+		// #77918 / #74607 - the STORED CATEGORY ROW decides which marketplace holds the
+		// condition policies, not the account. For a US account (site_id 0) every category
+		// below "eBay Motors" is stored under site_id 100: downloadCategories() inserts the
+		// Motors root (6000) with site_id 100 and storeCategoryNode() passes that site_id down
+		// the whole branch recursively. get_item_condition_policies answers HTTP 204 with an
+		// EMPTY BODY when such a leaf is asked for under EBAY_US, and HTTP 200 with the real
+		// list under EBAY_MOTORS_US - measured 2026-11-11 against the live endpoint for
+		// category 179679 (#77918, "Wheels") and 33654 (#74607, "Body Moldings & Trims"),
+		// six conditions each, itemConditionRequired = true for both. An unknown marketplace
+		// answers 404 errorId 46001, so the 204 is eBay saying "valid marketplace, nothing
+		// here", not "bad request".
+		//
+		// Two separate things went wrong with a Motors category before this fix:
+		//   1. getConditionsMapForSite() treats a 204 as a failure, caches a NEGATIVE result
+		//      for an hour and returns false - so the call never produced a map at all.
+		//   2. even with a map, the SELECT and the UPDATE below pinned site_id to the site we
+		//      were CALLED with (0), so no Motors row could ever match: $updated stayed 0,
+		//      this method returned false and getConditionsForCategory() fell back to
+		//      GetCategoryFeatures, which is decommissioned (HTTP 410). Result: an empty
+		//      condition dropdown on the profile page for every Motors category, on every
+		//      page load, that no cache and no retry could ever fill.
+		// getItem() already widens the READ to ( site_id = 0 OR site_id = 100 ); this write
+		// path did not. Fixing only one of the two changes nothing.
+		//
+		// So: find out which site_id the requested rows actually carry, then refresh each
+		// group against its own marketplace. For a non-Motors category this resolves to the
+		// single site we were called with and behaves exactly as before.
+		$req_ids = array_slice( array_unique( array_filter( array_map( 'strval', (array) $category_ids ), 'strlen' ) ), 0, 50 );
 
-		$updated = 0;
-		foreach ( (array) $rows as $row ) {
-			if ( ! array_key_exists( $row['cat_id'], $map ) ) continue;
+		// same widening as getItem(), and the same esc_sql() idiom - do NOT nest a
+		// $wpdb->prepare() fragment inside the prepared statements below.
+		$site_sql = ( $site_id === 0 || $site_id === '0' )
+			? "site_id IN ( 0, 100 )"
+			: "site_id = '" . esc_sql( $site_id ) . "'";
 
-			$features = maybe_unserialize( $row['features'] );
-			if ( ! is_object( $features ) ) $features = new stdClass();
-
-			$features->conditions         = $map[ $row['cat_id'] ];
-			$features->conditions_updated = $now;
-
-			$wpdb->update(
-				$wpdb->prefix . self::table,
-				array( 'features' => serialize( $features ) ),
-				array( 'cat_id' => $row['cat_id'], 'site_id' => $site_id )
-			);
-			$updated++;
+		// requested category ids grouped by the site_id their stored row carries
+		$ids_by_site = array();
+		if ( ! empty( $req_ids ) ) {
+			$holders = implode( ',', array_fill( 0, count( $req_ids ), '%s' ) );
+			// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
+			$found   = $wpdb->get_results( $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
+				"SELECT cat_id, site_id FROM {$wpdb->prefix}" . self::table . " WHERE $site_sql AND cat_id IN ($holders)",
+				$req_ids
+			), ARRAY_A );
+			foreach ( (array) $found as $f ) {
+				$ids_by_site[ (string) $f['site_id'] ][] = (string) $f['cat_id'];
+			}
+			if ( empty( $ids_by_site ) ) {
+				WPLE()->logger->info( 'refreshConditionsFromMarketplaceApi(): no stored category row for site '. $site_id .' and category '. implode( ',', $req_ids ) .' - nothing to refresh' );
+				return false;
+			}
+		} else {
+			// unscoped refresh (never from a page load, see #77166) - a US tree spans two
+			// marketplaces, so ask both rather than silently skipping Motors.
+			foreach ( ( ( $site_id === 0 || $site_id === '0' ) ? array( '0', '100' ) : array( (string) $site_id ) ) as $s ) {
+				$ids_by_site[ $s ] = array();
+			}
 		}
 
-		WPLE()->logger->info( 'refreshConditionsFromMarketplaceApi(): updated '. $updated .' of '. count( (array) $rows ) .' stored categories for site '. $site_id );
+		// The token comes from an account on the site we were CALLED with, never from the
+		// row's site_id: there is NO account with site_id 100, so letting
+		// getConditionsMapForSite() resolve 100 itself finds nothing and the method returns
+		// before it ever makes the HTTP request (measured 2026-11-11). A US account's token
+		// is the right token for EBAY_MOTORS_US - the marketplace is a path parameter, not an
+		// identity.
+		if ( ! $account_id || ! isset( WPLE()->accounts[ $account_id ] ) ) {
+			$account_id = false;
+			foreach ( (array) WPLE()->accounts as $acc ) {
+				if ( $acc->site_id == $site_id ) { $account_id = $acc->id; break; }
+			}
+		}
+
+		$updated   = 0;
+		$rows_read = 0;
+		foreach ( $ids_by_site as $row_site_id => $ids_for_site ) {
+
+			$map = self::getConditionsMapForSite( $row_site_id, $account_id, $ids_for_site );
+			if ( ! is_array( $map ) || empty( $map ) ) continue;
+
+			// #77166 - only read back the rows the map can actually fill. Reading every row of
+			// a large site pulls thousands of serialized features blobs into memory for nothing.
+			$cat_ids = array_map( 'strval', array_keys( $map ) );
+			$holders = implode( ',', array_fill( 0, count( $cat_ids ), '%s' ) );
+			$rows    = $wpdb->get_results( $wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
+				"SELECT cat_id, features FROM {$wpdb->prefix}" . self::table . " WHERE site_id = %s AND cat_id IN ($holders)",
+				array_merge( array( $row_site_id ), $cat_ids )
+			), ARRAY_A );
+			$rows_read += count( (array) $rows );
+
+			foreach ( (array) $rows as $row ) {
+				if ( ! array_key_exists( $row['cat_id'], $map ) ) continue;
+
+				$features = maybe_unserialize( $row['features'] );
+				if ( ! is_object( $features ) ) $features = new stdClass();
+
+				$features->conditions         = $map[ $row['cat_id'] ];
+				$features->conditions_updated = $now;
+
+				$wpdb->update(
+					$wpdb->prefix . self::table,
+					array( 'features' => serialize( $features ) ),
+					array( 'cat_id' => $row['cat_id'], 'site_id' => $row_site_id )
+				);
+				$updated++;
+			}
+		}
+
+		WPLE()->logger->info(
+			'refreshConditionsFromMarketplaceApi(): updated '. $updated .' of '. $rows_read
+			.' matching stored categories for site '. $site_id
+			.' (stored under site_id: '. implode( ', ', array_keys( $ids_by_site ) ) .')'
+		);
 
 		return $updated > 0;
 	} // refreshConditionsFromMarketplaceApi()
@@ -877,10 +987,25 @@ class EbayCategoriesModel extends WPL_Model {
 	 * A failed lookup caches a short negative result so a dead or throttled endpoint is
 	 * not called again on every single page load - the defect this whole fix is about.
 	 *
+	 * #77166 - $category_ids is passed to eBay as filter=categoryIds:{a|b|c}. Without it the
+	 * marketplace answers with its ENTIRE condition-policy set; on EBAY_US that body does not
+	 * survive json_decode() under a 256M memory_limit and the request dies with a fatal before
+	 * the negative transient below can be written, so it repeats on every request forever.
+	 * The cache key is scoped along with the request - a map fetched for one category must
+	 * never be served as if it covered the whole site.
+	 *
+	 * @param int       $site_id
+	 * @param int|false $account_id
+	 * @param array     $category_ids  eBay category IDs; empty means the whole marketplace
 	 * @return array|false  array( cat_id => array( condition_id => label ) )
 	 */
-	static function getConditionsMapForSite( $site_id, $account_id = false ) {
-		$transient = 'wple_conditions_map_' . (int) $site_id;
+	static function getConditionsMapForSite( $site_id, $account_id = false, $category_ids = array() ) {
+		// eBay accepts at most 50 ids per filter and returns a warning beyond that
+		$category_ids = array_slice( array_unique( array_filter( array_map( 'strval', (array) $category_ids ), 'strlen' ) ), 0, 50 );
+		sort( $category_ids );
+
+		$scope     = empty( $category_ids ) ? 'all' : substr( md5( implode( '|', $category_ids ) ), 0, 12 );
+		$transient = 'wple_conditions_map_' . (int) $site_id . '_' . $scope;
 		$cached    = get_transient( $transient );
 		if ( 'none' === $cached ) return false;          // recent failure, do not hammer
 		if ( is_array( $cached ) )  return $cached;
@@ -918,11 +1043,23 @@ class EbayCategoriesModel extends WPL_Model {
 		$host = $account->sandbox_mode ? 'https://api.sandbox.ebay.com' : 'https://api.ebay.com';
 		$url  = $host . '/sell/metadata/v1/marketplace/' . rawurlencode( $marketplace ) . '/get_item_condition_policies';
 
+		// #77166 - scope the request. eBay documents the filter as
+		// filter=categoryIds:{183521|183523} and says URL-encoding is no longer required, but
+		// the percent-encoded form is the one we have actually measured at HTTP 200
+		// (probe 2026-07-31, EBAY_DE, one and three ids), so send exactly that. Note that
+		// add_query_arg() would leave the ':' '{' '}' '|' raw - do not use it here.
+		if ( ! empty( $category_ids ) ) {
+			$url .= '?filter=' . rawurlencode( 'categoryIds:{' . implode( '|', $category_ids ) . '}' );
+		} else {
+			WPLE()->logger->warn( 'getConditionsMapForSite(): asking '. $marketplace .' for the WHOLE marketplace - this response can be very large' );
+		}
+
 		$response = wp_remote_get( $url, array(
 			'timeout' => 60,
 			'headers' => array(
-				'Authorization' => 'Bearer ' . $token,
-				'Accept'        => 'application/json',
+				'Authorization'   => 'Bearer ' . $token,
+				'Accept'          => 'application/json',
+				'Accept-Encoding' => 'gzip',
 			),
 		) );
 
@@ -939,7 +1076,31 @@ class EbayCategoriesModel extends WPL_Model {
 			return false;
 		}
 
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		$body = wp_remote_retrieve_body( $response );
+
+		// #77166 - never hand json_decode() a body we cannot afford. Measured on this response
+		// shape: decoding into assoc arrays costs ~8.3x the raw byte size, and the body string
+		// is still held while it happens. An unfiltered EBAY_DE body was 5,082,854 B / 14,917
+		// policies (measured 2026-07-31), so the unfiltered fetch adds ~50 MB on DE and
+		// proportionally more on a larger tree - on top of a WooCommerce product edit screen
+		// that already holds well over 100 MB. Running out here is a FATAL, not a caught error:
+		// it takes the page down before the negative transient below is ever written, so it
+		// repeats on every single request. Refusing the body instead lets the caller fall back
+		// to the stored condition list. Factor 10 = the measured 8.3x plus the body itself.
+		$limit = self::phpMemoryLimitInBytes();
+		if ( $limit > 0 && ( memory_get_usage( true ) + ( strlen( $body ) * 10 ) ) > ( $limit * 0.9 ) ) {
+			WPLE()->logger->error(
+				'getConditionsMapForSite(): refusing a '. size_format( strlen( $body ) ) .' response from '. $marketplace
+				.' - decoding it would exhaust the '. size_format( $limit ) .' PHP memory limit.'
+				.( empty( $category_ids ) ? ' The request was not scoped to a category.' : '' )
+			);
+			unset( $body, $response );
+			set_transient( $transient, 'none', HOUR_IN_SECONDS );
+			return false;
+		}
+
+		$data = json_decode( $body, true );
+		unset( $body );
 		if ( empty( $data['itemConditionPolicies'] ) || ! is_array( $data['itemConditionPolicies'] ) ) {
 			WPLE()->logger->error( 'getConditionsMapForSite(): no itemConditionPolicies in the response for '. $marketplace );
 			set_transient( $transient, 'none', HOUR_IN_SECONDS );
@@ -967,6 +1128,17 @@ class EbayCategoriesModel extends WPL_Model {
 
 		return $map;
 	} // getConditionsMapForSite()
+
+	/**
+	 * The PHP memory limit in bytes, or 0 when there is none.
+	 *
+	 * #77166 - wp_convert_hr_to_bytes() handles the K/M/G suffixes; -1 and '' mean unlimited.
+	 */
+	static function phpMemoryLimitInBytes() {
+		$limit = @ini_get( 'memory_limit' );
+		if ( false === $limit || '' === $limit || '-1' == $limit ) return 0;
+		return (int) wp_convert_hr_to_bytes( $limit );
+	} // phpMemoryLimitInBytes()
 
 	
 	static function getUPCEnabledForCategory( $category_id, $site_id = false, $account_id = false ) {
@@ -1077,6 +1249,7 @@ class EbayCategoriesModel extends WPL_Model {
 		$where_site_sql = $site_id === false ? '' : "AND site_id ='".esc_sql($site_id)."'";
 		if ( $site_id === 0 || $site_id === '0' ) $where_site_sql = "AND ( site_id = 0 OR site_id = 100 )";
 
+        // phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
         $item = $wpdb->get_row( $wpdb->prepare("
 			SELECT * 
 			FROM $table
@@ -1086,6 +1259,75 @@ class EbayCategoriesModel extends WPL_Model {
 		), ARRAY_A);
 
 		return $item;		
+	}
+
+	/**
+	 * Root (top level) category ID and name for a category, resolved from the locally stored
+	 * category tree - no eBay call. Returns 0 when the tree is not available locally or is
+	 * broken, so callers can fail open instead of guessing.
+	 *
+	 * @param int|string $cat_id
+	 * @param int|bool   $site_id
+	 * @return array root category ID (0 = unknown) and root category name
+	 */
+	static function getRootCategory( $cat_id, $site_id = false ) {
+		$cat_id = intval( $cat_id );
+		if ( ! $cat_id ) return array( 0, '' );
+
+		$seen = array();
+		for ( $depth = 0; $depth < 12; $depth++ ) {
+			// a self-referencing or circular tree must not spin here
+			if ( isset( $seen[ $cat_id ] ) ) return array( 0, '' );
+			$seen[ $cat_id ] = true;
+
+			$row = self::getItem( $cat_id, $site_id );
+			if ( ! $row ) return array( 0, '' );
+
+			$parent = intval( $row['parent_cat_id'] );
+			if ( ! $parent ) return array( intval( $row['cat_id'] ), (string) $row['cat_name'] );
+
+			$cat_id = $parent;
+		}
+
+		return array( 0, '' );
+	}
+
+	/**
+	 * Whether a category sits in eBay's Apparel/Footwear tree - the scope of eBay's size
+	 * standardisation enforcement (FR/IT/ES 2026-08-31, DE/UK/CA 2026-09-08, AU 2026-09-15,
+	 * US 2026-09-22, MSKU global 2026-10-20). Used by ItemBuilderModel::checkItem() to decide
+	 * whether a generic value like "Does not apply" in a size aspect is fatal (#77327) or
+	 * perfectly acceptable (Screen Size, Ring Size, Wheel Size, Band Size ...).
+	 *
+	 * Two offline signals, either is enough: the root category ID, and the root category name
+	 * (eBay localises the name per site, hence the needles). Unknown root = false, so an
+	 * incomplete local category tree can never block a listing that eBay would have accepted.
+	 *
+	 * @param int|string $cat_id
+	 * @param int|bool   $site_id
+	 * @return bool
+	 */
+	static function isApparelOrFootwearCategory( $cat_id, $site_id = false ) {
+		list( $root_id, $root_name ) = self::getRootCategory( $cat_id, $site_id );
+		if ( ! $root_id ) return false;
+
+		// 11450 = "Clothing, Shoes & Accessories" / "Kleidung & Accessoires" / ...
+		$root_ids = apply_filters( 'wple_apparel_root_category_ids', array( 11450 ), $cat_id, $site_id );
+		if ( in_array( intval( $root_id ), array_map( 'intval', (array) $root_ids ), true ) ) return true;
+
+		$needles = apply_filters( 'wple_apparel_root_category_needles', array(
+			'clothing', 'clothes', 'kleidung', 'bekleidung', 'vetements', 'vêtements',
+			'abbigliamento', 'ropa', 'kleding', 'shoes', 'schuhe', 'scarpe', 'chaussures',
+			'calzado', 'footwear',
+		), $cat_id, $site_id );
+
+		$root_name = function_exists( 'mb_strtolower' ) ? mb_strtolower( $root_name, 'UTF-8' ) : strtolower( $root_name );
+		foreach ( (array) $needles as $needle ) {
+			$needle = function_exists( 'mb_strtolower' ) ? mb_strtolower( (string) $needle, 'UTF-8' ) : strtolower( (string) $needle );
+			if ( $needle !== '' && false !== strpos( $root_name, $needle ) ) return true;
+		}
+
+		return false;
 	}
 
 	static function getCategoryName( $id, $site_id = null ) {
@@ -1105,6 +1347,7 @@ class EbayCategoriesModel extends WPL_Model {
 		    $args[] = $site_id;
         }
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
 		$value = $wpdb->get_var( $wpdb->prepare("
 			SELECT cat_name 
 			FROM $table
@@ -1119,6 +1362,7 @@ class EbayCategoriesModel extends WPL_Model {
 		global $wpdb;	
 		$table = $wpdb->prefix . self::table;
 		$ebay_motors_sql = $site_id == 0 ? 'OR site_id = 100' : '';
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
 		$value = $wpdb->get_var( $wpdb->prepare("
 			SELECT leaf 
 			FROM $table
@@ -1136,6 +1380,7 @@ class EbayCategoriesModel extends WPL_Model {
 		global $wpdb;	
 		$table = $wpdb->prefix . self::table;
 		$ebay_motors_sql = $site_id == 0 ? 'OR site_id = 100' : '';
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
 		$items = $wpdb->get_results( $wpdb->prepare("
 			SELECT DISTINCT * 
 			FROM $table
@@ -1232,6 +1477,7 @@ class EbayCategoriesModel extends WPL_Model {
 		if ( $site_id === false ) $site_id = get_option('wplister_ebay_site_id');
 		$ebay_motors_sql = $site_id == 0 ? 'OR site_id = 100' : '';
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name = {$wpdb->prefix} + class constant; the site fragment is a literal, an esc_sql() value inside quotes or a %d placeholder; ids are bound as placeholders.
 		$result = $wpdb->get_row( $wpdb->prepare("
 			SELECT * 
 			FROM $table

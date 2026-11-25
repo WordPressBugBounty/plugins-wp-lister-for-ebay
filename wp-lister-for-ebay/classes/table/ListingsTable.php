@@ -1270,7 +1270,7 @@ class ListingsTable extends WP_List_Table {
         }
         // handle search query
         if ( isset($_REQUEST['s']) && wple_clean($_REQUEST['s']) ) {
-            $base_url = add_query_arg( 's', wple_clean($_REQUEST['s']), $base_url );
+            $base_url = add_query_arg( 's', urlencode( wple_clean($_REQUEST['s']) ), $base_url ); // #78154: add_query_arg() does not encode values
         }
 
         // get listing status summary

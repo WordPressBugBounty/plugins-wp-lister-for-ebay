@@ -240,6 +240,7 @@ class EbayOrdersTable extends WP_List_Table {
             $icon     = '&nbsp;<img src="'.$img_url.'" style="height:12px; padding:0;" class="tips" data-tip="'.$tipmsgs.'"/>';                            
         }
 
+        /******/
 
         return sprintf('%1$s <br><span style="color:silver">%2$s</span>%3$s',
             /*$1%s*/ $display_price,
@@ -490,7 +491,7 @@ class EbayOrdersTable extends WP_List_Table {
 
         // handle search query
         if ( isset($_REQUEST['s']) && wple_clean($_REQUEST['s']) ) {
-            $base_url = add_query_arg( 's', wple_clean($_REQUEST['s']), $base_url );
+            $base_url = add_query_arg( 's', urlencode( wple_clean($_REQUEST['s']) ), $base_url ); // #78154: add_query_arg() does not encode values
         }
 
         // get order status summary

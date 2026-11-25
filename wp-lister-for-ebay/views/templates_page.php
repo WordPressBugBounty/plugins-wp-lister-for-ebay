@@ -106,7 +106,8 @@ $enable_upload = get_option( 'wplister_enable_template_uploads', 0 );
 				url: ajaxurl,
 				data: {
 				   	'action' : 'wpl_get_copy_template_form',
-				   	'template_id' : id
+				   	'template_id' : id,
+				   	'_wpnonce' : '<?php echo esc_js( wp_create_nonce( 'wple_copy_template' ) ); ?>'
 				},
 				// dataType: 'JSON',
 				success:function(data){

@@ -220,7 +220,6 @@
 	                            <?php endif; ?>
                             </div>
 
-							<!-- ## END PRO ## -->
 
 						</div>
 					</div>

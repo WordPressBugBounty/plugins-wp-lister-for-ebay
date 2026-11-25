@@ -734,25 +734,25 @@ class WPL_Setup extends WPL_Core {
 		$site_id    = intval( $site_id    ); // sanitize parameters 
 		$account_id = intval( $account_id );
 
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_auctions         SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_auctions', $account_id, $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_categories       SET site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %d', $wpdb->prefix . 'ebay_categories', $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_log              SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_log', $account_id, $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_messages         SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_messages', $account_id, $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_orders           SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_orders', $account_id, $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_profiles         SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_profiles', $account_id, $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_payment          SET site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %d', $wpdb->prefix . 'ebay_payment', $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_shipping         SET site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %d', $wpdb->prefix . 'ebay_shipping', $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_store_categories SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_store_categories', $account_id, $site_id ) );
 		echo $wpdb->last_error;
-		$wpdb->query("UPDATE ".$wpdb->prefix."ebay_transactions     SET account_id = $account_id, site_id = $site_id ");
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET account_id = %d, site_id = %d', $wpdb->prefix . 'ebay_transactions', $account_id, $site_id ) );
 		echo $wpdb->last_error;
 
 	} // assignAllDataToDefaultAccount()
@@ -772,24 +772,22 @@ class WPL_Setup extends WPL_Core {
 		foreach ($accounts as $account) {
 			$active_account_ids[] = $account->id;
 		}
-		$active_account_ids_sql = join(', ', $active_account_ids);
+		$active_account_ids = array_map( 'intval', $active_account_ids );
+		$active_account_ids_sql = implode( ', ', array_fill( 0, count( $active_account_ids ), '%d' ) );
 
 		// find data with invalid account IDs
-		$listings_count = $wpdb->get_var("
-			SELECT count(account_id)
-			  FROM ".$wpdb->prefix."ebay_auctions
-			 WHERE NOT account_id IN ( $active_account_ids_sql )
-		");
-		$profiles_count = $wpdb->get_var("
-			SELECT count(account_id)
-			  FROM ".$wpdb->prefix."ebay_profiles
-			 WHERE NOT account_id IN ( $active_account_ids_sql )
-		");
-		$orders_count = $wpdb->get_var("
-			SELECT count(account_id)
-			  FROM ".$wpdb->prefix."ebay_orders
-			 WHERE NOT account_id IN ( $active_account_ids_sql )
-		");
+		$listings_count = $wpdb->get_var( $wpdb->prepare(
+			"SELECT count(account_id) FROM %i WHERE NOT account_id IN ( $active_account_ids_sql )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $active_account_ids_sql is a list of %d placeholders only.
+			array_merge( array( $wpdb->prefix . 'ebay_auctions' ), $active_account_ids )
+		) );
+		$profiles_count = $wpdb->get_var( $wpdb->prepare(
+			"SELECT count(account_id) FROM %i WHERE NOT account_id IN ( $active_account_ids_sql )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $active_account_ids_sql is a list of %d placeholders only.
+			array_merge( array( $wpdb->prefix . 'ebay_profiles' ), $active_account_ids )
+		) );
+		$orders_count = $wpdb->get_var( $wpdb->prepare(
+			"SELECT count(account_id) FROM %i WHERE NOT account_id IN ( $active_account_ids_sql )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $active_account_ids_sql is a list of %d placeholders only.
+			array_merge( array( $wpdb->prefix . 'ebay_orders' ), $active_account_ids )
+		) );
 
 		// return if no problems found
 		if ( ! $listings_count && ! $profiles_count && ! $orders_count ) return;
@@ -825,24 +823,22 @@ class WPL_Setup extends WPL_Core {
 		foreach ($accounts as $account) {
 			$active_account_ids[] = $account->id;
 		}
-		$active_account_ids_sql = join(', ', $active_account_ids);
+		$active_account_ids = array_map( 'intval', $active_account_ids );
+		$active_account_ids_sql = implode( ', ', array_fill( 0, count( $active_account_ids ), '%d' ) );
 
 		// find data with invalid account IDs
-		$listings_count = $wpdb->get_var("
-			UPDATE ".$wpdb->prefix."ebay_auctions
-			   SET account_id = '$default_account_id'
-			 WHERE NOT account_id IN ( $active_account_ids_sql )
-		");
-		$profiles_count = $wpdb->get_var("
-			UPDATE ".$wpdb->prefix."ebay_profiles
-			   SET account_id = '$default_account_id'
-			 WHERE NOT account_id IN ( $active_account_ids_sql )
-		");
-		$orders_count = $wpdb->get_var("
-			UPDATE ".$wpdb->prefix."ebay_orders
-			   SET account_id = '$default_account_id'
-			 WHERE NOT account_id IN ( $active_account_ids_sql )
-		");
+		$listings_count = $wpdb->query( $wpdb->prepare(
+			"UPDATE %i SET account_id = %d WHERE NOT account_id IN ( $active_account_ids_sql )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $active_account_ids_sql is a list of %d placeholders only.
+			array_merge( array( $wpdb->prefix . 'ebay_auctions', intval( $default_account_id ) ), $active_account_ids )
+		) );
+		$profiles_count = $wpdb->query( $wpdb->prepare(
+			"UPDATE %i SET account_id = %d WHERE NOT account_id IN ( $active_account_ids_sql )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $active_account_ids_sql is a list of %d placeholders only.
+			array_merge( array( $wpdb->prefix . 'ebay_profiles', intval( $default_account_id ) ), $active_account_ids )
+		) );
+		$orders_count = $wpdb->query( $wpdb->prepare(
+			"UPDATE %i SET account_id = %d WHERE NOT account_id IN ( $active_account_ids_sql )", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $active_account_ids_sql is a list of %d placeholders only.
+			array_merge( array( $wpdb->prefix . 'ebay_orders', intval( $default_account_id ) ), $active_account_ids )
+		) );
 		// echo $wpdb->last_query;
 		echo $wpdb->last_error;
 

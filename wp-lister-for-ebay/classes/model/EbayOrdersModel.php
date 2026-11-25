@@ -89,8 +89,16 @@ class EbayOrdersModel extends WPL_Model {
                 $lastdate = $lastdate + 1;
             }
 
-            // if last date is older than 30 days, fall back to default
-            if ( $lastdate < $now - 3600 * 24 * 30 ) {
+            // if last date is older than 30 days (eBay's ModTimeFrom limit):
+            // - account has order history -> there is a gap (cron/token down, site moved),
+            //   so fetch as far back as eBay allows instead of only the last day (#78104).
+            //   29 days leaves headroom for clock skew; a numeric lastdate is cached in
+            //   current_lastdate, so every page of this run uses the same window.
+            // - no history at all -> keep the 1-day default for fresh accounts.
+            if ( $lastdate && $lastdate < $now - 3600 * 24 * 30 ) {
+                $lastdate = $now - 3600 * 24 * 29;
+                WPLE()->logger->info('last order older than 30 days - order gap, using ModTimeFrom 29 days back: '.$lastdate);
+            } elseif ( $lastdate < $now - 3600 * 24 * 30 ) {
                 WPLE()->logger->info('resetting lastdate - fall back default ');
                 $lastdate = false;
             }
@@ -282,8 +290,10 @@ class EbayOrdersModel extends WPL_Model {
 
                 $wc_order = wc_get_order( $order['post_id'] );
 
+                /******/
 
 				if ( $data['CompleteStatus'] == 'Cancelled' ) {
+                    /******/
 
                     // no further processing required
                     return;
@@ -293,6 +303,7 @@ class EbayOrdersModel extends WPL_Model {
 			// skip already processed order listings #49554
             if ( $this->processed_order_listings( $data ) ) {
                 WPLE()->logger->info( 'Skipping processListingItem() for this order.' );
+                /******/
                 return;
             }
 
@@ -366,6 +377,7 @@ class EbayOrdersModel extends WPL_Model {
 //                return;
 //            }
 
+	        /******/
 
 		} else {
 
@@ -468,11 +480,13 @@ class EbayOrdersModel extends WPL_Model {
 //			}
 
 
+	        /******/
 
 
 		} // if ( $order ) {} else {...}
 
 
+	    /******/
 
 
 	} // insertOrUpdate()
@@ -541,6 +555,7 @@ class EbayOrdersModel extends WPL_Model {
 
 	} // notifyAboutOrderStockCheckIssue()
 
+    /******/
 
 
 	// check if woocommcer order exists and has not been moved to the trash
@@ -634,6 +649,7 @@ class EbayOrdersModel extends WPL_Model {
 		$this->addHistory( $order_id, 'reduce_wple_stock', $history_message, $history_details );
 
 
+        /******/
 
 		// mark listing as sold when last item is sold - unless Out Of Stock Control (oosc) is enabled
         if ( ! ListingsModel::thisAccountUsesOutOfStockControl( $data['account_id'] ) ) {
@@ -715,6 +731,7 @@ class EbayOrdersModel extends WPL_Model {
             $history_details = array( 'listing_id' => $listing_id, 'ebay_id' => $ebay_id, 'quantity_sold' => $quantity_sold, 'quantity_total' => $quantity_total );
             $this->addHistory( $order_id, 'revert_wple_stock', $history_message, $history_details );
 
+            /******/
 
         } // foreach ( $Transaction )
 
@@ -1043,12 +1060,8 @@ class EbayOrdersModel extends WPL_Model {
 		global $wpdb;
 		$table = $wpdb->prefix . self::TABLENAME;
 
-		$items = $wpdb->get_results( $wpdb->prepare("
-			SELECT *
-			FROM $table
-			WHERE $column = %s
-		", $value
-		), OBJECT_K);
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $column ) ) return array();
+		$items = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE %i = %s', $table, $column, $value ), OBJECT_K );
 
 		return $items;
 	}
@@ -1085,9 +1098,11 @@ class EbayOrdersModel extends WPL_Model {
 	        $wpl_order_ids = array( $wpl_order_ids );
         }
 
-        $order_ids_csv = "'". implode( "','", esc_sql( $wpl_order_ids ) ) ."'";
+        $wpl_order_ids = array_values( array_map( 'strval', $wpl_order_ids ) );
+	    if ( empty( $wpl_order_ids ) ) return array();
+	    $holders = implode( ',', array_fill( 0, count( $wpl_order_ids ), '%s' ) );
 
-	    return $wpdb->get_col( $wpdb->prepare( "SELECT order_id FROM {$wpdb->prefix}ebay_orders WHERE id IN ({$order_ids_csv})"));
+	    return $wpdb->get_col( $wpdb->prepare( "SELECT order_id FROM {$wpdb->prefix}ebay_orders WHERE id IN ( $holders )", $wpl_order_ids ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $holders is a list of %s placeholders only.
     }
 
 	static function getAllIdsWithStatus( $status ) {

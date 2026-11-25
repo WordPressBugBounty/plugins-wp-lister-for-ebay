@@ -343,14 +343,14 @@ class WPLE_StocksLogTable extends WP_List_Table {
         // check if MySQL server has gone away and reconnect if required - WP 3.9+
         if ( method_exists( $wpdb, 'check_connection') ) $wpdb->check_connection();
 
-        $sql = "
-			SELECT round(((data_length + index_length) / 1024 / 1024), 1) AS 'size' 
-			FROM information_schema.TABLES 
-			WHERE table_schema = '$dbname'
-			  AND table_name = '$table' ";
+        $sql = $wpdb->prepare(
+			"SELECT round(((data_length + index_length) / 1024 / 1024), 1) AS 'size' FROM information_schema.TABLES WHERE table_schema = %s AND table_name = %s",
+			$dbname,
+			$table
+		);
         // echo "<pre>";print_r($sql);echo"</pre>";#die();
 
-        $size = $wpdb->get_var($sql);
+        $size = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is the $wpdb->prepare() result directly above.
         if ( $wpdb->last_error ) echo 'Error in get_table_size(): '.$wpdb->last_error;
 
         return $size;

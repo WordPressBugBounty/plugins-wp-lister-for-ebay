@@ -151,6 +151,7 @@ class WPLister_Install {
 		  PRIMARY KEY  (`id`)
 		);";
 		#dbDelta($sql);
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$result = $wpdb->query($sql);
 
 		WPLE()->logger->info( $sql );		
@@ -169,6 +170,7 @@ class WPLister_Install {
 		  KEY `cat_id` (`cat_id`),
 		  KEY `parent_cat_id` (`parent_cat_id`)		
 		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 		
 		
@@ -185,6 +187,7 @@ class WPLister_Install {
 		  KEY `cat_id` (`cat_id`),
 		  KEY `parent_cat_id` (`parent_cat_id`)		
 		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 		
 		
@@ -194,6 +197,7 @@ class WPLister_Install {
 		  `payment_description` varchar(255) DEFAULT NULL,
 		  `version` int(11) DEFAULT NULL	
 		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 		
 		
@@ -208,6 +212,7 @@ class WPLister_Install {
 		  `conditions` text,
 		  PRIMARY KEY  (`profile_id`)	
 		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 		
 		
@@ -221,6 +226,7 @@ class WPLister_Install {
 		  `international` tinyint(4) DEFAULT NULL,
 		  `version` int(11) DEFAULT NULL	
 		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 		
 		// create table: ebay_transactions
@@ -247,6 +253,7 @@ class WPLister_Install {
 		  `LastTimeModified` datetime DEFAULT NULL,
 		  PRIMARY KEY (`id`)
   		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 		
 		// create table: ebay_log
@@ -262,6 +269,7 @@ class WPLister_Install {
 		  `user_id` int(11) DEFAULT NULL,	
 		  PRIMARY KEY (`id`)	
 		);";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table creation DDL; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 		$wpdb->query($sql);
 
 		// mysql updates - insert new columns

@@ -825,36 +825,34 @@ class Listing {
 
 			$product_image_gallery = $this->getCustomImageGallery( $parent_id );
 
-			// check for additional variation images (WooCommerce Additional Variation Images Addon)
-			if ( class_exists('WC_Additional_Variation_Images') ) {
+			// check for additional variation images (WooCommerce Additional Variation Images Addon,
+			// or WooCommerce's native variation gallery since WC 11.1 #78119)
+			$additional_var_images = \ProductWrapper::getAdditionalVariationImageIDs( $product_id );
 
-				$additional_var_images = get_post_meta( $product_id, '_wc_additional_variation_images', true );
-				$additional_var_images = empty($additional_var_images) ? false : explode( ',', $additional_var_images );
+			if ( is_array( $additional_var_images ) ) {
+				// Unset the $product_image_gallery and use the additional variation images instead #44939
+				if ( apply_filters( 'wple_exclusive_split_variation_gallery', true ) ) {
+					// clear the image gallery so the main product gallery doesn't get included in the split variation's
+					$product_image_gallery = array();
+					$images = array(); // #78119: native gallery URLs may already be in $images; the variation image goes first
+				} else {
+					// merge gallery with the parent product
+					$product_image_gallery = implode( ',', $additional_var_images) .','. $product_image_gallery;
+				}
 
-				if ( is_array( $additional_var_images ) ) {
-					// Unset the $product_image_gallery and use the additional variation images instead #44939
-					if ( apply_filters( 'wple_exclusive_split_variation_gallery', true ) ) {
-						// clear the image gallery so the main product gallery doesn't get included in the split variation's
-						$product_image_gallery = array();
-					} else {
-						// merge gallery with the parent product
-						$product_image_gallery = implode( ',', $additional_var_images) .','. $product_image_gallery;
-					}
+				$size = get_option( 'wplister_default_image_size', 'full' );
 
-					$size = get_option( 'wplister_default_image_size', 'full' );
+				// use the main variation image as the first/primary image
+				$images[] = \ProductWrapper::getImageURL( $product_id );
+				foreach ( $additional_var_images as $attachment_id ) {
 
-					// use the main variation image as the first/primary image
-					$images[] = \ProductWrapper::getImageURL( $product_id );
-					foreach ( $additional_var_images as $attachment_id ) {
+					// get URL from attachment ID
 
-						// get URL from attachment ID
+					$large_image_url = wp_get_attachment_image_src( $attachment_id, $size );
+					$image_url = wple_encode_url( $large_image_url[0] );
+					$images[] = $image_url;
+					WPLE()->logger->info( "found additional variation image: ".$image_url );
 
-						$large_image_url = wp_get_attachment_image_src( $attachment_id, $size );
-						$image_url = wple_encode_url( $large_image_url[0] );
-						$images[] = $image_url;
-						WPLE()->logger->info( "found additional variation image: ".$image_url );
-
-					}
 				}
 			}
 		}

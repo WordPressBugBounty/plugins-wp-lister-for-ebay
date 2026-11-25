@@ -53,6 +53,7 @@ class WPL_AjaxHandler extends WPL_Core {
 
 		add_action('wp_ajax_wple_add_document',                 array( &$this, 'ajax_wple_add_document' ) );
 
+        /******/
 
         add_action( 'wp_ajax_wple_dismiss_notice',              array( $this, 'ajax_dismiss_notice' ) );
         add_action( 'wp_ajax_wple_hide_gnutls_error',                  array( $this, 'ajax_hide_gnutls_error' ) );
@@ -1832,6 +1833,7 @@ class WPL_AjaxHandler extends WPL_Core {
 
 	} // ajax_wple_show_product_matches()
 
+    /******/
 
     public function ajax_dismiss_notice() {
         check_admin_referer( 'wple_ajax_nonce' );
@@ -2047,7 +2049,37 @@ class WPL_AjaxHandler extends WPL_Core {
 
 
 	/**
-	 * Sync profile data to product meta fields
+	 * Realign conflicting product level overrides when a profile is selected
+	 *
+	 * Product level eBay Options intentionally win over the profile: an empty value
+	 * means "-- use profile setting --", and the profile value is then applied when the
+	 * item is built (see ItemBuilderModel::buildItem() and ProfilesModel). So this may
+	 * only ever realign an override a product already carries - it must never create
+	 * one, or every product that inherits from its profile silently loses that
+	 * inheritance as soon as a profile is selected (#73591, #77797).
+	 *
+	 * Per field. The two realigned fields are NOT treated alike - that asymmetry is
+	 * deliberate and measured, do not "fix" it into symmetry:
+	 *  - _ebay_auction_type: realigned only while no published/changed listing exists.
+	 *    A product level listing type decides which API call is used (AddItem vs
+	 *    AddFixedPriceItem, see ListingsModel::listingUsesFixedPriceItem()), and
+	 *    ItemBuilderModel omits ListingType when revising ("omit ListingType when
+	 *    revising item", ItemBuilderModel.php:83-84). So on a live listing the override
+	 *    cannot reach eBay at all, and realigning it would only make the product
+	 *    disagree with the live item. The conflict on a not yet live product is the
+	 *    reason this sync exists at all (574d88932).
+	 *  - _ebay_listing_duration: realigned by the same "never create, only realign"
+	 *    rule, but WITHOUT the live listing guard. ListingDuration is set on every
+	 *    build, revise included (ItemBuilderModel.php:78-81, no $reviseItem check), and
+	 *    applyProfileToListing() has already written the profile duration into the
+	 *    listing row (ListingsModel.php:3131-3132). A stale contradicting override
+	 *    would therefore keep beating the profile on exactly the live items. Case D of
+	 *    tests/regression/wple-77797-profile-meta-sync-probe.php pins this (duration
+	 *    written with a live listing present, type not). Verified by click path on the
+	 *    3.8.15 testbed, 2026-11-14 (Wash) (56dc9ecfe).
+	 *  - _ebay_condition_id: never written. A product level condition that is set is a
+	 *    deliberate override and must survive (#72965); one that is empty means
+	 *    "use profile setting" and must stay empty (#77797).
 	 *
 	 * @param array $profile Profile data
 	 * @param array $product_ids Array of product IDs
@@ -2058,12 +2090,14 @@ class WPL_AjaxHandler extends WPL_Core {
 		}
 
 		foreach ($product_ids as $product_id) {
-			// check if auction type has actually changed before doing expensive operations
+
 			$current_auction_type = get_post_meta( $product_id, '_ebay_auction_type', true );
 			$profile_auction_type = $profile['type'];
 
-			// only process auction type if it's different from current value
-			if ( $current_auction_type !== $profile_auction_type ) {
+			// only realign an existing product level listing type that contradicts the
+			// profile - an empty value means "use profile setting" and has to stay empty
+			if ( ! empty( $current_auction_type ) && $current_auction_type !== $profile_auction_type ) {
+
 				// check if product has any published/live listings that prevent auction type changes
 				$existing_listings = WPLE_ListingQueryHelper::getAllListingsFromPostID( $product_id );
 				$has_live_listing = false;
@@ -2081,19 +2115,18 @@ class WPL_AjaxHandler extends WPL_Core {
 				}
 			}
 
-			// always sync other profile settings (these are safe to change)
+			// listing duration: realign a conflicting override, never create one - and
+			// deliberately without the live listing guard used for the type above, see
+			// the note on this method before adding one
 			if ( isset($profile['listing_duration']) ) {
-				update_post_meta( $product_id, '_ebay_listing_duration', $profile['listing_duration'] );
-			}
+				$current_listing_duration = get_post_meta( $product_id, '_ebay_listing_duration', true );
 
-			if ( isset($profile['details']['condition_id']) ) {
-				$current_condition = get_post_meta( $product_id, '_ebay_condition_id', true );
-
-				// Only update if product doesn't have a condition set #72965
-				if ( empty( $current_condition ) ) {
-					update_post_meta( $product_id, '_ebay_condition_id', $profile['details']['condition_id'] );
+				if ( ! empty( $current_listing_duration ) && $current_listing_duration !== $profile['listing_duration'] ) {
+					update_post_meta( $product_id, '_ebay_listing_duration', $profile['listing_duration'] );
 				}
 			}
+
+			// _ebay_condition_id is deliberately NOT written here - see the note above (#72965, #77797)
 		}
 	}
 

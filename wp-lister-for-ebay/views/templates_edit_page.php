@@ -109,7 +109,7 @@
 	<div id="titlediv" style="margin-top:10px; margin-bottom:5px; width:60%">
 		<div id="titlewrap">
 			<label class="hide-if-no-js" style="visibility: hidden; " id="title-prompt-text" for="title">Enter title here</label>
-			<input type="text" name="wpl_e2e_template_name" size="30" tabindex="1" value="<?php echo $wpl_item['template_name']; ?>" id="title" autocomplete="off">
+			<input type="text" name="wpl_e2e_template_name" size="30" tabindex="1" value="<?php echo esc_attr( $wpl_item['template_name'] ); ?>" id="title" autocomplete="off">
 		</div>
 	</div>
 	-->
@@ -403,7 +403,7 @@
 							<div id="titlediv" style="margin-bottom:5px;">
 								<div id="titlewrap">
 									<label for="wpl-text-template_description" class="text_label"><?php echo __( 'Name', 'wp-lister-for-ebay' ); ?>:</label>
-									<input type="text" name="wpl_e2e_template_name" size="30" value="<?php echo $wpl_item['template_name']; ?>" id="title" autocomplete="off" style="width:65%;">
+									<input type="text" name="wpl_e2e_template_name" size="30" value="<?php echo esc_attr( $wpl_item['template_name'] ); ?>" id="title" autocomplete="off" style="width:65%;">
 								</div>
 							</div>
 
@@ -458,7 +458,7 @@
 					    <div id="wp-editor-wrapper">
 					        <!-- <input type="hidden" name="page" value="<?php echo esc_attr( $_REQUEST['page'] ) ?>" /> -->
 					        <!-- <input type="hidden" name="action" value="saveListingTemplate" /> -->
-					        <input type="hidden" name="wpl_e2e_filename" value="<?php echo $wpl_item['template_path'] ?>" />
+					        <input type="hidden" name="wpl_e2e_filename" value="<?php echo esc_attr( $wpl_item['template_path'] ); ?>" />
 					        <?php wp_editor( $wpl_html, 'tpl_html', $settings ); ?> 
 					    </div>
 					    <p><i><?php echo __( 'Note: You can disable the WYSIWYG editor on the advanced settings page.', 'wp-lister-for-ebay' ); ?></i></p>

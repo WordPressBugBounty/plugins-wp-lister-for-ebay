@@ -212,14 +212,14 @@ class LogPage extends WPL_Page {
 		// check if MySQL server has gone away and reconnect if required - WP 3.9+
 		if ( method_exists( $wpdb, 'check_connection') ) $wpdb->check_connection();
 
-		$sql = "
-			SELECT round(((data_length + index_length) / 1024 / 1024), 1) AS 'size' 
-			FROM information_schema.TABLES 
-			WHERE table_schema = '$dbname'
-			  AND table_name = '$table' ";
+		$sql = $wpdb->prepare(
+			"SELECT round(((data_length + index_length) / 1024 / 1024), 1) AS 'size' FROM information_schema.TABLES WHERE table_schema = %s AND table_name = %s",
+			$dbname,
+			$table
+		);
 		// echo "<pre>";print_r($sql);echo"</pre>";#die();
 
-		$size = $wpdb->get_var($sql);
+		$size = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- $sql is the $wpdb->prepare() result directly above.
 		if ( $wpdb->last_error ) echo 'Error in getTableSize(): '.$wpdb->last_error;
 
 		return $size;
@@ -247,9 +247,9 @@ class LogPage extends WPL_Page {
 		$table = $wpdb->prefix.'ebay_log';
 
 		$days_to_keep = intval( self::getOption( 'log_days_limit', 30 ) );
-		$delete_count = $wpdb->get_var('SELECT count(id) FROM '.$wpdb->prefix.'ebay_log WHERE timestamp < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
+		$delete_count = $wpdb->get_var( $wpdb->prepare( 'SELECT count(id) FROM %i WHERE timestamp < DATE_SUB(NOW(), INTERVAL %d DAY )', $wpdb->prefix . 'ebay_log', $days_to_keep ) );
 		if ( $delete_count ) {
-			$wpdb->query('DELETE FROM '.$wpdb->prefix.'ebay_log WHERE timestamp < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
+			$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE timestamp < DATE_SUB(NOW(), INTERVAL %d DAY )', $wpdb->prefix . 'ebay_log', $days_to_keep ) );
 			// $this->showMessage( 'Log entries removed: ' . $delete_count );
 		}
 		if ( $wpdb->last_error ) echo 'Error in optimizeLog(): '.$wpdb->last_error;

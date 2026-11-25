@@ -201,8 +201,15 @@
 								<?php echo __( 'Shipping policy', 'wp-lister-for-ebay' ); ?>
                                 <?php wplister_tooltip(__('Instead of setting your shipping details in WP-Lister you can select a predefined shipping policy from your eBay account.<br><br>Note: Due to limitations in the eBay API you need to select at least one shipping service above, even though it will be overwritten by your shipping policy.<br><br>Please note that if you use a predefined shipping policy, you might have to use payment and return policies as well.', 'wp-lister-for-ebay')) ?>
 							</label>
-							<select id="wpl-text-seller_shipping_profile_id" name="wpl_e2e_seller_shipping_profile_id" class=" required-entry select"  style="width:65%;">>
+							<select id="wpl-text-seller_shipping_profile_id" name="wpl_e2e_seller_shipping_profile_id" class=" required-entry select"  style="width:65%;">
+								<?php
+								// on the product metabox an empty value means "inherit the profile's policy",
+								// not "no policy at all" - same distinction as for the package type above (#77223)
+								if ( isset( $post ) ): ?>
+								<option value="">-- <?php echo __( 'use profile setting', 'wp-lister-for-ebay' ); ?> --</option>
+								<?php else: ?>
 								<option value="">-- <?php echo __( 'no policy', 'wp-lister-for-ebay' ); ?> --</option>
+								<?php endif; // isset($post) ?>
 								<?php foreach ($wpl_seller_shipping_profiles as $seller_profile ) : ?>
 									<option value="<?php echo $seller_profile->ProfileID ?>" 
 										<?php if ( isset( $item_details['seller_shipping_profile_id'] ) && $item_details['seller_shipping_profile_id'] == $seller_profile->ProfileID ) : ?>

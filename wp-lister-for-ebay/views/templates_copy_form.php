@@ -35,14 +35,15 @@
 
 
 	<label class="text_label" for="template_name"><?php echo __( 'Name', 'wp-lister-for-ebay' ); ?></label>
-	<input type="text" id="template_name" name="wpl_e2e_template_name" value="<?php echo $wpl_item['template_name']; ?> (copy)" class="text_input"/>
+	<input type="text" id="template_name" name="wpl_e2e_template_name" value="<?php echo esc_attr( $wpl_item['template_name'] ); ?> (copy)" class="text_input"/>
 
 	<label class="text_label" for="template_description"><?php echo __( 'Description', 'wp-lister-for-ebay' ); ?></label>
-	<input type="text" id="template_description" name="wpl_e2e_template_description" value="<?php echo $wpl_item['template_description']; ?>" class="text_input"/>
+	<input type="text" id="template_description" name="wpl_e2e_template_description" value="<?php echo esc_attr( $wpl_item['template_description'] ); ?>" class="text_input"/>
 
 
 	<div class="submit" style="padding-top: 0; float: right;">
-		<input type="hidden" id="template_id" name="wpl_e2e_template_id" value="<?php echo $wpl_item['template_id']; ?>"/>
+		<input type="hidden" id="template_id" name="wpl_e2e_template_id" value="<?php echo esc_attr( $wpl_item['template_id'] ); ?>"/>
+		<input type="hidden" name="_wpnonce" value="<?php echo esc_attr( wp_create_nonce( 'wple_copy_template' ) ); ?>"/>
 		<input type="submit" id="btn_save_as_new" value="<?php echo __( 'Duplicate Template', 'wp-lister-for-ebay' ); ?>" name="duplicate" class="button-primary">
 	</div>
 

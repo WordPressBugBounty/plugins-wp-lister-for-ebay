@@ -297,6 +297,10 @@ class WPLE_eBayAccount extends WPL_Core {
 			$this->valid_until = $expdate;
 			$this->update();
 			update_option( 'wplister_ebay_token_is_invalid', false );
+		} else {
+			// The check failed - say so. Without this the stored valid_until stays on screen
+			// unchanged and a failed check is indistinguishable from a passed one (#77127).
+			WPLE()->logger->warn( sprintf( 'GetTokenStatus failed for eBay account %s (%s) - the expiration date shown for this account is the last known value, not a fresh measurement.', $this->id, $this->title ) );
 		}
 
 	} // updateUserDetails()

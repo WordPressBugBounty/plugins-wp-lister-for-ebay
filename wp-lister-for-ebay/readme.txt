@@ -1,7 +1,7 @@
 === WP-Lister Lite for eBay ===
 Contributors: wp-lab
 Tags: ebay, woocommerce, products, export
-Requires at least: 4.2
+Requires at least: 6.2
 Tested up to: 7.1
 Stable tag: trunk
 License: GPLv2 or later
@@ -102,23 +102,60 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+= 3.8.17.1 - 2026-11-25 =
+* Security: Text typed into the search box on the eBay Listings page, and the search parameter of the REST API, is now escaped properly before it is used in a database query. We recommend updating.
+* Security: The "Duplicate template" form and several other admin pages no longer print request values unescaped, and duplicating a template now requires a valid security token. We recommend updating.
+* Fix: Database queries reviewed and tightened throughout (values are passed through prepared statements, table and column names are checked against a fixed list). No settings or data change.
+* Fix: A database update step for the eBay orders table no longer fails silently on sites that use a table prefix other than "wp_".
+* Fix: A bundled stylesheet no longer loads a font from Google Fonts.
+* Note: WP-Lister Lite now requires WordPress 6.2 or later.
+* Note: This release brings WP-Lister Lite up to date with WP-Lister for eBay 3.8.17 - see the 3.8.14 to 3.8.17 entries below, including the new eBay Media API image upload from 3.8.16.
+
+= 3.8.17 - 2026-11-25 =
+* Fix: If no orders were fetched from eBay for more than 30 days (for example after a site was offline or the account was paused), the next order update now looks back 29 days instead of only one, so the orders from that gap are imported. Accounts that have never fetched orders keep the one-day start. Note: after a long pause, the first update can import up to 29 days of sales at once.
+* Fix: A product with neither a featured image nor a gallery image is no longer sent to eBay Picture Services with an empty image address. WP-Lister now logs one clear "No main image" error naming the listing and product, and no longer shows the EPS upload notice for it every ten minutes.
+* Fix: With WooCommerce 11.1 or later (Additional Variation Images is now part of WooCommerce core and the separate plugin is switched off), each variation's additional images are sent to eBay again. Split variations listed as single items now use the variation's own gallery when it has one, instead of the parent product's gallery.
+* Fix: Uploading images to eBay Picture Services no longer causes a critical error when another plugin on the site loads an older copy of the Guzzle library. Image uploads now use the WordPress HTTP API.
+* Fix: When an eBay order went to "cancel pending" and then back to paid or completed, WooCommerce could reduce the stock a second time if "Revert stock changes" was switched off. The stock is now reduced only once.
+* Security: Hardening of admin pages against reflected input. We recommend updating.
+
+= 3.8.16 - 2026-11-18 =
+* Fix: Images are uploaded to eBay Picture Services through eBay's Media API, which replaces the UploadSiteHostedPictures API that eBay retired.
+* Fix: EPS images and self hosted picture URLs are never mixed within one listing. eBay rejects a mixed picture set with error 20004, so a single failed upload no longer takes the whole publish or revise down with it.
+* Fix: Images whose file name contains spaces or accented characters are found on disk and uploaded again, in both EPS transports. They were skipped before, in the default configuration as well.
+* Fix: A failed picture upload is no longer listed as "Success" in WP-Lister > Logs. The log row now carries eBay's own result, so the list shows which calls really failed. This changes the label only; it does not upload a missing picture.
+* Fix: The Debug page under WP-Lister > Tools no longer stops with a fatal error on hosts that disable shell_exec(). It reports that the command line version of cURL cannot be detected instead, which does not affect WP-Lister itself.
+* Fix: If eBay refuses an image upload with "Insufficient permissions to fulfill the request" (error 1100), the error message names the remedy itself, and the one that fits the account: the one-time reconnect for accounts on the current eBay login, or the switch to the new eBay login for accounts still using the old authentication system. Other upload failures keep their previous wording.
+* Note: If eBay refuses the upload with "Insufficient permissions to fulfill the request" (error 1100), the eBay connection was authorized before 7 December 2025 and does not carry the permission the Media API requires. Your listings still publish - WP-Lister falls back to the image URLs of your own shop - but to get the images hosted on eBay again, reconnect the account once: WP-Lister > Settings > Accounts > Edit (on the account) > Connect with eBay, then Fetch eBay Token. You do not have to delete or disconnect the account first. Accounts whose "Valid Until" date in Settings > Accounts is 7 June 2027 or earlier need this one-time reconnect. Accounts marked "This account uses the old authentication system" need to be switched to the new eBay login instead - the same Connect with eBay button does that.
+
+= 3.8.15 - 2026-10-05 =
+* Fix: The check for placeholder values in size item specifics only rejects generic values such as "Does not apply" inside eBay's Clothing, Shoes & Accessories tree, where eBay enforces standardised sizes. Outside it, aspects whose name merely contains "size" (Screen Size, Ring Size, Compatible Mattress Size) no longer block a listing that eBay would have accepted. Real size placeholders such as "Multiple sizes" are still rejected in every category.
+* Fix: The localised "Does not apply" text of the site is recognised as a placeholder as well, not only the English wording.
+
+= 3.8.14 - 2026-09-29 =
+* Fix: When an image upload to eBay Picture Services (EPS) fails, the main image is no longer sent to eBay empty. WP-Lister keeps the product's own image URL instead, so the listing still publishes rather than being rejected with eBay's misleading "You need to add at least one image to your product" error. This matters for eBay's retirement of the UploadSiteHostedPictures API, which makes every EPS upload fail.
+* Fix: The warning shown when an EPS upload fails now survives a bulk publish or revise run, and points at the setting that actually helps (Listing Profile > Images > "Upload to EPS" > "No") instead of the EPS Transfer Mode option, which does not.
+
 = 3.8.13 - 2026-09-12 =
 * Fix: A size item specific set to a placeholder value (such as "Multiple sizes") is now caught before a listing is sent to eBay, instead of failing with eBay's own size-standardisation error. Applies to both a manual Revise and an automatic revise triggered by a sale.
 
 = 3.8.12 - 2026-09-11 =
-* Security: The log, order and archive retention settings (Settings > Developer options) are now cast to integers before they reach the SQL used to clean up old rows, and on the way into the option store. Previously a crafted value in these settings could inject SQL into the cleanup queries; this required Shop Manager access or higher. Reported responsibly by Ananda Dhakal via Patchstack.
+* Security: Cast the log, order and archive retention settings to integers before they reach the SQL INTERVAL clauses they are interpolated into, and on the way into the option store. Reported responsibly by Ananda Dhakal via Patchstack.
+* Security: The [Retry] link in the order screen now verifies a nonce and the user's capability, and carries a single-use token
+* Fix: Item conditions are requested for the category that was asked for instead of the whole marketplace, so opening or saving a product no longer rewrites the entire category table
+* Fix: The category download stores level 1 only and leaves the depth below it to the queued branch tasks
+* Fix: An eBay shipping policy that is unknown locally is no longer dropped without a word
+* Fix: An empty WooCommerce dimension is no longer sent to eBay as 0
+* Fix: A revision no longer demands at least one image when a filter removed the pictures on purpose
+* Fix: CompleteSale retries are capped at 10 again
+* Fix: "Get token expiration date" on the Tools page now works for OAuth accounts
 
 = 3.8.11 - 2026-08-08 =
-* Fix: Never wipe stored category mappings when a category download fails
-* Fix: Never wipe stored category features when a category feature lookup fails
-* Fix: Never wipe stored item specifics when an eBay aspects lookup fails
-* Fix: Category conditions are tracked by a timestamp of their own and are refilled from the eBay Metadata REST API, so a category whose conditions were emptied by a failed lookup fills itself back in
-
-= 3.8.10 - 2026-08-07 =
-* Security: fixed a stored cross-site scripting vulnerability that could be triggered without an account. The AJAX endpoint used by external cron services accepted arbitrary request parameters and wrote them into the eBay log table, where the listings log screen rendered parts of them unescaped back to an administrator. Request payloads are now sanitised - parameter names as well as values - before they are stored, and every value the log table lifts back out of a stored row is escaped on output. Only sites with "Log to database" enabled were affected. Reported responsibly by thevietronin (GalaxyOne) via Wordfence; our thanks to them and to the Wordfence team.
-
-= 3.8.9 - 2026-07-30 =
-* Security: fixed a SQL injection via the `orderby` and `order` request parameters on admin list screens, exploitable by users with the `manage_ebay_listings` capability (by default Administrator and Shop Manager) (CVE-2026-11973). Sort parameters are now validated against a strict allow-list of real sortable columns instead of being escaped, and pagination values are cast to integers. Reported responsibly by Yousof Nahya and Hamza Nour via Wordfence; our thanks to them and to the Wordfence team.
+* Security: Validate ORDER BY column and direction against an allow-list on all admin list screens (CVE-2026-11973). Reported responsibly by Yousof Nahya and Hamza Nour via Wordfence.
+* Security: Sanitize the unauthenticated cron request payload and escape all Logs screen output (stored XSS, CVE-2026-18595). Reported responsibly by thevietronin (GalaxyOne) via Wordfence.
+* Security: Reject non-notification payloads at the unauthenticated notify endpoint
+* Fix: Never wipe stored category mappings, category features or item specifics when an eBay lookup fails
+* Fix: Refill emptied category conditions from the eBay Metadata REST API, tracked by a separate timestamp
 
 = 3.8.8 - 2026-06-03 =
 * Fix: Defer eBay revisions for locked listings on REST API stock updates
@@ -791,20 +828,3 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * Fixed: Possible is_ajax() is deprecated error
 
 View the full changelog at https://www.wplister.com/plugins/wp-lister-for-ebay/changelog/
-
-== Upgrade Notice ==
-
-= 3.8.13 =
-eBay is now enforcing standardised size values for Apparel/Footwear listings (Australia 2026-09-15, United States 2026-09-22). This release stops a listing with a placeholder size value from being sent and rejected, and tells you which item specific to fix instead. Update is recommended for anyone listing sized items.
-
-= 3.8.12 =
-Security release. Fixes a SQL injection vulnerability in the log/order/archive retention settings that required Shop Manager access or higher. Update is recommended for all users.
-
-= 3.8.11 =
-Fixes data loss: a failed eBay lookup could empty stored category mappings, category features, item specifics or category conditions. Emptied conditions are refilled automatically from eBay. Update is recommended for all users.
-
-= 3.8.10 =
-Security release. Fixes a stored cross-site scripting vulnerability that could be triggered without an account. Update is recommended for all users.
-
-= 3.8.9 =
-Security release. Fixes an authenticated SQL injection on admin list screens (CVE-2026-11973). Update is recommended for all users.

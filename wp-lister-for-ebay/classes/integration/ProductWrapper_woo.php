@@ -1147,6 +1147,35 @@ class ProductWrapper {
         return self::getVariationParent( $post_id ) ? true : false;
 	}
 
+	/**
+	 * Additional (gallery) image attachment IDs of a single variation, or false if it has none.
+	 *
+	 * 1. WooCommerce Additional Variation Images extension active: its meta, unchanged behaviour.
+	 * 2. Otherwise / extension meta empty: WooCommerce's native variation gallery (#78119).
+	 *    WC 11.1 merged the extension into core (Internal\VariationGallery) and deactivates the
+	 *    standalone plugin, so the class check above is false there. Core stores the gallery in the
+	 *    variation's own _product_image_gallery meta (not inherited from the parent) and
+	 *    get_gallery_image_ids() falls back to the legacy meta until the migration has run.
+	 *
+	 * @param int  $variation_id
+	 * @param bool $native_fallback false = extension meta only (pre-#78119 behaviour)
+	 * @return array|false
+	 */
+	static function getAdditionalVariationImageIDs( $variation_id, $native_fallback = true ) {
+		if ( class_exists('WC_Additional_Variation_Images') ) {
+			$ids = get_post_meta( $variation_id, '_wc_additional_variation_images', true );
+			if ( ! empty( $ids ) ) return explode( ',', $ids );
+		}
+
+		if ( ! $native_fallback || ! function_exists('wc_get_product') ) return false;
+
+		$variation = wc_get_product( $variation_id );
+		if ( ! $variation || ! $variation->is_type('variation') || ! method_exists( $variation, 'get_gallery_image_ids' ) ) return false;
+
+		$ids = array_values( array_filter( array_map( 'intval', (array) $variation->get_gallery_image_ids() ) ) );
+		return empty( $ids ) ? false : $ids;
+	}
+
 
 	/*
 	 * private functions (WooCommerce only)

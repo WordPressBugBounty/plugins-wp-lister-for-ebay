@@ -4,7 +4,6 @@ class EbayController {
     
     var $logger;
 
-    var $apiurl;
     var $signin;
     var $devId;
     var $appId;
@@ -281,8 +280,6 @@ class EbayController {
             $this->certId = '33272b6e-ef02-4d22-a487-a1a3f02b9c66';
             $this->RuName = 'LWS_Werbung_Gmb-LWSWerbu-c159-4-tchfyrowj';
 
-            //$this->apiurl = 'https://api.sandbox.ebay.com/ws/api.dll';
-            $this->apiurl = 'https://api.sandbox.ebay.com/wsapi';
             $this->signin = 'https://signin.sandbox.ebay.com/ws/eBayISAPI.dll?SignIn&';
 
         } else {
@@ -295,8 +292,6 @@ class EbayController {
             $this->certId = WPLE_IS_LITE_VERSION ? 'LITE'       : wple_get_license_key();
             $this->RuName = 'LWS_Werbung_Gmb-LWSWerbu-6147-4-ywstl';
 
-            //$this->apiurl = 'https://api.ebay.com/ws/api.dll';
-            $this->apiurl = 'https://api.sandbox.ebay.com/wsapi';
             $this->signin = 'https://signin.ebay.com/ws/eBayISAPI.dll?SignIn&';
         }
 
@@ -1330,6 +1325,43 @@ class EbayController {
         // send request
         $res = $this->sp->GetTokenStatus($req);
 
+        // Say why it failed, in eBay's own words. Without this the caller only gets an
+        // empty date and the UI has nothing to offer but "check the log" - which is off
+        // unless the customer turned it on.
+        //
+        // Two failure shapes have to be covered, and neither may be tested with isset():
+        // EbatNs_SimpleType declares __get() but no __isset(), so isset( $res->Ack ) is
+        // false even when $res->Ack is 'Failure'. Measured against a live account, not
+        // assumed. The shapes are:
+        //   - a transport or parse failure, which arrives as EbatNs_ResponseError and
+        //     usually carries no Errors at all
+        //   - an application failure, which arrives as an ordinary response with
+        //     Ack=Failure and populated Errors. This is what the button actually hits:
+        //     error 16112 "Invalid authentication method" on every OAuth account.
+        // Testing only instanceof - the way GetUser() does it - would miss the second
+        // one, which is the case this ticket is about. (#77127)
+        $ack = $res->Ack;
+
+        if ( ( $res instanceof EbatNs_ResponseError ) || ( $ack && ! in_array( $ack, array( 'Success', 'Warning' ) ) ) ) {
+
+            $errors    = '';
+            $error_set = $res->Errors;
+            if ( is_array( $error_set ) ) {
+                foreach ( $error_set as $error ) {
+                    $errors .= '<p>'. $error->LongMessage .'</p>';
+                }
+            }
+
+            // WPLE()->logger, not $this->logger: the class declares a $logger property but
+            // never assigns it, so $this->logger->error() is a fatal. Every one of the 52
+            // other log calls in this file goes through WPLE()->logger. (#77127)
+            WPLE()->logger->error( 'GetTokenStatus failed: ' . ( $errors ? wp_strip_all_tags( $errors ) : 'eBay returned no error message (Ack=' . var_export( $ack, true ) . ')' ) );
+
+            if ( $errors ) wple_show_message( $errors, 'error' );
+
+            return false;
+        }
+
         $expdate = $res->TokenStatus->ExpirationTime;
 
         if ( $expdate ) {
@@ -1580,12 +1612,54 @@ class EbayController {
     } // getDomainnameBySiteId()
 
 	/**
+	 * Uploads a picture to eBay Picture Services (EPS) and returns a Trading-shaped
+	 * response, no matter which transport actually did the work.
+	 *
+	 * eBay retires the Trading API's UploadSiteHostedPictures call on 2026-09-30, so
+	 * the Media API (commerce/media/v1_beta) is now the default transport - see
+	 * uploadToEPSViaMediaApi(). The old Trading transport is kept fully intact and
+	 * reachable behind a filter/option (see below) so a rollback is possible without
+	 * shipping a release, in case the new adapter needs to be pulled quickly.
+	 *
+	 * All 12 existing callers keep working unchanged either way: this always
+	 * returns either a WP_Error (failure) or an object exposing
+	 * ->SiteHostedPictureDetails->FullURL and ->SiteHostedPictureDetails->UseByDate
+	 * (success), exactly like the original Trading-only implementation did.
+	 *
 	 * @param $url
 	 * @param $session
 	 *
-	 * @return WP_Error
+	 * @return object|WP_Error
 	 */
 	public function uploadToEPS( $url, $session ) {
+		$use_legacy_trading_api = apply_filters(
+			'wple_eps_use_legacy_trading_api',
+			get_option( 'wplister_eps_use_legacy_trading_api', false )
+		);
+
+		if ( $use_legacy_trading_api ) {
+			return $this->uploadToEPSViaTradingApi( $url, $session );
+		}
+
+		return $this->uploadToEPSViaMediaApi( $url, $session );
+	}
+
+	/**
+	 * Legacy transport: eBay Trading API UploadSiteHostedPictures, via
+	 * callUploadSiteHostedPictures() further below. eBay is retiring this call on
+	 * 2026-09-30 - kept only as a rollback path, see uploadToEPS().
+	 *
+	 * This is the original body of uploadToEPS() before the Media API adapter was
+	 * added; behaviour is unchanged except that the final "handle response, build
+	 * error" step now lives in the shared finishEpsUpload() (see there for the
+	 * error-handling mitfix).
+	 *
+	 * @param $url
+	 * @param $session
+	 *
+	 * @return object|WP_Error
+	 */
+	private function uploadToEPSViaTradingApi( $url, $session ) {
 		$req = new UploadSiteHostedPicturesRequestType();
 		// $req->setExternalPictureURL( $url );
 		$req->setPictureSet( 'Supersize' );
@@ -1603,6 +1677,19 @@ class EbayController {
 			$url = $ib->normalizeUrl( $url, true );
 
 			$local_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $url );
+
+			// #77835 - the caller hands us a percent-encoded URL: uploadPictureToEPS()
+			// rawurlencode()s the basename and turns remaining spaces into %20, so the derived
+			// path does not exist on disk for any filename with accents or spaces and we fall
+			// back to wp_remote_get() for a file we are sitting on. Try the literal path first
+			// so a file really named "pre%20encoded.jpg" keeps working, then the decoded one.
+			if ( ! file_exists( $local_path ) ) {
+				$decoded_path = rawurldecode( $local_path );
+				if ( $decoded_path !== $local_path && file_exists( $decoded_path ) ) {
+					$local_path = $decoded_path;
+				}
+			}
+
 			if ( file_exists( $local_path ) && is_readable( $local_path ) ) {
 				$picture_data = file_get_contents( $local_path );
 				WPLE()->logger->info( "loaded ".strlen($picture_data)." bytes from local file: ".$local_path );
@@ -1650,23 +1737,292 @@ class EbayController {
 		WPLE()->logger->info( "UploadSiteHostedPictures Complete" );
 		WPLE()->logger->debug( "Response: ".print_r($res,1) );
 
+		return $this->finishEpsUpload( $res, $url );
+	}
+
+	/**
+	 * New transport: eBay Media API (commerce/media/v1_beta), replacing the retired
+	 * Trading UploadSiteHostedPictures call. Uses EbayMediaApi (classes/helper/
+	 * EbayMediaApi.php), the same OAuth-bearer/Guzzle transport already shipping
+	 * since Nov 2024 for GPSR document uploads - just pointed at the Image resource
+	 * instead of the Document resource.
+	 *
+	 * Mode mapping (same 'wplister_eps_xfer_mode' option, same two modes as before):
+	 *   - passive -> POST /image/create_image_from_url  (EbayMediaApi::createImageFromUrl())
+	 *   - active  -> POST /image/create_image_from_file (EbayMediaApi::createImageFromFile())
+	 *
+	 * create_image_from_url requires an HTTPS source URL (eBay rejects http://
+	 * outright). If passive mode is configured but the URL is not HTTPS, this falls
+	 * back to the file-upload (active) path automatically instead of failing the
+	 * upload outright - the plugin already has all the machinery to load the
+	 * picture bytes for active mode, so there is no reason to hard-fail a fixable
+	 * case. This is a deliberate choice, documented here: it mirrors the *intent*
+	 * (though not the mechanism - there is no separate retry pass) of the 4.x
+	 * uploadToEPSWithFallback() auto-retry, which does not exist on this branch.
+	 *
+	 * @param $url
+	 * @param $session
+	 *
+	 * @return object|WP_Error
+	 */
+	private function uploadToEPSViaMediaApi( $url, $session ) {
+		$account_id    = $session->wple_account_id;
+		$eps_xfer_mode = get_option( 'wplister_eps_xfer_mode', 'passive' );
+
+		$media_api = new EbayMediaApi( $account_id );
+
+		// active mode, or passive mode with a non-HTTPS URL (Media API requires HTTPS
+		// for create_image_from_url) - load picture bytes and upload them directly
+		if ( $eps_xfer_mode == 'active' || stripos( $url, 'https://' ) !== 0 ) {
+
+			if ( $eps_xfer_mode != 'active' ) {
+				WPLE()->logger->info( "EPS media API: passive mode requires an HTTPS source URL, falling back to active (file) mode for: ".$url );
+			}
+
+			$picture_data = null;
+
+			// try to load image data from filesystem first
+			$upload_dir = wp_upload_dir();
+
+			// Fix the URL
+			$ib = new ItemBuilderModel();
+			$url = $ib->normalizeUrl( $url, true );
+
+			$local_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $url );
+
+			// #77835 - the caller hands us a percent-encoded URL: uploadPictureToEPS()
+			// rawurlencode()s the basename and turns remaining spaces into %20, so the derived
+			// path does not exist on disk for any filename with accents or spaces and we fall
+			// back to wp_remote_get() for a file we are sitting on. Try the literal path first
+			// so a file really named "pre%20encoded.jpg" keeps working, then the decoded one.
+			if ( ! file_exists( $local_path ) ) {
+				$decoded_path = rawurldecode( $local_path );
+				if ( $decoded_path !== $local_path && file_exists( $decoded_path ) ) {
+					$local_path = $decoded_path;
+				}
+			}
+
+			if ( file_exists( $local_path ) && is_readable( $local_path ) ) {
+				$picture_data = file_get_contents( $local_path );
+				WPLE()->logger->info( "loaded ".strlen($picture_data)." bytes from local file: ".$local_path );
+			}
+
+			// if image data is empty, load from URL
+			if ( empty( $picture_data ) ) {
+				$response = wp_remote_get( $url );
+
+				if ( ! is_wp_error( $response ) && wp_remote_retrieve_response_code( $response ) == 200 ) {
+					$picture_data = wp_remote_retrieve_body( $response );
+					WPLE()->logger->info( "loaded ".strlen($picture_data)." bytes from URL: ".$url );
+				} elseif ( is_wp_error( $response ) ) {
+					$details  = 'wp_remote_get() failed to connect to ' . $url . '<br>';
+					$details .= 'Error:' . ' ' . $response->get_error_message() . '<br>';
+					wple_show_message( 'Connection to '.$url.' failed: '.$details, 'error' );
+					WPLE()->logger->info( 'Connection to '.$url.' failed: '.$details );
+				} else {
+					$details  = 'wp_remote_get() returned an unexpected HTTP status code: ' . wp_remote_retrieve_response_code( $response );
+					wple_show_message( 'Connection to '.$url.' failed: '.$details, 'error' );
+					WPLE()->logger->info( 'Connection to '.$url.' failed: '.$details );
+					WPLE()->logger->info( "reponse object: ".print_r($response,1) );
+				}
+			}
+
+			// if image data is STILL empty, show error message to the user
+			if ( empty( $picture_data ) ) {
+				WPLE()->logger->error( "Could not load image data for URL: ".$url );
+				return new WP_Error( 400, "There was a problem loading the product image from $url. Please make sure this image URL is accessible or disable the <i>Upload to EPS</i> option in your listing profile.");
+			}
+
+			WPLE()->logger->info( "calling Media API create_image_from_file - $url (".strlen($picture_data)." bytes)" );
+			$media_response = $media_api->createImageFromFile( $picture_data );
+
+		} else {
+			WPLE()->logger->info( "calling Media API create_image_from_url - $url" );
+			$media_response = $media_api->createImageFromUrl( $url );
+		}
+
+		WPLE()->logger->debug( "Media API response: ".print_r($media_response,1) );
+
+		// build a Trading-shaped UploadSiteHostedPicturesResponseType so all existing
+		// callers (WPL_Model::handleResponse(), and the direct
+		// ->SiteHostedPictureDetails->FullURL / ->UseByDate dereferences in
+		// ListingsModel/ItemBuilderModel/ProfilesPage) keep working unchanged.
+		$res = new UploadSiteHostedPicturesResponseType();
+
+		if ( $media_response instanceof \Swagger\Client\Model\ImageResponse ) {
+			$res->setAck( 'Success' );
+
+			$details = new SiteHostedPictureDetailsType();
+			$details->setFullURL( $media_response->getImageUrl() );
+			$details->setUseByDate( $media_response->getExpirationDate() );
+			$details->setExternalPictureURL( $url );
+			$res->setSiteHostedPictureDetails( $details );
+
+			WPLE()->logger->info( "image was uploaded to EPS successfully via Media API: ".$media_response->getImageUrl() );
+		} else {
+			// EbayMediaApi already logged the underlying exception (if any); build a
+			// Trading-shaped error here so handleResponse()/finishEpsUpload() have
+			// something real to work with instead of a bare `false`.
+			$res->setAck( 'Failure' );
+
+			$error = new ErrorType();
+			$error->setErrorCode( 500 );
+			$error->setSeverityCode( 'Error' );
+			$error->setShortMessage( 'Failed to upload image to eBay Picture Services' );
+
+			$last_error = $media_api->getLastError();
+			$long_message = $last_error
+				? "eBay Media API request for $url failed: ".$last_error
+				: "eBay Media API request for $url did not return an image. Check the WP-Lister log for details.";
+
+			// The message the user reads in the moment of the failure is the only place
+			// that reaches someone who is not following a release note, so name the
+			// remedy here - but only for the one failure that HAS this remedy.
+			$hint = $this->getEpsPermissionHint( $media_api, $account_id );
+			if ( $hint ) {
+				$long_message .= '<br>' . $hint;
+				WPLE()->logger->error( 'EPS upload was refused for lack of permission - account '. $account_id .' needs to be reconnected.' );
+			}
+
+			$error->setLongMessage( $long_message );
+
+			$res->addErrors( $error );
+		}
+
+		return $this->finishEpsUpload( $res, $url );
+	}
+
+	/**
+	 * The sentence that turns "eBay refused the image" into something the user can act
+	 * on, for the ONE Media API failure that has a self-service remedy: the stored eBay
+	 * authorization does not carry the permission the Media API needs.
+	 *
+	 * Deliberately narrow. A reconnect does nothing for a 500, for eBay's errorId 2003
+	 * ("Internal error"), or for a connection failure, and a reconnect hint on those
+	 * produces "I reconnected and it still fails" instead of a usable report. So the
+	 * hint is only emitted when eBay actually said "insufficient permissions"
+	 * (errorId 1100, domain ACCESS) - or, if the body did not survive the client, when
+	 * the status was 403, which is the only status eBay answers that with.
+	 *
+	 * Why the account is inspected here instead of quoting the "Valid Until < 7 June
+	 * 2027" rule of thumb from the release notes: that rule is a proxy for people who
+	 * cannot see this error, and it has a blind spot - accounts still on the old
+	 * Auth'n'Auth system show an unrelated date in the same column, which gets renewed
+	 * without any consent and so can read as "fine" (measured by dave, 2026-11-15,
+	 * /home/shared/2026-11-15-wple-3.8.16-release-notice-reconnect-DAVE.md). In the
+	 * error moment the account is known, so the applicable branch can be named outright:
+	 * a legacy account needs the switch to the eBay login, not "connect again".
+	 *
+	 * @param EbayMediaApi $media_api  the instance that just failed
+	 * @param int          $account_id account the upload ran for
+	 *
+	 * @return string empty when this failure has no reconnect remedy
+	 */
+	private function getEpsPermissionHint( $media_api, $account_id ) {
+		if ( ! $this->epsErrorIsInsufficientPermission( $media_api ) ) return '';
+
+		$account = WPLE_eBayAccount::getAccount( $account_id );
+		if ( ! $account ) return '';
+
+		// same discriminator the accounts list uses for its red "old authentication
+		// system" line (classes/table/AccountsTable.php:154) - no refresh token means
+		// no OAuth consent was ever granted for this account, so there is nothing to
+		// re-grant and the Media API will keep refusing it after any number of reconnects.
+		$is_legacy_auth = empty( $account->refresh_token ) && empty( $account->refresh_token_expiry );
+
+		if ( $is_legacy_auth ) {
+			return 'This eBay account still uses eBay\'s old authentication system, which cannot be used '
+			     . 'to upload images to eBay Picture Services. Switch it to the new eBay login: '
+			     . '<b>WP-Lister &raquo; Settings &raquo; Accounts</b>, <b>Edit</b> on this account, then '
+			     . '<b>Connect with eBay</b>. Your listings are published in the meantime - the images are '
+			     . 'served from your own shop instead of from eBay.';
+		}
+
+		return 'The eBay authorization stored for this account does not include the permission that '
+		     . 'eBay now requires for image uploads. Granting it takes one reconnect, and you do not have '
+		     . 'to delete or disconnect the account first: <b>WP-Lister &raquo; Settings &raquo; Accounts</b>, '
+		     . '<b>Edit</b> on this account, then <b>Connect with eBay</b> and <b>Fetch eBay Token</b>. '
+		     . 'Your listings are published in the meantime - the images are served from your own shop '
+		     . 'instead of from eBay.';
+	}
+
+	/**
+	 * TRUE only when eBay itself answered the Image call with "insufficient permissions".
+	 *
+	 * @param EbayMediaApi $media_api
+	 *
+	 * @return bool
+	 */
+	private function epsErrorIsInsufficientPermission( $media_api ) {
+		$body = $media_api->getLastErrorBody();
+		$code = (int) $media_api->getLastErrorCode();
+
+		if ( ! empty( $body ) ) {
+			$decoded = json_decode( $body, true );
+			if ( is_array( $decoded ) && ! empty( $decoded['errors'] ) && is_array( $decoded['errors'] ) ) {
+				foreach ( $decoded['errors'] as $err ) {
+					if ( isset( $err['errorId'] ) && (int) $err['errorId'] === 1100 ) return true;
+				}
+				// eBay answered with a different error - that is an answer, so do not
+				// fall through to the status-code guess below.
+				return false;
+			}
+		}
+
+		// No usable body: Guzzle embeds only a truncated copy in the exception message,
+		// and a 403 from the Image resource is eBay's insufficient-permission answer.
+		return $code === 403;
+	}
+
+	/**
+	 * Shared tail of both EPS upload transports (Trading + Media API): run the
+	 * Trading-shaped response through WPL_Model::handleResponse() - exactly like
+	 * every other eBay call - and return either that response object (success) or
+	 * a WP_Error built from the *real* eBay error.
+	 *
+	 * Mitfix (see the "uploadToEPS" migration notes): this tail used to always
+	 * collapse any failure into the generic WP_Error(500, 'Failed to upload image:
+	 * <url>'), discarding whatever handleResponse() actually saw. That is why the
+	 * 4.x uploadToEPSWithFallback()'s shouldRetryWithActiveMode() could never see a
+	 * useful signal from a real failure - it only ever got the generic string back.
+	 * We now read the real error code/message off the response (when present) and
+	 * attach the full Trading-shaped $res as the WP_Error's error data
+	 * (get_error_data()), so a caller that wants to inspect the real Ack/Errors can,
+	 * without changing the is_wp_error() contract all 12 existing callers rely on.
+	 * shouldRetryWithActiveMode() itself does not exist on this branch and is
+	 * intentionally not touched here.
+	 *
+	 * @param object $res Trading-shaped UploadSiteHostedPicturesResponseType
+	 * @param string $url the image URL that was being uploaded, for the fallback message
+	 *
+	 * @return object|WP_Error
+	 */
+	private function finishEpsUpload( $res, $url ) {
 		// handle response and check if successful
 		$mdl = new WPL_Model();
-		if ( $mdl->handleResponse($res) ) {
-
-			// fetch final url
-			//$eps_url = $res->SiteHostedPictureDetails->FullURL;
-
-			WPLE()->logger->info( "image was uploaded to EPS successfully. " );
-
+		if ( $mdl->handleResponse( $res ) ) {
 			return $res;
-
 		} // call successful
 
-		// let the user know which image failed to upload if there was an error
-		//wple_show_message( 'Failed to upload image: <code>'.$url.'</code>', 'error' );
+		$error_code    = 500;
+		$error_message = 'Failed to upload image: <code>'. $url .'</code>';
 
-		return new WP_Error(500, 'Failed to upload image: <code>'. $url .'</code>');
+		$errors = $res->getErrors();
+		if ( $errors ) {
+			$first_error = is_array( $errors ) ? reset( $errors ) : $errors;
+			if ( $first_error ) {
+				$error_code   = $first_error->getErrorCode() ?: $error_code;
+				$real_message = trim( $first_error->getShortMessage() . ' ' . $first_error->getLongMessage() );
+				if ( $real_message ) {
+					$error_message = $real_message;
+				}
+			}
+		}
+
+		// attach the real Trading-shaped response as error data, so a caller that
+		// wants more than the message string (e.g. a future shouldRetryWithActiveMode())
+		// can get at the real Ack/Errors via get_error_data() instead of parsing text.
+		return new WP_Error( $error_code, $error_message, $res );
 	}
 
 	/**
@@ -1739,6 +2095,16 @@ class EbayController {
 		// old version - using WP HTTP API (does not work!)
 		// $responseMsg = $this->sendXmlMessageWithoutCurl( $xmlMessage, $reqHeaders, $multiPartData );
 
+		// NOTE: the log row is written AFTER the decode on purpose - see
+		// epsUploadLogLabel(). Before 2026-11-06 it was written here, BEFORE the
+		// decode, and the only thing available at that point was the raw response
+		// string.
+		if ( $responseMsg )	{
+			$ret = $service->decodeMessage( 'UploadSiteHostedPictures', $responseMsg, $parseMode );
+		} else {
+			$ret = $service->getCurrentResult();
+		}
+
 		if ( get_option('wplister_log_to_db') == '1' ) {
 			$dblogger = new WPL_EbatNs_Logger();
 			$dblogger->updateLog( array(
@@ -1746,18 +2112,77 @@ class EbayController {
 				'request_url' => $ep,
 				'request'     => $xmlMessage,
 				'response'    => print_r($responseMsg,1),
-				'success'     => strpos( $responseMsg, 'ErrorCode' ) ? 'Failure' : 'Success'
+				'success'     => $this->epsUploadLogLabel( $responseMsg, $ret )
 			));
-		}
-
-		if ( $responseMsg )	{
-			$ret = $service->decodeMessage( 'UploadSiteHostedPictures', $responseMsg, $parseMode );
-		} else {
-			$ret = $service->getCurrentResult();
 		}
 
 		return $ret;
 	} // callUploadSiteHostedPictures()
+
+	/**
+	 * The 'success' column for the UploadSiteHostedPictures log row.
+	 *
+	 * Reported independently by four sellers during the 2026-10-28 EPS outage:
+	 * #77855 (screenshots), #77838 (29.10., "the log still marks them 'Success'"),
+	 * #77862 (30.10., "Despite this response, the Logs list marks these calls as
+	 * 'Success'") and #77865 (30.10., who also named the fix: "It might be worth
+	 * logging them as a failure to make troubleshooting easier").
+	 *
+	 * The old line was
+	 *     strpos( $responseMsg, 'ErrorCode' ) ? 'Failure' : 'Success'
+	 * and it mislabels a failure in three separate ways, all measured against the
+	 * 3.8.15 bytes on 2026-11-06:
+	 *
+	 *  1. NO WORD "ErrorCode". The outage response was the plain-text body
+	 *     "Resource not found" - no XML, no ErrorCode - so the needle missed and
+	 *     the row went out green. This is the one the four sellers saw.
+	 *  2. NO RESPONSE AT ALL. On a transport failure $responseMsg is false/null/''.
+	 *     strpos() then returns false (and raises a deprecation on PHP 8.1+), which
+	 *     is also falsy => 'Success'. A call that never reached eBay was logged as
+	 *     a success.
+	 *  3. THE MISSING === false. strpos() returns 0 when the needle sits at offset
+	 *     0, and 0 is falsy => 'Success'. The one position that is certainly an
+	 *     error reads as the cleanest result.
+	 *
+	 * The honest verdict already exists two lines up: $ret carries eBay's Ack, and
+	 * WPL_Model::handleResponse() (classes/core/WPL_Model.php, the Ack check that
+	 * decides whether the caller treats the upload as done) counts exactly
+	 * Success|Warning as a success. This method uses the SAME rule, so the log row
+	 * and the plugin's own behaviour cannot disagree.
+	 *
+	 * This is a DISPLAY fix. It does not upload a single missing picture; it stops
+	 * the Logs list from hiding which calls failed. Both halves were stated to the
+	 * reporting sellers as separate things.
+	 *
+	 * @param mixed $responseMsg raw response body from EbatNs_Client
+	 * @param mixed $ret         decoded response object, or whatever came back
+	 * @return string 'Success'|'Failure'
+	 */
+	private function epsUploadLogLabel( $responseMsg, $ret ) {
+
+		// (2) nothing came back - a call that produced no body did not succeed.
+		if ( ! is_string( $responseMsg ) || '' === trim( $responseMsg ) ) {
+			return 'Failure';
+		}
+
+		// eBay's own verdict, same rule as WPL_Model::handleResponse().
+		if ( is_object( $ret ) && method_exists( $ret, 'getAck' ) ) {
+			$ack = $ret->getAck();
+			if ( is_string( $ack ) && '' !== $ack ) {
+				return ( 'Success' === $ack || 'Warning' === $ack ) ? 'Success' : 'Failure';
+			}
+		}
+
+		// (1) a body that carries no <Ack> at all is not an eBay success response -
+		// "Resource not found" lands here.
+		if ( false === stripos( $responseMsg, '<Ack>' ) ) {
+			return 'Failure';
+		}
+
+		// (3) last resort, with the === false the old line was missing.
+		return ( false === stripos( $responseMsg, 'ErrorCode' )
+		      && false === stripos( $responseMsg, '<Ack>Failure' ) ) ? 'Success' : 'Failure';
+	}
 
 
 } // class EbayController

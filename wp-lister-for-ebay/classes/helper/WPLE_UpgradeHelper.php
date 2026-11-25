@@ -53,6 +53,7 @@ class WPLE_UpgradeHelper {
 			  PRIMARY KEY  (`id`)
 			);";
 			#dbDelta($sql);
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// create table: ebay_categories
@@ -67,6 +68,7 @@ class WPLE_UpgradeHelper {
 			  PRIMARY KEY `cat_id` (`cat_id`),
 			  KEY `parent_cat_id` (`parent_cat_id`)		
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// create table: ebay_store_categories
@@ -82,6 +84,7 @@ class WPLE_UpgradeHelper {
 			  KEY `cat_id` (`cat_id`),
 			  KEY `parent_cat_id` (`parent_cat_id`)		
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// create table: ebay_payment
@@ -90,6 +93,7 @@ class WPLE_UpgradeHelper {
 			  `payment_description` varchar(255) DEFAULT NULL,
 			  `version` int(11) DEFAULT NULL	
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// create table: ebay_profiles
@@ -103,6 +107,7 @@ class WPLE_UpgradeHelper {
 			  `conditions` text,
 			  PRIMARY KEY  (`profile_id`)	
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// create table: ebay_shipping
@@ -114,6 +119,7 @@ class WPLE_UpgradeHelper {
 			  `international` tinyint(4) DEFAULT NULL,
 			  `version` int(11) DEFAULT NULL	
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// create table: ebay_transactions
@@ -140,6 +146,7 @@ class WPLE_UpgradeHelper {
 			  `LastTimeModified` datetime DEFAULT NULL,
 			  PRIMARY KEY (`id`)
 	  		);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// create table: ebay_log
@@ -155,6 +162,7 @@ class WPLE_UpgradeHelper {
 			  `user_id` int(11) DEFAULT NULL,	
 			  PRIMARY KEY (`id`)	
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 
@@ -244,6 +252,7 @@ class WPLE_UpgradeHelper {
 			  `user_id` int(11) DEFAULT NULL,	
 			  PRIMARY KEY (`id`)	
 			);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -263,6 +272,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `isCalculated` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `international`, 
 			        ADD COLUMN `isFlat` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `international`;
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -290,6 +300,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_profiles`
 			        ADD COLUMN `category_specifics` text DEFAULT NULL;
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -316,6 +327,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        ADD COLUMN `wp_order_id` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `post_id`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -344,6 +356,7 @@ class WPLE_UpgradeHelper {
 
 			// fetch all transactions
 			$sql = "SELECT id FROM `{$wpdb->prefix}ebay_transactions` ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$items = $wpdb->get_results($sql);	echo $wpdb->last_error;
 
 			// find and assign orders
@@ -358,12 +371,7 @@ class WPLE_UpgradeHelper {
 			    $post_title = 'Order &ndash; '.date('F j, Y @ h:i A', strtotime( $details->CreatedDate ) );
 
 			    // find created order
-				$sql = "
-					SELECT ID FROM `{$wpdb->prefix}posts`
-					WHERE post_title = '$post_title'
-					  AND post_status = 'publish'
-				";
-				$post_id = $wpdb->get_var($sql);	echo $wpdb->last_error;
+				$post_id = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_title = %s AND post_status = 'publish'", $post_title ) );	echo $wpdb->last_error;
 
 				// set order_id for transaction
 				$tm->updateWpOrderID( $transaction->id, $post_id );
@@ -388,6 +396,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        ADD COLUMN `OrderLineItemID` varchar(64) DEFAULT NULL AFTER `transaction_id`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -402,6 +411,7 @@ class WPLE_UpgradeHelper {
 			$sql = "DELETE FROM `{$wpdb->prefix}ebay_transactions`
 			        WHERE transaction_id = 0
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -416,6 +426,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_categories`
 			        ADD COLUMN `site_id` int(10) UNSIGNED DEFAULT NULL AFTER `wp_term_id`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -430,6 +441,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        ADD COLUMN `history` TEXT AFTER `fees`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -458,16 +470,19 @@ class WPLE_UpgradeHelper {
 			// set column type to bigint in table: ebay_auctions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        CHANGE post_id post_id BIGINT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// set column type to bigint in table: ebay_transactions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        CHANGE post_id post_id BIGINT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// set column type to bigint in table: ebay_transactions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        CHANGE wp_order_id wp_order_id BIGINT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -482,6 +497,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        ADD COLUMN `eps` TEXT AFTER `history`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -496,6 +512,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        ADD COLUMN `history` TEXT AFTER `details`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -529,6 +546,7 @@ class WPLE_UpgradeHelper {
 			  `LastTimeModified` datetime DEFAULT NULL,
 			  PRIMARY KEY (`id`)
 	  		);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -543,6 +561,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_profiles`
 			        ADD COLUMN `sort_order` int(11) NOT NULL AFTER `type`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -572,6 +591,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        ADD COLUMN `locked` int(11) NOT NULL DEFAULT 0 AFTER `status`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -585,6 +605,7 @@ class WPLE_UpgradeHelper {
 
 			// fetch all imported items
 			$sql = "SELECT post_id FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_ebay_item_source' AND meta_value = 'imported' ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$imported_products = $wpdb->get_col($sql);	echo $wpdb->last_error;
 			$total_number_of_products = sizeof( $imported_products );
 
@@ -594,12 +615,11 @@ class WPLE_UpgradeHelper {
 				// normal mode - lock all at once
 
 				// lock all imported imported_products
-				$where_sql = " 1 = 0 ";
-				foreach ($imported_products as $post_id) {
-					$where_sql .= " OR post_id = '$post_id' ";
-				}
-				$sql = "UPDATE `{$wpdb->prefix}ebay_auctions` SET locked = '1' WHERE ( $where_sql ) AND status = 'published' ";
-				$wpdb->query( $sql );	echo $wpdb->last_error;
+				$imported_ids = array_map( 'intval', (array) $imported_products );
+				if ( ! empty( $imported_ids ) ) {
+					$holders = implode( ',', array_fill( 0, count( $imported_ids ), '%d' ) );
+					$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}ebay_auctions SET locked = '1' WHERE post_id IN ( $holders ) AND status = 'published'", $imported_ids ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $holders is a list of %d placeholders only.
+				}	echo $wpdb->last_error;
 
 				update_option('wplister_db_version', $new_db_version);
 				$msg  = __( 'Database was upgraded to version', 'wp-lister-for-ebay' ) .' '. $new_db_version . '.';
@@ -614,16 +634,19 @@ class WPLE_UpgradeHelper {
 			// set column type to mediumtext in table: ebay_auctions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        CHANGE history history MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// set column type to mediumtext in table: ebay_orders
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        CHANGE history history MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// set column type to mediumtext in table: ebay_transactions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        CHANGE history history MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -639,6 +662,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `specifics` text AFTER `cat_name`,
 			        ADD COLUMN `conditions` text AFTER `cat_name`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// add columns to ebay_auctions table
@@ -646,6 +670,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `parent_id` bigint(20) NOT NULL AFTER `post_id`,
 			        ADD COLUMN `variations` text AFTER `details`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -677,6 +702,7 @@ class WPLE_UpgradeHelper {
 			  `status` varchar(50) DEFAULT NULL,
 			  PRIMARY KEY (`id`)
 	  		);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -691,6 +717,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        ADD COLUMN `relist_date` datetime DEFAULT NULL AFTER `end_date`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -712,10 +739,13 @@ class WPLE_UpgradeHelper {
 
 			// add indices to ebay_log table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_log` ADD INDEX `timestamp` (`timestamp`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_log` ADD INDEX `callname` (`callname`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_log` ADD INDEX `success` (`success`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -730,18 +760,23 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        ADD COLUMN `order_id` varchar(64) DEFAULT NULL AFTER `transaction_id`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// add indices to ebay_transactions table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions` ADD INDEX `item_id` (`item_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions` ADD INDEX `transaction_id` (`transaction_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions` ADD INDEX `order_id` (`order_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// add index to ebay_orders table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders` ADD INDEX `order_id` (`order_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -793,10 +828,12 @@ class WPLE_UpgradeHelper {
 			// change price column type to DECIMAL(13,2)
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        CHANGE price price DECIMAL(13,2) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        CHANGE total total DECIMAL(13,2) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -809,16 +846,22 @@ class WPLE_UpgradeHelper {
 
 			// add indices to ebay_auctions table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `ebay_id` (`ebay_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `status` (`status`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `post_id` (`post_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `profile_id` (`profile_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `locked` (`locked`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `relist_date` (`relist_date`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -855,6 +898,7 @@ class WPLE_UpgradeHelper {
 			  `last_orders_sync` datetime DEFAULT NULL,
 			  PRIMARY KEY  (`id`)
 			) DEFAULT CHARSET=utf8 ;";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_auctions table
@@ -862,6 +906,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `eps`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `eps`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_log table
@@ -869,6 +914,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `user_id`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `user_id`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_messages table
@@ -876,6 +922,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `status`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `status`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_orders table
@@ -883,6 +930,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `LastTimeModified`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `LastTimeModified`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_transactions table
@@ -890,18 +938,21 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `LastTimeModified`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `LastTimeModified`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_payment table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_payment`
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `version`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_shipping table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_shipping`
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `version`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_profiles table
@@ -909,6 +960,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `category_specifics`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `category_specifics`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// add column to ebay_store_categories table
@@ -916,6 +968,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `site_id` int(11) DEFAULT NULL AFTER `wp_term_id`,
 			        ADD COLUMN `account_id` int(11) DEFAULT NULL AFTER `wp_term_id`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			update_option('wplister_db_version', $new_db_version);
@@ -959,57 +1012,32 @@ class WPLE_UpgradeHelper {
 				$default_account_id = $default_account->id;
 
 				// update ebay_auctions table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_auctions` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_auctions', $site_id, $default_account_id ) );
 
 				// update ebay_log table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_log` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_log', $site_id, $default_account_id ) );
 
 				// update ebay_messages table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_messages` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_messages', $site_id, $default_account_id ) );
 
 				// update ebay_orders table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_orders` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_orders', $site_id, $default_account_id ) );
 
 				// update ebay_transactions table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_transactions` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_transactions', $site_id, $default_account_id ) );
 
 				// update ebay_profiles table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_profiles` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_profiles', $site_id, $default_account_id ) );
 
 				// update ebay_store_categories table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_store_categories` SET
-				        `site_id`    = '$site_id',
-				        `account_id` = '$default_account_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s, account_id = %s', $wpdb->prefix . 'ebay_store_categories', $site_id, $default_account_id ) );
 
 
 				// update ebay_payment table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_payment` SET
-				        `site_id`    = '$site_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s', $wpdb->prefix . 'ebay_payment', $site_id ) );
 
 				// update ebay_shipping table
-				$sql = "UPDATE `{$wpdb->prefix}ebay_shipping` SET
-				        `site_id`    = '$site_id'  ";
-				$wpdb->query($sql);
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET site_id = %s', $wpdb->prefix . 'ebay_shipping', $site_id ) );
 
 				update_option( 'wplister_default_account_id', $default_account_id );
 
@@ -1030,6 +1058,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        ADD COLUMN `last_errors` TEXT AFTER `history`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1044,6 +1073,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        ADD COLUMN `currency` varchar(16) AFTER `total`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1074,6 +1104,7 @@ class WPLE_UpgradeHelper {
 			  `ExcludeShippingLocationDetails` text NOT NULL,
 			  PRIMARY KEY  (`id`)
 			) DEFAULT CHARSET=utf8 ;";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);
 
 			// build sites data
@@ -1110,6 +1141,7 @@ class WPLE_UpgradeHelper {
 			        ADD COLUMN `oosc_mode` int(11) AFTER `ebay_motors`,
 			        ADD COLUMN `shipping_discount_profiles` text NOT NULL AFTER `return_profiles`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// refresh accounts
@@ -1144,10 +1176,13 @@ class WPLE_UpgradeHelper {
 
 			// add indices to ebay_auctions table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `parent_id` (`parent_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `site_id` (`site_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions` ADD INDEX `account_id` (`account_id`) ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1160,16 +1195,22 @@ class WPLE_UpgradeHelper {
 
 			// set column type to mediumtext in table: ebay_accounts
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`  CHANGE shipping_profiles shipping_profiles MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`  CHANGE payment_profiles  payment_profiles  MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`  CHANGE return_profiles   return_profiles   MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`  CHANGE shipping_discount_profiles shipping_discount_profiles MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`  CHANGE categories_map_ebay  categories_map_ebay  MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`  CHANGE categories_map_store categories_map_store MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1184,6 +1225,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_sites`
 			        ADD COLUMN `DoesNotApplyText` varchar(128) NOT NULL AFTER `ExcludeShippingLocationDetails`
 			";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1197,16 +1239,19 @@ class WPLE_UpgradeHelper {
 			// set column type to mediumtext in table: ebay_auctions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        CHANGE details details MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// set column type to mediumtext in table: ebay_orders
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        CHANGE details details MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			// set column type to mediumtext in table: ebay_transactions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        CHANGE details details MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1220,12 +1265,15 @@ class WPLE_UpgradeHelper {
 			// restructure categories table
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_categories`
 			        CHANGE conditions features MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_categories`
 			        CHANGE specifics specifics MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_categories`
 			        CHANGE wp_term_id last_updated datetime ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1238,10 +1286,13 @@ class WPLE_UpgradeHelper {
 
 			// remove legacy data
 			$sql = "DELETE FROM `{$wpdb->prefix}postmeta` WHERE meta_key    =    '_ebay_category_specifics' ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "DELETE FROM `{$wpdb->prefix}options`  WHERE option_name LIKE '_transient_wplister_ebay_item_conditions_%' ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 			$sql = "DELETE FROM `{$wpdb->prefix}options`  WHERE option_name LIKE '_transient_timeout_wplister_ebay_item_conditions_%' ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1255,6 +1306,7 @@ class WPLE_UpgradeHelper {
 			// set column type to mediumtext in table: ebay_auctions
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_auctions`
 			        CHANGE variations variations MEDIUMTEXT ";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1268,10 +1320,12 @@ class WPLE_UpgradeHelper {
             // Adjust varchar length
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        CHANGE ShippingService ShippingService varchar(75) ";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
 			        CHANGE ShippingService ShippingService varchar(75) ";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1285,6 +1339,7 @@ class WPLE_UpgradeHelper {
             // Adjust varchar length
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        ADD COLUMN `ShippedTime` varchar(128) NOT NULL AFTER `CheckoutStatus`";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1298,6 +1353,7 @@ class WPLE_UpgradeHelper {
             // Adjust the user_name length
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_accounts`
 			        CHANGE user_name user_name VARCHAR(128) ";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1322,6 +1378,7 @@ class WPLE_UpgradeHelper {
 			  `backtrace` text,
 			  PRIMARY KEY (`id`)	
 			) DEFAULT CHARSET=utf8 ;";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);
 
             update_option('wplister_db_version', $new_db_version);
@@ -1334,6 +1391,7 @@ class WPLE_UpgradeHelper {
 
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
 			        CHANGE post_id post_id BIGINT(20) ";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1348,6 +1406,7 @@ class WPLE_UpgradeHelper {
                     CHANGE `request` `request` longtext NULL AFTER `request_url`,
                     CHANGE `response` `response` longtext NULL AFTER `request`;";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1361,6 +1420,7 @@ class WPLE_UpgradeHelper {
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_stocks_log`
                     CHANGE `sku` `sku` varchar(64);";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1380,6 +1440,7 @@ class WPLE_UpgradeHelper {
                     ADD PRIMARY KEY `id` (`id`);";
 
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1394,6 +1455,7 @@ class WPLE_UpgradeHelper {
                     ADD INDEX `end_date` (`end_date`);";
 
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1407,6 +1469,7 @@ class WPLE_UpgradeHelper {
                     ADD INDEX `LastTimeModified` (`LastTimeModified`);";
 
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1446,6 +1509,7 @@ class WPLE_UpgradeHelper {
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_sites`
                     ADD COLUMN `default_category_tree_id` int(3) NOT NULL AFTER `last_refresh`";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             $tree_ids = [
@@ -1487,6 +1551,7 @@ class WPLE_UpgradeHelper {
                     ADD COLUMN `refresh_token` text NOT NULL AFTER `oauth_token_expiry`,
                     ADD COLUMN `refresh_token_expiry` datetime AFTER `refresh_token`";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1585,6 +1650,7 @@ class WPLE_UpgradeHelper {
 (51550, 'AU_Pickup', 'Local Pickup', '', 'PICKUP', 0, 1, 1, 0, 0, 236, 15),
 (72553, 'AU_RUTrackedFromChina', 'International Standard : tracked-no signature (7 to 15 business days)', 'ChinaPost', 'NONE', 1, 1, 0, 0, 0, 236, 15),
 (72612, 'AU_IntlEconomyUntracked', 'International Economy : untracked (11 to 35 business days)', '', 'ECONOMY', 1, 1, 0, 0, 0, 236, 15);";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);
 
             update_option('wplister_db_version', $new_db_version);
@@ -1600,6 +1666,7 @@ class WPLE_UpgradeHelper {
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_transactions`
                     CHANGE `ShippingAddress_City` `ShippingAddress_City` varchar(100);";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1613,6 +1680,7 @@ class WPLE_UpgradeHelper {
             $new_db_version = 66;
 
             $sql = "UPDATE {$wpdb->prefix}ebay_sites SET code = 'EBAY_MOTORS_US', default_category_tree_id = 100 WHERE id = 100";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1625,7 +1693,8 @@ class WPLE_UpgradeHelper {
              */
             $new_db_version = 67;
 
-            $sql = "ALTER TABLE `wp_ebay_orders` CHANGE `details` `details` longtext NULL AFTER `items`";
+            $sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders` CHANGE `details` `details` longtext NULL AFTER `items`";
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1643,18 +1712,21 @@ class WPLE_UpgradeHelper {
                     ADD COLUMN id INT NOT NULL AUTO_INCREMENT FIRST,
                     ADD PRIMARY KEY (id);";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_shipping`
                     ADD COLUMN id INT NOT NULL AUTO_INCREMENT FIRST,
                     ADD PRIMARY KEY (id);";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_store_categories`
                     ADD COLUMN id INT NOT NULL AUTO_INCREMENT FIRST,
                     ADD PRIMARY KEY (id);";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1673,6 +1745,7 @@ class WPLE_UpgradeHelper {
                     ADD INDEX `template` (`template`),
                     ADD INDEX `auction_type` (`auction_type`);";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1688,6 +1761,7 @@ class WPLE_UpgradeHelper {
             $sql = "ALTER TABLE `{$wpdb->prefix}ebay_messages`
                     CHANGE `response_url` `response_url` text COLLATE 'utf8_general_ci' NULL AFTER `expiration_date`;";
 
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
             $wpdb->query($sql);	echo $wpdb->last_error;
 
             update_option('wplister_db_version', $new_db_version);
@@ -1720,6 +1794,7 @@ class WPLE_UpgradeHelper {
 					CHANGE `msg_content` `msg_content` longtext COLLATE 'utf8_general_ci' NULL AFTER `msg_text`,
 					CHANGE `details` `details` longtext COLLATE 'utf8_general_ci' NULL AFTER `msg_content`;";
 
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1743,6 +1818,7 @@ class WPLE_UpgradeHelper {
 					  `date_added` datetime NOT NULL
 					);";
 
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			$sql = "CREATE TABLE `{$wpdb->prefix}ebay_responsible_persons` (
@@ -1759,11 +1835,13 @@ class WPLE_UpgradeHelper {
 					  `date_added` datetime NOT NULL
 					);";
 
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_sites`
 						ADD `HazardousMaterialsLabels` longtext COLLATE 'utf8mb4_unicode_ci' NULL,
 						ADD `ProductSafetyLabels` longtext COLLATE 'utf8mb4_unicode_ci' NULL;";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			$sql = "CREATE TABLE `{$wpdb->prefix}ebay_documents` (
@@ -1774,11 +1852,13 @@ class WPLE_UpgradeHelper {
 					  `document_type` varchar(50) NOT NULL,
 					  `date_added` datetime NOT NULL
 					);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_documents`
 					ADD INDEX `account_id` (`account_id`),
 					ADD INDEX `attachment_id` (`attachment_id`);";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1793,6 +1873,7 @@ class WPLE_UpgradeHelper {
 					CHANGE `postcode` `postcode` varchar(100) NOT NULL AFTER `state`,
 					CHANGE `country` `country` varchar(100)  NOT NULL AFTER `postcode`,
 					CHANGE `phone` `phone` varchar(100) NOT NULL AFTER `email`;";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_responsible_persons`
@@ -1800,6 +1881,7 @@ class WPLE_UpgradeHelper {
 					CHANGE `postcode` `postcode` varchar(100) NOT NULL AFTER `state`,
 					CHANGE `country` `country` varchar(100) NOT NULL AFTER `postcode`,
 					CHANGE `phone` `phone` varchar(100) NOT NULL AFTER `email`;";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1812,6 +1894,7 @@ class WPLE_UpgradeHelper {
 			$sql = "ALTER TABLE `{$wpdb->prefix}ebay_orders`
                     CHANGE `ShippingAddress_City` `ShippingAddress_City` varchar(100);";
 
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- one-off schema migration; the SQL is a literal whose only interpolation is {$wpdb->prefix}, no user input.
 			$wpdb->query($sql);	echo $wpdb->last_error;
 
 			update_option('wplister_db_version', $new_db_version);
@@ -1866,7 +1949,7 @@ class WPLE_UpgradeHelper {
 		}
 
 		// convert
-		$result = $wpdb->query( "ALTER TABLE $table CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci" );
+		$result = $wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci', $table ) );
 		if ( $wpdb->last_error ) wple_show_message("Failed to convert table <i>$table</i> - MySQL said: <b>".$wpdb->last_error.'</b><br>SQL: <code>'.$wpdb->last_query.'</code>','error');
 
 		return $result;

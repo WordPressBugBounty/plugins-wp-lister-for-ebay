@@ -440,7 +440,14 @@
 		<?php
 			// test for command line app
 			echo "cURL command line version:<br><pre>";
-			echo `curl --version`;
+			// The backtick operator is an alias of shell_exec(), so it is a fatal error
+			// on hosts that list shell_exec in disable_functions - which took down this
+			// whole page. Note it does not match a grep for "shell_exec". #77797
+			if ( function_exists('shell_exec') ) {
+				echo esc_html( (string) shell_exec('curl --version 2>&1') );
+			} else {
+				echo esc_html__( 'shell_exec() is disabled on this server, so the command line version of cURL cannot be detected. This does not affect WP-Lister, which only uses the PHP cURL extension.', 'wp-lister-for-ebay' );
+			}
 			echo "</pre>";
 		?>
 		<br style="clear:both;"/>

@@ -245,7 +245,7 @@ class WPLE_AccountsPage extends WPL_Page {
 	public function displayEditAccountsPage() {
 
 	    // get account
-	    $account_id = wple_clean($_REQUEST['ebay_account']);
+	    $account_id = intval( $_REQUEST['ebay_account'] ); // #78154: numeric id only, it is echoed into the sidebar form
 	    $account = new WPLE_eBayAccount( $account_id );
 	    if ( ! $account ) die('wrong account');
 

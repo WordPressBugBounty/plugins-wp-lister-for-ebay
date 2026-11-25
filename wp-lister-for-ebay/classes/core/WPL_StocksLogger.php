@@ -39,11 +39,11 @@ if ( ! class_exists( 'WPL_StocksLogger' ) ) :
             // the default instead of 0 - INTERVAL 0 DAY would expire every row.
             $days_to_keep = absint( get_option( 'wplister_log_days_limit', 30 ) );
             if ( $days_to_keep < 1 ) $days_to_keep = 30;
-            $delete_count = $wpdb->get_var('SELECT count(id) FROM '.$table.' WHERE timestamp < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
+            $delete_count = $wpdb->get_var( $wpdb->prepare( 'SELECT count(id) FROM %i WHERE timestamp < DATE_SUB(NOW(), INTERVAL %d DAY )', $table, $days_to_keep ) );
 
             // clean stock log table
             if ( $delete_count ) {
-                $wpdb->query('DELETE FROM '.$table.' WHERE timestamp < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
+                $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE timestamp < DATE_SUB(NOW(), INTERVAL %d DAY )', $table, $days_to_keep ) );
                 // $this->showMessage( 'Log entries removed: ' . $delete_count );
             }
             if ( $wpdb->last_error ) echo 'Error in optimizeLog(): '.$wpdb->last_error;

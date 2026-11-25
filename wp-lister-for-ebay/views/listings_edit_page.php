@@ -163,6 +163,7 @@
 						<input type="hidden" name="wpl_e2e_account_id" value="<?php echo $wpl_item['account_id']; ?>" />
 					<?php endif; ?>							
 
+					<!---->
 
 					<div class="postbox" id="HelpBox">
 						<h3 class="hndle"><span><?php echo __( 'Information', 'wp-lister-for-ebay' ); ?></span></h3>

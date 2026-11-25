@@ -20,6 +20,15 @@ class ItemBuilderModel extends WPL_Model {
 	public $VariationsHaveStock;
 
 	public $result = false;
+
+	/**
+	 * true while the main picture of this listing is served from the shop itself rather than
+	 * from eBay Picture Services - every other picture of the same listing then has to be
+	 * self hosted as well, see pictureUrlForListing(). Set by buildImages(), which runs
+	 * before buildVariations().
+	 */
+	public $main_image_is_self_hosted = true;
+
 	public $site_id = null;
 	public $listing_id = null;
 	public $account_id = null;
@@ -426,17 +435,22 @@ class ItemBuilderModel extends WPL_Model {
 			}
 
 			// check if shipping profile id exists
-			// TODO: show warning to user if non-existing seller profile was ignored
-			// $seller_shipping_profiles	= get_option('wplister_ebay_seller_shipping_profiles');
 			$profile_exists = false;
-			foreach ( $seller_shipping_profiles as $profile ) {
-				if ( $profile->ProfileID == $this->profile_details['seller_shipping_profile_id'] )
-					$profile_exists = true;
+			if ( is_array( $seller_shipping_profiles ) ) {
+				foreach ( $seller_shipping_profiles as $profile ) {
+					if ( $profile->ProfileID == $this->profile_details['seller_shipping_profile_id'] )
+						$profile_exists = true;
+				}
 			}
 
 			if ( $profile_exists ) {
 				$SellerProfiles->SellerShippingProfile = new SellerShippingProfileType();
 				$SellerProfiles->SellerShippingProfile->setShippingProfileID( $this->profile_details['seller_shipping_profile_id'] );
+			} else {
+				// Say so instead of dropping the policy silently (#77223).
+				// Payment and return policies below are attached without any such check,
+				// so the listing would go out with those two but without a shipping policy.
+				$this->warnAboutMissingShippingPolicy( $this->profile_details['seller_shipping_profile_id'] );
 			}
 
 		}
@@ -453,6 +467,46 @@ class ItemBuilderModel extends WPL_Model {
 
 		$this->item->setSellerProfiles( $SellerProfiles );
 	} /* end of buildSellerProfiles() */
+
+
+	/**
+	 * Tell the user when a stored eBay shipping policy could not be found (#77223)
+	 *
+	 * The policy ID is left out of the request either way - but leaving it out silently means
+	 * the listing is published with the shipping details from its listing profile instead of
+	 * the selected policy, with no error and nothing in the log. Typical cause: the account was
+	 * re-authorized, switched, or moved to a different eBay site, so the stored policy ID no
+	 * longer matches the business policies fetched for that account.
+	 *
+	 * @param string $profile_id the shipping policy ID that was not found
+	 */
+	private function warnAboutMissingShippingPolicy( $profile_id ) {
+
+		// error() and not warn(): warn() only reaches the logfile from log level 4 (Warning) up,
+		// and a fresh install has no log level set at all - the line would be missing on exactly
+		// the systems where this bites. error() also writes to the WooCommerce log
+		// (WooCommerce > Status > Logs, source WPLE), which is on by default. One line per
+		// listing, so the trace stays complete even though the notice below appears once.
+		WPLE()->logger->error(
+			'Shipping policy #' . $profile_id . ' was not found in the business policies of eBay account #' . $this->account_id .
+			' - the listing for product #' . $this->product_id . ' is submitted without a shipping policy.'
+		);
+
+		// Not dismissible on purpose: a persistent notice is dropped from the transient once it
+		// has been displayed, so the X buys nothing - but it writes wple_dismissed_<md5(text)>
+		// with no expiry and no user, and this text only varies by policy ID. One click would
+		// silence that policy for every user, for good. Duplicates are collapsed in
+		// WPLE_AdminMessages::add_message(), which sees the transient - a static would not,
+		// because a bulk publish runs one request per listing.
+		wple_show_message(
+			sprintf(
+				__( '<b>Note:</b> The selected eBay shipping policy (ID %s) was not found in the business policies stored for this eBay account and was skipped. Affected listings are submitted with the shipping details from their listing profile instead of the policy. Please reload your business policies on the Accounts page, then check the shipping policy on the affected listings.', 'wp-lister-for-ebay' ),
+				esc_html( $profile_id )
+			),
+			'warn',
+			array( 'persistent' => true )
+		);
+	} /* end of warnAboutMissingShippingPolicy() */
 
 
 	/**
@@ -590,6 +644,39 @@ class ItemBuilderModel extends WPL_Model {
 
 
 	} /* end of buildImages() */
+
+
+	/**
+	 * Returns the URL to put into a listing's PictureDetails/VariationSpecificPictureSet for
+	 * one local image: the EPS URL when the listing's pictures are eBay hosted, the local URL
+	 * when they are not.
+	 *
+	 * eBay refuses a listing whose pictures mix eBay hosted (EPS) and self hosted URLs -
+	 * AddItem/ReviseItem then fails COMPLETELY with error 20004 "A mixture of Self Hosted and
+	 * EPS pictures are not allowed". Measured against a live account on 2026-10-29 (#77821),
+	 * in BOTH directions, and Item.PictureDetails counts together with
+	 * Item.Variations.Pictures: a self hosted main image next to one variation picture that
+	 * came back from the EPS cache is a hard failure, and so is the other way round.
+	 *
+	 * buildImages() records which class the main image ended up in ($main_image_is_self_hosted,
+	 * true whenever the EPS upload failed - which is every picture while EPS is unreachable)
+	 * and it runs before buildVariations(), so every other picture of the listing can follow
+	 * it. When the main image is self hosted there is deliberately NO upload attempt: it would
+	 * either fail the same way, or return a cached EPS URL that must not stand next to a self
+	 * hosted one.
+	 *
+	 * @param string $image_url local image URL, already run through wple_encode_url()
+	 *
+	 * @return string|false|null EPS URL, the unchanged local URL, or false/null on a failed upload
+	 */
+	private function pictureUrlForListing( $image_url ) {
+
+		if ( $this->main_image_is_self_hosted ) {
+			return $image_url;
+		}
+
+		return $this->lm->uploadPictureToEPS( $image_url, $this->listing_id, $this->session );
+	}
 
 
 	public function buildProductListingDetails( $product_sku ) {
@@ -1228,10 +1315,14 @@ class ItemBuilderModel extends WPL_Model {
 			$shippingPackageDetails->setWeightMajor( self::dbSafeFloatval( $weight_major) );
 			$shippingPackageDetails->setWeightMinor( self::dbSafeFloatval( $weight_minor) );
 
+			// getDimensions() substitutes 0 for an empty Woo dimension (#26102), so an
+			// unset dimension no longer arrives here as an empty string. Sending 0 makes
+			// eBay compute a girth of 0 and warn 21920338 on every listing and revision,
+			// which is why clearing the dimensions never helped the seller. #77095
 			$dimensions = ProductWrapper::getDimensions( $actual_post_id );
-			if ( trim( @$dimensions['width']  ) != '' ) $shippingPackageDetails->setPackageWidth( $dimensions['width'] );
-			if ( trim( @$dimensions['length'] ) != '' ) $shippingPackageDetails->setPackageLength( $dimensions['length'] );
-			if ( trim( @$dimensions['height'] ) != '' ) $shippingPackageDetails->setPackageDepth( $dimensions['height'] );
+			if ( (float) @$dimensions['width']  > 0 ) $shippingPackageDetails->setPackageWidth( $dimensions['width'] );
+			if ( (float) @$dimensions['length'] > 0 ) $shippingPackageDetails->setPackageLength( $dimensions['length'] );
+			if ( (float) @$dimensions['height'] > 0 ) $shippingPackageDetails->setPackageDepth( $dimensions['height'] );
 
 			// debug
 			// $weight = ProductWrapper::getWeight( $actual_post_id ) ;
@@ -1715,7 +1806,9 @@ class ItemBuilderModel extends WPL_Model {
 
 				if ( is_wp_error( $result ) ) {
 					// let the user know which image failed to upload if there was an error
-					wple_show_message( $result->get_error_message(), 'error' );
+					// persistent: buildItem() runs in the AJAX task, where a flash message is
+					// invisible - same measurement as in ListingsModel::uploadPictureToEPS()
+					wple_show_message( $result->get_error_message(), 'error', array( 'persistent' => true ) );
 				} else {
 					// assign URL to $product_image_url_eps
 					$product_image_url_eps = $result->SiteHostedPictureDetails->FullURL;
@@ -1743,7 +1836,8 @@ class ItemBuilderModel extends WPL_Model {
 
 				if ( is_wp_error( $result ) ) {
 					// let the user know which image failed to upload if there was an error
-					wple_show_message( $result->get_error_message(), 'error' );
+					// persistent: see the energy efficiency label branch above - AJAX task path
+					wple_show_message( $result->get_error_message(), 'error', array( 'persistent' => true ) );
 				} else {
 					// assign URL to $product_image_url_eps
 					$product_sheet_image_eps = $result->SiteHostedPictureDetails->FullURL;
@@ -2426,31 +2520,29 @@ class ItemBuilderModel extends WPL_Model {
                 $VariationSpecificPictureSet->setVariationSpecificValue( $VariationValue );
                 $VariationSpecificPictureSet->addPictureURL( $image_url );
 
-                // check for additional variation images (WooCommerce Additional Variation Images Addon)
-                if ( class_exists('WC_Additional_Variation_Images') ) {
+                // check for additional variation images (WooCommerce Additional Variation Images Addon,
+                // or WooCommerce's native variation gallery since WC 11.1 #78119 - skipped when WooThumbs
+                // is active, because its block below already reads the native gallery)
+                $additional_var_images = ProductWrapper::getAdditionalVariationImageIDs( $var['post_id'], ! class_exists( 'Iconic_WooThumbs' ) );
 
-                    $additional_var_images = get_post_meta( $var['post_id'], '_wc_additional_variation_images', true );
-                    $additional_var_images = empty($additional_var_images) ? false : explode( ',', $additional_var_images );
+                if ( is_array( $additional_var_images ) ) {
+                    foreach ( $additional_var_images as $attachment_id ) {
 
-                    if ( is_array( $additional_var_images ) ) {
-                        foreach ( $additional_var_images as $attachment_id ) {
+                        // get URL from attachment ID
+                        $size = get_option( 'wplister_default_image_size', 'full' );
+                        $large_image_url = wp_get_attachment_image_src( $attachment_id, $size );
+                        $image_url = wple_encode_url( $large_image_url[0] );
+                        WPLE()->logger->info( "found additional variation image: ".$image_url );
 
-                            // get URL from attachment ID
-                            $size = get_option( 'wplister_default_image_size', 'full' );
-                            $large_image_url = wp_get_attachment_image_src( $attachment_id, $size );
-                            $image_url = wple_encode_url( $large_image_url[0] );
-                            WPLE()->logger->info( "found additional variation image: ".$image_url );
+                        // upload variation images if enabled
+                        if ( $with_additional_images )
+                            $image_url = $this->pictureUrlForListing( $image_url );
 
-                            // upload variation images if enabled
-                            if ( $with_additional_images )
-                                $image_url = $this->lm->uploadPictureToEPS( $image_url, $this->listing_id, $this->session );
-
-                            // add variation image to picture set
+                        // add variation image to picture set
 	                        if ( $image_url ) {
 		                        $VariationSpecificPictureSet->addPictureURL( $image_url );
 	                        }
-                            WPLE()->logger->info( "added additional variation image: ".$image_url );
-                        }
+                        WPLE()->logger->info( "added additional variation image: ".$image_url );
                     }
                 }
 
@@ -2476,7 +2568,7 @@ class ItemBuilderModel extends WPL_Model {
 
                             // upload variation images if enabled
                             if ( $with_additional_images )
-                                $image_url = $this->lm->uploadPictureToEPS( $image_url, $this->listing_id, $this->session );
+                                $image_url = $this->pictureUrlForListing( $image_url );
 
                             // add variation image to picture set
 	                        if ( $image_url ) {
@@ -2503,7 +2595,7 @@ class ItemBuilderModel extends WPL_Model {
 
                             // upload variation images if enabled
                             if ( $with_additional_images )
-                                $image_url = $this->lm->uploadPictureToEPS( $image_url, $this->listing_id, $this->session );
+                                $image_url = $this->pictureUrlForListing( $image_url );
 
 							if ( $image_url ) {
 								// add variation image to picture set
@@ -2780,9 +2872,10 @@ class ItemBuilderModel extends WPL_Model {
 			$shippingPackageDetails->setWeightMajor( self::dbSafeFloatval( $weight_major) );
 			$shippingPackageDetails->setWeightMinor( self::dbSafeFloatval( $weight_minor) );
 
-			if ( trim( @$dimensions['width']  ) != '' ) $shippingPackageDetails->setPackageWidth( $dimensions['width'] );
-			if ( trim( @$dimensions['length'] ) != '' ) $shippingPackageDetails->setPackageLength( $dimensions['length'] );
-			if ( trim( @$dimensions['height'] ) != '' ) $shippingPackageDetails->setPackageDepth( $dimensions['height'] );
+			// a dimension of 0 is not a dimension - see #77095
+			if ( (float) @$dimensions['width']  > 0 ) $shippingPackageDetails->setPackageWidth( $dimensions['width'] );
+			if ( (float) @$dimensions['length'] > 0 ) $shippingPackageDetails->setPackageLength( $dimensions['length'] );
+			if ( (float) @$dimensions['height'] > 0 ) $shippingPackageDetails->setPackageDepth( $dimensions['height'] );
 
 			$this->item->setShippingPackageDetails( $shippingPackageDetails );
 		}
@@ -3245,18 +3338,31 @@ class ItemBuilderModel extends WPL_Model {
 		// which also covers the automatic background revise queued by queueChangedListings() /
 		// wple_do_background_revise_items() whenever a sale marks a listing "changed" - not just
 		// the manual Revise button or the profile editor.
-		$bad_size_aspects = array();
-		$invalid_size_values = self::getSizeAspectInvalidValues();
+		// The generic "no real answer" values (Does not apply / N/A / ...) are only rejected inside
+		// eBay's Apparel/Footwear tree, where the standardisation actually applies. Everywhere else
+		// eBay accepts them - and the required-item-specifics filler a few lines above stamps exactly
+		// those values into empty required aspects, so an ungated denylist makes WPLE block listings
+		// it broke itself (measured on the shipped 3.8.13 bytes, 2026-09-12: Screen Size / Ring Size
+		// / Wheel Size / Band Size = "Does not apply" were rejected although eBay accepts them there).
+		// When the category tree is not available locally the gate fails OPEN - worst case the seller
+		// sees eBay's own error, which is the pre-3.8.13 status quo, never a listing blocked that eBay
+		// would have accepted. The real placeholders ("Multiple sizes" & co, the measured #77327 case)
+		// are never a valid size in any category and stay global.
+		$bad_size_aspects    = array();
+		$invalid_size_values = self::getSizeAspectInvalidValues( $this->site_id );
+		$apparel_only_values = self::getSizeAspectApparelOnlyValues( $this->site_id );
+		$is_apparel_category = EbayCategoriesModel::isApparelOrFootwearCategory( $primary_category_id, $this->site_id );
 
-		$scan_for_bad_size_values = function ( $name_value_list ) use ( &$bad_size_aspects, $invalid_size_values ) {
+		$scan_for_bad_size_values = function ( $name_value_list ) use ( &$bad_size_aspects, $invalid_size_values, $apparel_only_values, $is_apparel_category ) {
 			if ( ! is_array( $name_value_list ) ) return;
 			foreach ( $name_value_list as $nvl ) {
 				if ( ! self::isSizeFamilyAspectName( $nvl->Name ) ) continue;
 				$values = is_array( $nvl->Value ) ? $nvl->Value : array( $nvl->Value );
 				foreach ( $values as $value ) {
-					if ( in_array( strtolower( trim( (string) $value ) ), $invalid_size_values, true ) ) {
-						$bad_size_aspects[ $nvl->Name ] = $value;
-					}
+					$value_key = strtolower( trim( (string) $value ) );
+					if ( ! in_array( $value_key, $invalid_size_values, true ) ) continue;
+					if ( ! $is_apparel_category && in_array( $value_key, $apparel_only_values, true ) ) continue;
+					$bad_size_aspects[ $nvl->Name ] = $value;
 				}
 			}
 		};
@@ -3313,7 +3419,13 @@ class ItemBuilderModel extends WPL_Model {
 		}
 
 		// check for main image
-		if ( trim( @$item->PictureDetails->PictureURL[0] ) == '' ) {
+		// A filter on wple_filter_listing_item may drop PictureDetails on a revise on purpose,
+		// so eBay keeps the pictures already on the listing. buildImages() always assigns a
+		// PictureDetailsType, so a missing container can only come from 3rd party code and is
+		// deliberate - an empty container (no image in WooCommerce) still has to be caught. #77239
+		$pictures_omitted_on_purpose = $reviseItem && ! is_object( $item->getPictureDetails() );
+
+		if ( ! $pictures_omitted_on_purpose && trim( @$item->PictureDetails->PictureURL[0] ) == '' ) {
 			$longMessage = __( 'You need to add at least one image to your product.', 'wp-lister-for-ebay' );
 			$success = false;
 		}
@@ -3405,8 +3517,9 @@ class ItemBuilderModel extends WPL_Model {
 	 *
 	 * @return string[] lowercased
 	 */
-	static public function getSizeAspectInvalidValues() {
-		return array_map( 'strtolower', apply_filters( 'wple_size_aspect_invalid_values', array(
+	static public function getSizeAspectInvalidValues( $site_id = null ) {
+		$values = array(
+			// real placeholders - never a valid size in ANY category, rejected everywhere
 			'multiple sizes',
 			'multiple size',
 			'various sizes',
@@ -3414,12 +3527,54 @@ class ItemBuilderModel extends WPL_Model {
 			'assorted',
 			'assorted sizes',
 			'mixed sizes',
+		);
+
+		// generic "no real answer" values - only rejected inside Apparel/Footwear,
+		// see getSizeAspectApparelOnlyValues() and the gate in checkItem()
+		foreach ( self::getSizeAspectApparelOnlyValues( $site_id ) as $generic ) {
+			if ( ! in_array( $generic, $values, true ) ) $values[] = $generic;
+		}
+
+		return array_map( 'strtolower', apply_filters( 'wple_size_aspect_invalid_values', $values ) );
+	}
+
+	/**
+	 * The subset of getSizeAspectInvalidValues() that is only rejected inside eBay's
+	 * Apparel/Footwear tree. These are generic "no real answer" values, not size placeholders:
+	 * outside Apparel/Footwear eBay accepts them in size-family aspects (Screen Size, Ring Size,
+	 * Wheel Size, Band Size ...), and our own required-item-specifics filler in checkItem()
+	 * stamps them in there itself - so rejecting them globally would have WPLE block listings
+	 * it filled in itself (measured on the shipped 3.8.13 bytes, 2026-09-12).
+	 *
+	 * The site's own DoesNotApplyText is included because that is literally the value the filler
+	 * writes, and it is localised per site (ProductIdentifierUnavailableText, see
+	 * EbayShippingModel::fetchDoesNotApplyText()) - the English literal below does not cover
+	 * DE/FR/IT/ES, which are the sites where eBay's size enforcement started first.
+	 *
+	 * @param int|string|null $site_id
+	 * @return string[] lowercased
+	 */
+	static public function getSizeAspectApparelOnlyValues( $site_id = null ) {
+		$values = array(
 			'does not apply',
 			'n/a',
 			'not applicable',
 			'see description',
 			'tbd',
-		) ) );
+		);
+
+		if ( $site_id !== null && $site_id !== false && $site_id !== '' ) {
+			$site = WPLE_eBaySite::getSiteObj( $site_id );
+			if ( is_object( $site ) && ! empty( $site->DoesNotApplyText ) ) {
+				$values[] = $site->DoesNotApplyText;
+			}
+		}
+
+		$values = apply_filters( 'wple_size_aspect_apparel_only_values', $values, $site_id );
+
+		return array_map( function( $value ) {
+			return strtolower( trim( (string) $value ) );
+		}, (array) $values );
 	}
 
 
@@ -3701,36 +3856,34 @@ class ItemBuilderModel extends WPL_Model {
             if ( empty ( $product_image_gallery ) )
                 $product_image_gallery = get_post_meta( $parent_id, '_product_image_gallery', true );
 
-            // check for additional variation images (WooCommerce Additional Variation Images Addon)
-            if ( class_exists('WC_Additional_Variation_Images') ) {
+            // check for additional variation images (WooCommerce Additional Variation Images Addon,
+            // or WooCommerce's native variation gallery since WC 11.1 #78119)
+            $additional_var_images = ProductWrapper::getAdditionalVariationImageIDs( $id );
 
-                $additional_var_images = get_post_meta( $id, '_wc_additional_variation_images', true );
-                $additional_var_images = empty($additional_var_images) ? false : explode( ',', $additional_var_images );
+            if ( is_array( $additional_var_images ) ) {
+                // Unset the $product_image_gallery and use the additional variation images instead #44939
+                if ( apply_filters( 'wple_exclusive_split_variation_gallery', true ) ) {
+                    // clear the image gallery so the main product gallery doesn't get included in the split variation's
+                    $product_image_gallery = array();
+                    $images = array(); // #78119: native gallery URLs may already be in $images; the variation image goes first
+                } else {
+                    // merge gallery with the parent product
+                    $product_image_gallery = implode( ',', $additional_var_images) .','. $product_image_gallery;
+                }
 
-                if ( is_array( $additional_var_images ) ) {
-                    // Unset the $product_image_gallery and use the additional variation images instead #44939
-                    if ( apply_filters( 'wple_exclusive_split_variation_gallery', true ) ) {
-                        // clear the image gallery so the main product gallery doesn't get included in the split variation's
-                        $product_image_gallery = array();
-                    } else {
-                        // merge gallery with the parent product
-                        $product_image_gallery = implode( ',', $additional_var_images) .','. $product_image_gallery;
-                    }
+                $size = get_option( 'wplister_default_image_size', 'full' );
 
-                    $size = get_option( 'wplister_default_image_size', 'full' );
+                // use the main variation image as the first/primary image
+                $images[] = ProductWrapper::getImageURL( $id );
+                foreach ( $additional_var_images as $attachment_id ) {
 
-                    // use the main variation image as the first/primary image
-                    $images[] = ProductWrapper::getImageURL( $id );
-                    foreach ( $additional_var_images as $attachment_id ) {
+                    // get URL from attachment ID
 
-                        // get URL from attachment ID
+                    $large_image_url = wp_get_attachment_image_src( $attachment_id, $size );
+                    $image_url = wple_encode_url( $large_image_url[0] );
+                    $images[] = $image_url;
+                    WPLE()->logger->info( "found additional variation image: ".$image_url );
 
-                        $large_image_url = wp_get_attachment_image_src( $attachment_id, $size );
-                        $image_url = wple_encode_url( $large_image_url[0] );
-                        $images[] = $image_url;
-                        WPLE()->logger->info( "found additional variation image: ".$image_url );
-
-                    }
                 }
             }
 		}

@@ -1117,13 +1117,7 @@ class WPL_WooBackendIntegration {
 	    	if ( ! empty( $_GET['is_on_ebay'] ) ) {
 
 	        	// find all products that hidden from ebay
-	        	$sql = "
-	        			SELECT post_id 
-	        			FROM {$wpdb->prefix}postmeta 
-					    WHERE meta_key   = '_ebay_hide_from_unlisted'
-					      AND meta_value = 'yes'
-	        	";
-	        	$post_ids_hidden_from_ebay = $wpdb->get_col( $sql );
+	        	$post_ids_hidden_from_ebay = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", '_ebay_hide_from_unlisted', 'yes' ) );
 	        	// echo "<pre>";print_r($post_ids_hidden_from_ebay);echo"</pre>";#die();
 
 
@@ -1279,13 +1273,7 @@ class WPL_WooBackendIntegration {
 			// filter by ebay status
 			if ( ! empty( $_GET['is_on_ebay'] ) ) {
 				// find all products that hidden from ebay
-				$sql = "
-	        			SELECT post_id
-	        			FROM {$wpdb->prefix}postmeta
-					    WHERE meta_key   = '_ebay_hide_from_unlisted'
-					      AND meta_value = 'yes'
-	        	";
-				$post_ids_hidden_from_ebay = $wpdb->get_col( $sql );
+				$post_ids_hidden_from_ebay = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", '_ebay_hide_from_unlisted', 'yes' ) );
 
 				$query->query_vars['post__not_in'] = array_merge( $query->query_vars['post__not_in'], $post_ids_hidden_from_ebay );
 
@@ -1319,12 +1307,7 @@ class WPL_WooBackendIntegration {
 	    	if ( ! empty( $_GET['is_from_ebay'] ) ) {
 
 	        	// find all orders that are imported from ebay
-	        	$sql = "
-	        			SELECT DISTINCT post_id 
-	        			FROM {$wpdb->prefix}postmeta 
-					    WHERE meta_key = '_ebay_order_id'
-	        	";
-	        	$post_ids = $wpdb->get_col( $sql );
+	        	$post_ids = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s", '_ebay_order_id' ) );
 	        	// echo "<pre>";print_r($post_ids);echo"</pre>";#die();
 
 

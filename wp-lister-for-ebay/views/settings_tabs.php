@@ -30,6 +30,7 @@
         <a href="<?php echo $wpl_settings_url; ?>&tab=developer"  class="nav-tab <?php echo $active_tab == 'developer' ? 'nav-tab-active' : ''; ?>"><?php echo __( 'Developer', 'wp-lister-for-ebay' ) ?></a>  
         <?php endif; ?>
 
+        <!---->
 
     </h2>  
 

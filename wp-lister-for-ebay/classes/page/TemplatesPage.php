@@ -729,9 +729,10 @@ class TemplatesPage extends WPL_Page {
 
 	function ajax_wpl_get_copy_template_form() {
 		if ( ! current_user_can('manage_ebay_listings') ) return;
+		check_ajax_referer( 'wple_copy_template' );
 
-		// get template
-		$template_id 			= wple_clean( urldecode( @$_REQUEST['template_id'] ) );
+		// get template - only accept the folder name of an existing user template
+		$template_id 			= $this->get_existing_template_id( @$_REQUEST['template_id'] );
 		if ( ! $template_id ) die('template not found.');
 		$templatesModel 		= new TemplatesModel( $template_id );
 		$item 					= $templatesModel->getItem();
@@ -747,11 +748,29 @@ class TemplatesPage extends WPL_Page {
 	}
 	
 
+	/**
+	 * Returns the folder name of an existing user template, or false.
+	 * The value comes from the request, so it is reduced to a plain folder name
+	 * (no path parts) and must match a template folder on disk (#78154).
+	 */
+	function get_existing_template_id( $raw ) {
+		if ( ! is_string( $raw ) || $raw === '' ) return false;
+		$template_id = basename( urldecode( wp_unslash( $raw ) ) );
+		if ( $template_id === '' || $template_id === '.' || $template_id === '..' ) return false;
+
+		$templatesModel = new TemplatesModel();
+		$templates_dir  = $templatesModel->getTemplatesDirectory();
+		if ( ! is_file( $templates_dir . '/' . $template_id . '/template.html' ) ) return false;
+
+		return $template_id;
+	}
+
 	function ajax_wpl_duplicate_template() {
 		if ( ! current_user_can('manage_ebay_listings') ) return;
+		check_ajax_referer( 'wple_copy_template' );
 
-		// get template
-		$template_id 			= urldecode( $this->getValueFromPost( 'template_id' ) );
+		// get template - only accept the folder name of an existing user template
+		$template_id 			= $this->get_existing_template_id( $this->getValueFromPost( 'template_id' ) );
 		if ( ! $template_id ) die('template not found.');
 		$templatesModel 		= new TemplatesModel( $template_id );
 		$item 					= $templatesModel->getItem();

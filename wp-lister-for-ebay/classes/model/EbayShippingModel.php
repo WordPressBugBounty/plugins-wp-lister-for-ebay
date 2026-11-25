@@ -355,6 +355,7 @@ class EbayShippingModel extends WPL_Model {
 		// either find only flat or only calculated services
 		$type_sql = $type == 'flat' ? 'isFlat = 1' : 'isCalculated = 1';
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $type_sql is one of two fixed literals.
 		$services = $wpdb->get_results( $wpdb->prepare("
 			SELECT * 
 			FROM $table
@@ -375,6 +376,7 @@ class EbayShippingModel extends WPL_Model {
 		// either find only flat or only calculated services
 		$type_sql = $type == 'flat' ? 'isFlat = 1' : 'isCalculated = 1';
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- $type_sql is one of two fixed literals.
 		$services = $wpdb->get_results( $wpdb->prepare("
 			SELECT * 
 			FROM $table

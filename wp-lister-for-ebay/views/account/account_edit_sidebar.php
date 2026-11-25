@@ -52,7 +52,7 @@ if ( !empty( $wpl_account->oauth_token ) ) {
 									<div id="publishing-action">
 										<input type="hidden" name="action" value="wple_save_account" />
                                         <?php wp_nonce_field( 'wple_save_account' ); ?>
-										<input type="hidden" name="wplister_account_id" value="<?php echo $wpl_account->id; ?>" />
+										<input type="hidden" name="wplister_account_id" value="<?php echo esc_attr( $wpl_account->id ); ?>" />
 										<input type="hidden" name="return_to" value="<?php echo sanitize_key(@$_GET['return_to']); ?>" />
 										<input type="submit" value="<?php echo __( 'Update', 'wp-lister-for-ebay' ); ?>" id="publish" class="button-primary" name="save">
 									</div>
@@ -94,8 +94,17 @@ if ( !empty( $wpl_account->oauth_token ) ) {
                         <div class="inside">
 
                             <p>
-                                <?php echo sprintf( __( 'Your token will expire on %s.', 'wp-lister-for-ebay' ), get_date_from_gmt( $wpl_account->refresh_token_expiry, get_option('date_format') ) ) ?><br>
-                                <?php echo __( 'You should refresh your token before that date by following the steps below.', 'wp-lister-for-ebay' ) ?>
+                                <?php if ( ! empty( $wpl_account->refresh_token_expiry ) ) : ?>
+                                    <?php /* Only render a date that exists. get_date_from_gmt( null ) does not fail
+                                             loudly - it renders today's date and emits a deprecation notice, so a
+                                             never-connected account reads as a token expiring today. Same class of
+                                             bug as the tools page reporting "57 years from now". (#77127) */ ?>
+                                    <?php echo sprintf( __( 'Your token will expire on %s.', 'wp-lister-for-ebay' ), get_date_from_gmt( $wpl_account->refresh_token_expiry, get_option('date_format') ) ) ?><br>
+                                    <?php echo __( 'You should refresh your token before that date by following the steps below.', 'wp-lister-for-ebay' ) ?>
+                                <?php else : ?>
+                                    <?php echo __( 'No token expiration date is stored for this account.', 'wp-lister-for-ebay' ) ?><br>
+                                    <?php echo __( 'Connect the account with eBay below to obtain a token.', 'wp-lister-for-ebay' ) ?>
+                                <?php endif; ?>
                             </p>
 
                             <p>
@@ -112,7 +121,7 @@ if ( !empty( $wpl_account->oauth_token ) ) {
                                 <?php echo __( 'After linking WP-Lister with your eBay account, click here to fetch your token', 'wp-lister-for-ebay' ) ?>
                             </p>
                             <p>
-                                <a id="btn_fetch_token" href="<?php echo $wpl_form_action; ?>&amp;action=wplister_fetch_ebay_oauth_token&amp;account_id=<?php echo $wpl_account->id ?>&_wpnonce=<?php echo wp_create_nonce( 'wplister_fetch_ebay_token' ); ?>" class="button-secondary"><?php echo __( 'Fetch eBay Token', 'wp-lister-for-ebay' ) ?></a>
+                                <a id="btn_fetch_token" href="<?php echo $wpl_form_action; ?>&amp;action=wplister_fetch_ebay_oauth_token&amp;account_id=<?php echo intval( $wpl_account->id ) ?>&_wpnonce=<?php echo wp_create_nonce( 'wplister_fetch_ebay_token' ); ?>" class="button-secondary"><?php echo __( 'Fetch eBay Token', 'wp-lister-for-ebay' ) ?></a>
                                 <!-- <input type="submit" value="<?php echo __( 'Fetch eBay Token', 'wp-lister-for-ebay' ) ?>" name="submit" class="button"> -->
                             </p>
 
@@ -142,7 +151,7 @@ if ( !empty( $wpl_account->oauth_token ) ) {
 								<?php echo __( 'After linking WP-Lister with your eBay account, click here to fetch your token', 'wp-lister-for-ebay' ) ?>
 							</p>
 							<p>
-								<a id="btn_fetch_token" href="<?php echo $wpl_form_action; ?>&amp;action=wplister_fetch_ebay_token&amp;account_id=<?php echo $wpl_account->id ?>&_wpnonce=<?php echo wp_create_nonce( 'wplister_fetch_ebay_token' ); ?>" class="button-secondary"><?php echo __( 'Fetch eBay Token', 'wp-lister-for-ebay' ) ?></a>
+								<a id="btn_fetch_token" href="<?php echo $wpl_form_action; ?>&amp;action=wplister_fetch_ebay_token&amp;account_id=<?php echo intval( $wpl_account->id ) ?>&_wpnonce=<?php echo wp_create_nonce( 'wplister_fetch_ebay_token' ); ?>" class="button-secondary"><?php echo __( 'Fetch eBay Token', 'wp-lister-for-ebay' ) ?></a>
 								<!-- <input type="submit" value="<?php echo __( 'Fetch eBay Token', 'wp-lister-for-ebay' ) ?>" name="submit" class="button"> -->
 							</p>
 

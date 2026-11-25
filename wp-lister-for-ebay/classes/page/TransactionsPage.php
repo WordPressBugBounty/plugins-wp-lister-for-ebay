@@ -39,6 +39,7 @@ class TransactionsPage extends WPL_Page {
 			exit();
 		}
 
+		/******/
 
 	}
 
@@ -232,6 +233,7 @@ class TransactionsPage extends WPL_Page {
 		}
 	}
 
+	/******/
 
 	public function showTransactionDetails( $id ) {
 	

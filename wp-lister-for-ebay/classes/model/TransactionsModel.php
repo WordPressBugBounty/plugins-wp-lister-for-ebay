@@ -129,6 +129,7 @@ class TransactionsModel extends WPL_Model {
 			WPLE()->logger->info( 'update transaction #'.$data['transaction_id'].' for item #'.$data['item_id'] );
 			$wpdb->update( $this->tablename, $data, array( 'transaction_id' => $data['transaction_id'] ) );
 
+	        /******/
 
 			$this->addToReport( 'updated', $data );
 		
@@ -180,6 +181,7 @@ class TransactionsModel extends WPL_Model {
 			$newstock = false;
 			$wp_order_id = false;
 
+	        /******/
 
 			$this->addToReport( 'inserted', $data, $newstock, $wp_order_id );
 
@@ -806,8 +808,8 @@ class TransactionsModel extends WPL_Model {
 		// handle NULL values
 		foreach ($data as $key => $value) {
 			if ( NULL === $value ) {
-				$key = esc_sql( $key );
-				$wpdb->query( $wpdb->prepare("UPDATE {$this->tablename} SET $key = NULL WHERE id = %s", $id ) );
+				if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $key ) ) { unset( $data[ $key ] ); continue; } // column names only
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET %i = NULL WHERE id = %s', $this->tablename, $key, $id ) );
 				WPLE()->logger->info('SQL to set NULL value: '.$wpdb->last_query );
 				WPLE()->logger->info( $wpdb->last_error );
 				unset( $data[$key] );
@@ -828,8 +830,8 @@ class TransactionsModel extends WPL_Model {
 		// handle NULL values
 		foreach ($data as $key => $value) {
 			if ( NULL === $value ) {
-				$key = esc_sql( $key );
-				$wpdb->query( $wpdb->prepare("UPDATE {$table} SET $key = NULL WHERE transaction_id = %s", $transaction_id ) );
+				if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $key ) ) { unset( $data[ $key ] ); continue; } // column names only
+				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET %i = NULL WHERE transaction_id = %s', $table, $key, $transaction_id ) );
 				WPLE()->logger->info('SQL to set NULL value: '.$wpdb->last_query );
 				WPLE()->logger->info( $wpdb->last_error );
 				unset( $data[$key] );

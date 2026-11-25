@@ -199,10 +199,10 @@ class WPL_CronActions extends WPL_Core {
 		// and the guard below skips the cleanup, so behaviour is unchanged.
 		$days_to_keep = absint( get_option( 'wplister_orders_days_limit', '' ) );
 		if ( $days_to_keep ) {
-			$rows = $wpdb->query('DELETE FROM '.$wpdb->prefix.'ebay_orders WHERE date_created < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
+			$rows = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE date_created < DATE_SUB(NOW(), INTERVAL %d DAY )', $wpdb->prefix . 'ebay_orders', $days_to_keep ) );
 			WPLE()->logger->info('Cleaned table ebay_orders - affected rows: ' . $rows);
 
-			$rows = $wpdb->query('DELETE FROM '.$wpdb->prefix.'ebay_transactions WHERE date_created < DATE_SUB(NOW(), INTERVAL '.$days_to_keep.' DAY )');
+			$rows = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE date_created < DATE_SUB(NOW(), INTERVAL %d DAY )', $wpdb->prefix . 'ebay_transactions', $days_to_keep ) );
 			WPLE()->logger->info('Cleaned table ebay_transactions - affected rows: ' . $rows);
 		}
 

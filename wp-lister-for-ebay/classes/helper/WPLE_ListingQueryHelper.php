@@ -87,10 +87,10 @@ class WPLE_ListingQueryHelper {
 			ORDER BY id DESC";
 
 		if ( $limit ) {
-		    $sql .= " LIMIT $limit";
+		    $sql .= ' LIMIT ' . absint( $limit );
         }
 
-		$items = $wpdb->get_results($sql, ARRAY_A);
+		$items = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name from $wpdb->prefix, a fixed filter literal and an absint() LIMIT; no request input.
 
 		return $items;
 	}
@@ -118,6 +118,7 @@ class WPLE_ListingQueryHelper {
 		$offset = intval($offset);
 		$limit_sql = $limit ? " LIMIT $limit OFFSET $offset" : '';
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$items = $wpdb->get_results("
 			SELECT * 
 			FROM $table
@@ -154,6 +155,7 @@ class WPLE_ListingQueryHelper {
 		$offset = intval($offset);
 		$limit_sql = $limit ? " LIMIT $limit OFFSET $offset" : '';
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$items = $wpdb->get_results("
 			SELECT * 
 			FROM $table
@@ -187,6 +189,7 @@ class WPLE_ListingQueryHelper {
         $offset = intval($offset);
         $limit_sql = $limit ? " LIMIT $limit OFFSET $offset" : '';
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$items = $wpdb->get_results( $wpdb->prepare("
 			SELECT * 
 			FROM $table
@@ -210,6 +213,7 @@ class WPLE_ListingQueryHelper {
 		$condition = $pending_only ? 'AND relist_date <= NOW()' : '';
 
 		$wpdb->query("SET time_zone='+0:00'"); // tell SQL to use GMT
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$items = $wpdb->get_results("
 			SELECT * 
 			FROM $table
@@ -315,6 +319,7 @@ class WPLE_ListingQueryHelper {
 		if ( $status == 'locked' )    $where_and_sql = " AND locked = '1' ";
 		if ( $status == 'published' ) $where_and_sql = " AND ( status = 'published' OR status = 'changed' ) ";
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$item_count = $wpdb->get_var( $wpdb->prepare("
 			SELECT count(id) 
 			FROM $table
@@ -369,6 +374,7 @@ class WPLE_ListingQueryHelper {
         $limit_sql = $limit ? " LIMIT $limit OFFSET $offset" : '';
 
 		$template = esc_sql( $template );
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$items = $wpdb->get_results("
 			SELECT * 
 			FROM $table
@@ -391,6 +397,7 @@ class WPLE_ListingQueryHelper {
 		if ( $status == 'published' ) $where_and_sql = " AND ( status = 'published' OR status = 'changed' ) ";
 
 		$template = esc_sql( $template );
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$item_count = $wpdb->get_var("
 			SELECT count(id) 
 			FROM $table
@@ -481,20 +488,14 @@ class WPLE_ListingQueryHelper {
 	static function getWhere( $column, $value, $sort_by = null, $sort_direction = null ) {
 		global $wpdb;
 		$table = $wpdb->prefix . self::TABLENAME;
-		$sort_str = '';
-		if ( $sort_by && !is_null( $sort_direction ) ) {
-		    $sort_dir = ($sort_direction === SORT_ASC) ? 'ASC' : 'DESC';
-		    $sort_str = " ORDER BY {$sort_by} {$sort_dir}";
-        }
-
-
-		$items = $wpdb->get_results( $wpdb->prepare("
-			SELECT *
-			FROM $table
-			WHERE $column = %s
-			{$sort_str}
-		", $value
-		), OBJECT_K);
+		// public API (wple_get_listings_where): column and sort column are identifiers, never escaped values
+		if ( ! preg_match( '/^[A-Za-z0-9_]+$/', $column ) ) return array();
+		if ( $sort_by && ! is_null( $sort_direction ) && preg_match( '/^[A-Za-z0-9_]+$/', $sort_by ) ) {
+			$sort_dir = ( $sort_direction === SORT_ASC ) ? 'ASC' : 'DESC';
+			$items = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE %i = %s ORDER BY %i $sort_dir", $table, $column, $value, $sort_by ), OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $sort_dir is the literal ASC or DESC.
+		} else {
+			$items = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE %i = %s', $table, $column, $value ), OBJECT_K );
+		}
 
 		return $items;
 	}
@@ -506,8 +507,10 @@ class WPLE_ListingQueryHelper {
 		if ( ! is_array( $listing_ids )  ) return array();
 		if ( sizeof( $listing_ids ) == 0 ) return array();
 
-		// sanitize input
-		$id_list = implode( ',', esc_sql( $listing_ids ) );
+		// ids are cast to integers before use in IN()
+		$listing_ids = array_filter( array_map( 'absint', $listing_ids ) );
+		if ( empty( $listing_ids ) ) return array();
+		$id_list = implode( ',', $listing_ids );
 
 		// $where = ' id = ' . join( ' OR id = ', $listing_ids);
 		$items = $wpdb->get_results("
@@ -1221,6 +1224,7 @@ class WPLE_ListingQueryHelper {
             $select = "SELECT SQL_CALC_FOUND_ROWS DISTINCT l.*, l.quantity - COALESCE(l.quantity_sold, 0) AS qty, l.details as details, l.listing_duration as listing_duration";
         }
 
+		// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter -- fragments are literals, absint()/intval() numbers or esc_sql() values inside quotes; ORDER BY column/direction are allow-listed (CVE-2026-11973), search escaped (0de0ff289).
 		$items = $wpdb->get_results("
 			$select
 			FROM $table l
@@ -1372,7 +1376,9 @@ class WPLE_ListingQueryHelper {
         foreach ( $search_terms as $term ) {
             $like_op  = 'LIKE';
             $andor_op = 'OR';
-            $like      = '%' . $wpdb->esc_like( $term ) . '%';
+            // The term arrives slashed once (admin page: WordPress magic quotes; REST: wp_slash() in
+            // the controller). Unslash it, then escape it for LIKE and for SQL.
+            $like      = esc_sql( '%' . $wpdb->esc_like( wp_unslash( $term ) ) . '%' );
 
             $sku_where = '';
             if ( $sku_search ) {

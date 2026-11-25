@@ -332,12 +332,63 @@ class ToolsPage extends WPL_Page {
 
 				// GetTokenStatus
 				if ( $_REQUEST['action'] == 'GetTokenStatus') {
-					$this->initEC();
-					$expdate = $this->EC->GetTokenStatus();
-					$this->EC->closeEbay();
-					$msg = __( 'Your token will expire on', 'wp-lister-for-ebay' ) . ' ' . $expdate;
-					$msg .= ' (' . human_time_diff( strtotime($expdate) ) . ' from now)';
-					$this->showMessage( $msg );
+
+					$account_id = isset( $_REQUEST['account_id'] ) ? wple_clean( $_REQUEST['account_id'] ) : get_option('wplister_default_account_id');
+					$account    = $account_id ? WPLE_eBayAccount::getAccount( $account_id ) : false;
+
+					// wplister_default_account_id is only written when an account is connected
+					// through the Accounts page, so it can be missing on an otherwise working
+					// install. Without this fallback an OAuth account drops into the legacy
+					// branch below and the check measures nothing at all. (#77127)
+					if ( ! $account ) {
+						foreach ( WPLE_eBayAccount::getAll() as $candidate ) {
+							if ( ! empty( $candidate->oauth_token ) ) {
+								$account = $candidate;
+								break;
+							}
+						}
+					}
+
+					if ( $account && ! empty( $account->oauth_token ) ) {
+
+						// OAuth account: GetTokenStatus belongs to the legacy Auth'n'Auth call family
+						// and always answers eBay error 16112 "Invalid authentication method" here.
+						// Measure what can actually expire instead: mint a fresh access token from
+						// the stored refresh token, which is the credential that really goes stale.
+						$minted = WPLE_eBayAccount::maybeMintToken( $account->id, true );
+
+						if ( $minted ) {
+							$account = WPLE_eBayAccount::getAccount( $account->id );
+							$msg  = sprintf( __( 'Your eBay account %s uses OAuth. A fresh access token was just obtained from eBay, so your connection is working.', 'wp-lister-for-ebay' ), $account->title );
+							if ( $account->refresh_token_expiry ) {
+								$msg .= ' ' . sprintf( __( 'You will need to reconnect this account on %s (in %s).', 'wp-lister-for-ebay' ), $account->refresh_token_expiry, human_time_diff( strtotime( $account->refresh_token_expiry ) ) );
+							}
+							$this->showMessage( $msg );
+						} else {
+							$refresh_url = 'admin.php?page=wplister-settings&tab=accounts&action=wple_edit_account&ebay_account=' . $account->id;
+							$msg  = sprintf( __( 'Could not obtain a fresh access token for your eBay account %s. Please reconnect this account.', 'wp-lister-for-ebay' ), $account->title );
+							$msg .= ' &nbsp; <a href="'.$refresh_url.'" class="button button-primary">' . __( 'Refresh Token', 'wp-lister-for-ebay' ) . '</a>';
+							$this->showMessage( $msg, true );
+						}
+
+					} else {
+
+						$this->initEC();
+						$expdate = $this->EC->GetTokenStatus();
+						$this->EC->closeEbay();
+
+						if ( ! empty( $expdate ) ) {
+							$msg  = __( 'Your token will expire on', 'wp-lister-for-ebay' ) . ' ' . $expdate;
+							$msg .= ' (' . human_time_diff( strtotime($expdate) ) . ' from now)';
+							$this->showMessage( $msg );
+						} else {
+							// Never fall through to human_time_diff() with an empty date - strtotime('')
+							// is false and the diff is then measured from the Unix epoch, which renders
+							// as "(57 years from now)" and reads like a clean bill of health. See #77127.
+							$this->showMessage( __( 'Could not read the token expiration date from eBay. Any error message eBay returned is shown above. Note that the date shown for this account on your Accounts page was not verified by this check.', 'wp-lister-for-ebay' ), true );
+						}
+
+					}
 				}
 				// GetUser
 				if ( $_REQUEST['action'] == 'GetUser') {
@@ -749,8 +800,7 @@ class ToolsPage extends WPL_Page {
 		global $wpdb;
 
 		// fetch all UPCs
-		$sql      = "SELECT post_id FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_amazon_id_type' AND meta_value = 'UPC' ";
-		$products = $wpdb->get_col($sql);
+		$products = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", '_amazon_id_type', 'UPC' ) );
 		$upc_count = 0;
 		foreach ( $products as $post_id ) {
 			$upc = get_post_meta( $post_id, '_amazon_product_id', true );
@@ -761,8 +811,7 @@ class ToolsPage extends WPL_Page {
 		}
 
 		// fetch all EANs
-		$sql      = "SELECT post_id FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_amazon_id_type' AND meta_value = 'EAN' ";
-		$products = $wpdb->get_col($sql);
+		$products = $wpdb->get_col( $wpdb->prepare( "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = %s", '_amazon_id_type', 'EAN' ) );
 		$ean_count = 0;
 		foreach ( $products as $post_id ) {
 			$ean = get_post_meta( $post_id, '_amazon_product_id', true );
