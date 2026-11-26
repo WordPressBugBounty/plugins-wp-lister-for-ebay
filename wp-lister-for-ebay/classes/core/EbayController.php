@@ -103,12 +103,38 @@ class EbayController {
         return $url;
     }
 
-    public static function getOAuthStateString() {
-        $url = trailingslashit( get_bloginfo('url'));
-        WPLE()->logger->info( 'site url: '. $url);
-        WPLE()->logger->info( 'state: '. md5($url));
+    /**
+     * OAuth state, also used as the pickup key on auth.wplister.com.
+     * A random 256 bit value per install, kept in the options table and
+     * replaced after every successful pickup.
+     */
+    public static function getOAuthStateString( $regenerate = false ) {
+        $state = get_option( 'wplister_oauth_state' );
 
-        return md5( $url );
+        if ( $regenerate || ! is_string( $state ) || ! preg_match( '/^[0-9a-f]{64}$/', $state ) ) {
+            if ( function_exists( 'random_bytes' ) ) {
+                try {
+                    $state = bin2hex( random_bytes( 32 ) );
+                } catch ( Exception $e ) {
+                    $state = hash( 'sha256', wp_generate_password( 64, true, true ) . microtime() );
+                }
+            } else {
+                $state = hash( 'sha256', wp_generate_password( 64, true, true ) . microtime() );
+            }
+            update_option( 'wplister_oauth_state', $state, false );
+        }
+
+        return $state;
+    }
+
+    // after a pickup the old state is spent - the next "Connect with eBay" gets a new one
+    public static function rotateOAuthStateString() {
+        delete_option( 'wplister_oauth_state' );
+    }
+
+    // TLS verification for the auth relay (was off). Filter kept as an escape hatch for broken hosts.
+    public static function authRelaySslVerify() {
+        return (bool) apply_filters( 'wple_auth_relay_sslverify', true );
     }
 
     public static function getOAuthUrl( $sandbox = false ) {
@@ -129,7 +155,7 @@ class EbayController {
         $response = wp_remote_get(
             'https://auth.wplister.com/ebay-oauth/?action=get_refresh_token&key='. self::getOAuthStateString(),
             [
-                'sslverify' => false,
+                'sslverify' => self::authRelaySslVerify(),
                 'timeout'   => 30
             ]
         );
@@ -142,7 +168,16 @@ class EbayController {
 
         $refresh_token = urldecode(wp_remote_retrieve_body( $response ));
 
-        WPLE()->logger->info('token: '. $refresh_token);
+        // the relay hands each code out only once - spend the state with it.
+        // Not on "invalid_token": the user may have clicked Fetch before eBay finished,
+        // and the consent still in flight carries the current state.
+        // Only on HTTP 200: a 429 (rate limit) or 5xx is not a pickup.
+        if ( 200 === (int) wp_remote_retrieve_response_code( $response ) && $refresh_token !== "" && $refresh_token !== "invalid_token" ) {
+            self::rotateOAuthStateString();
+        }
+
+        // never write the code/token itself to the logfile
+        WPLE()->logger->info( 'token: ' . self::maskCredential( $refresh_token ) );
 
         return $refresh_token;
     }
@@ -154,7 +189,7 @@ class EbayController {
         $response = wp_remote_get(
             'https://auth.wplister.com/ebay-oauth/?action='.$action.'&key='. urlencode( $refresh_token ) .'&test='. $sandbox,
             array(
-                'sslverify' => false,
+                'sslverify' => self::authRelaySslVerify(),
                 'timeout'   => 15
             )
         );
@@ -166,8 +201,9 @@ class EbayController {
             $dblogger->updateLog( array(
                 'callname'    => 'getOAuthAccessToken',
                 'request_url' => '/ebay-oauth/',
-                'request'     => 'action='.$action.'&key='. urlencode( $refresh_token ) .'&test='. $sandbox,
-                'response'    => print_r($body,1),
+                // the db copy ends up in support dumps - mask it too
+                'request'     => 'action='.$action.'&key='. self::maskCredential( $refresh_token ) .'&test='. $sandbox,
+                'response'    => print_r( self::maskTokenResponse( $body ), 1 ),
                 'success'     => wp_remote_retrieve_response_code( $response ) == 200 ? 'Success' : 'Failure'
             ));
         }
@@ -190,8 +226,34 @@ class EbayController {
             return false;
         }
 
-        WPLE()->logger->debug( 'getOAuthAccessToken body: '. print_r($body,1) );
+        WPLE()->logger->debug( 'getOAuthAccessToken body: '. print_r( self::maskTokenResponse( $body ), 1 ) );
         return $body;
+    }
+
+    // log the shape of a credential, never the credential
+    public static function maskCredential( $value ) {
+        if ( ! is_scalar( $value ) ) return '(not a string)';
+        $value = (string) $value;
+        if ( $value === '' ) return '(empty)';
+        return '(' . strlen( $value ) . ' chars, ' . substr( $value, 0, 4 ) . '...)';
+    }
+
+    // copy of a token response with the credentials replaced by their shape
+    public static function maskTokenResponse( $body ) {
+        if ( ! is_object( $body ) && ! is_array( $body ) ) return $body;
+
+        $masked = is_object( $body ) ? clone $body : $body;
+        $keys   = array( 'access_token', 'refresh_token', 'token', 'key' );
+
+        foreach ( $keys as $key ) {
+            if ( is_object( $masked ) && isset( $masked->$key ) ) {
+                $masked->$key = self::maskCredential( $masked->$key );
+            } elseif ( is_array( $masked ) && isset( $masked[ $key ] ) ) {
+                $masked[ $key ] = self::maskCredential( $masked[ $key ] );
+            }
+        }
+
+        return $masked;
     }
  
     // do FetchToken and save to DB

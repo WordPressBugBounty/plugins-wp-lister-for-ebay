@@ -82,7 +82,7 @@ class WPL_AjaxHandler extends WPL_Core {
             die(0);
         }
 
-        $state_code = md5( get_bloginfo( 'url' ) );
+        $state_code = EbayController::getOAuthStateString(); // random per-install state
         $auth_url = 'https://auth.wplister.com/ebay-oauth/auth.php?state='. $state_code;
 
         if ( !empty( $_GET['test'] ) ) {

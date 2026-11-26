@@ -3,7 +3,7 @@ Contributors: wp-lab
 Tags: ebay, woocommerce, products, export
 Requires at least: 6.2
 Tested up to: 7.1
-Stable tag: trunk
+Stable tag: 3.8.17.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -102,6 +102,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 6. Template Editor
 
 == Changelog ==
+= 3.8.17.2 - 2026-11-26 =
+* Security: Hardened the connection to your eBay account (a random secret per site, certificate checks for the WP Lab authorization server), and eBay authorization codes and tokens are no longer written in full to the WP-Lister logs. We recommend updating.
+* Fix: The default listing templates no longer load a placeholder logo over plain http, which eBay rejects. Templates you already saved are not changed.
+
 = 3.8.17.1 - 2026-11-25 =
 * Security: Text typed into the search box on the eBay Listings page, and the search parameter of the REST API, is now escaped properly before it is used in a database query. We recommend updating.
 * Security: The "Duplicate template" form and several other admin pages no longer print request values unescaped, and duplicating a template now requires a valid security token. We recommend updating.
